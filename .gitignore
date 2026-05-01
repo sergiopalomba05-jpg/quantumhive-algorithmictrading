@@ -1,0 +1,110 @@
+# QUANTUMHIVE - Git Ignore
+# Archivos con credenciales y datos sensibles
+
+# Archivos de entorno
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
+venv/
+env/
+ENV/
+.venv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Datasets y datos grandes
+datasets/
+*.csv
+*.zip
+*.parquet
+*.pkl
+*.h5
+
+# Node modules (AI Town)
+quantum_bridge/node_modules/
+quantum_bridge/.next/
+quantum_bridge/.turbo/
+quantum_bridge/dist/
+quantum_bridge/build/
+
+# Archivos grandes generados
+resultados_backtest.txt
+resultados_evaluacion.txt
+resultados_final.txt
+
+# Modelos entrenados
+models/
+*.onnx
+*.pt
+*.pth
+*.h5
+*.pkl
+*.joblib
+
+# Reportes y archivos temporales
+reportes/
+*.tmp
+*.bak
+*.backup
+
+# MetaTrader 5
+MQL5/Files/*.onnx
+MQL5/Files/*.log
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# PyCharm
+.idea/
+
+# VSCode
+.vscode/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Cache
+.cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Backup de dashboards
+dashboard/*backup*
+dashboard/*_v[0-9].html
