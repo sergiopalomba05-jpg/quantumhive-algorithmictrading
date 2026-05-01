@@ -25,14 +25,19 @@ class SupabaseMemory:
     def _connect(self):
         """Establece conexión con Supabase."""
         try:
+            logger.info(f"Intentando conectar a Supabase: URL={SUPABASE_URL[:20]}...")
             if not SUPABASE_URL or not SUPABASE_KEY:
                 logger.error("Credenciales de Supabase no configuradas")
+                logger.error(f"SUPABASE_URL: {SUPABASE_URL}")
+                logger.error(f"SUPABASE_KEY: {SUPABASE_KEY[:10] if SUPABASE_KEY else 'None'}...")
                 return
             
             self.client = create_client(SUPABASE_URL, SUPABASE_KEY)
-            logger.info("Conexión a Supabase establecida")
+            logger.info("Conexión a Supabase establecida exitosamente")
         except Exception as e:
             logger.error(f"Error conectando a Supabase: {e}")
+            logger.error(f"SUPABASE_URL: {SUPABASE_URL}")
+            logger.error(f"SUPABASE_KEY: {SUPABASE_KEY[:10] if SUPABASE_KEY else 'None'}...")
     
     def guardar_conversacion(self, rol: str, contenido: str, tipo_mensaje: str = "texto") -> int:
         """
