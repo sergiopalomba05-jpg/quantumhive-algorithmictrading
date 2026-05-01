@@ -18,6 +18,13 @@ from dotenv import load_dotenv
 import requests
 from anthropic import Anthropic
 
+# Configuración de logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 # AGI UPGRADE v2.0 Modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
 try:
@@ -38,13 +45,6 @@ except ImportError as e:
     logger.warning(f"AGI UPGRADE v2.0 modules no disponibles: {e}. Usando fallback legacy.")
     AGI_V2_AVAILABLE = False
 from agi_core.supabase_client import supabase_memory
-
-# Configuración de logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
