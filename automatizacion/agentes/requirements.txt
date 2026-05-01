@@ -1,0 +1,9 @@
+flask
+requests
+openpyxl
+beautifulsoup4
+gunicorn
+gTTS
+anthropic
+python-dotenv
+supabase
