@@ -1,10 +1,36 @@
+'use client';
+
+import Game from '../components/Game.tsx';
+import MusicButton from '../components/buttons/MusicButton.tsx';
+import Button from '../components/buttons/Button.tsx';
+import InteractButton from '../components/buttons/InteractButton.tsx';
+import FreezeButton from '../components/FreezeButton.tsx';
+import PoweredByConvex from '../components/PoweredByConvex.tsx';
+
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm">
-        <h1 className="text-4xl font-bold">QuantumHive Town</h1>
-        <p className="mt-4 text-xl">Capa visual de operativa de trading en AI Town</p>
+    <main className="relative flex min-h-screen flex-col items-center justify-between font-body game-background">
+      <PoweredByConvex />
+
+      <div className="w-full lg:h-screen min-h-screen relative isolate overflow-hidden lg:p-8 shadow-2xl flex flex-col justify-start">
+        <h1 className="mx-auto text-4xl p-3 sm:text-8xl lg:text-9xl font-bold font-display leading-none tracking-wide game-title w-full text-left sm:text-center sm:w-auto">
+          QuantumHive Town
+        </h1>
+
+        <div className="max-w-xs md:max-w-xl lg:max-w-none mx-auto my-4 text-center text-base sm:text-xl md:text-2xl text-white leading-tight shadow-solid">
+          Capa visual de operativa de trading en AI Town
+        </div>
+
+        <Game />
+
+        <footer className="justify-end bottom-0 left-0 w-full flex items-center mt-4 gap-3 p-6 flex-wrap pointer-events-none">
+          <div className="flex gap-4 flex-grow pointer-events-none">
+            <FreezeButton />
+            <MusicButton />
+            <InteractButton />
+          </div>
+        </footer>
       </div>
     </main>
-  )
+  );
 }
