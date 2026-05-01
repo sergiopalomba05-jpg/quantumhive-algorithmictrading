@@ -143,24 +143,20 @@ class GitHubMemoryManager:
         return self._put_file(path, contenido, sha)
 
     def actualizar_perfil_sergio(self, mensaje: str, tipo: str = 'interaccion'):
-        """Actualiza el perfil dinámico de Sergio en GitHub."""
-        import threading
-        def _actualizar():
-            resultado = self._get_file(f"{MEMORIA_DIR}/sergio_profile.json")
-            try:
-                perfil = json.loads(resultado['contenido']) if resultado else {}
-            except:
-                perfil = {}
+        """Actualiza el perfil dinámico de Sergio en GitHub (síncrono)."""
+        resultado = self._get_file(f"{MEMORIA_DIR}/sergio_profile.json")
+        try:
+            perfil = json.loads(resultado['contenido']) if resultado else {}
+        except:
+            perfil = {}
 
-            perfil['ultima_interaccion'] = {
-                'fecha': datetime.now().isoformat(),
-                'tipo': tipo,
-                'contenido': mensaje[:200]
-            }
-            perfil['total_interacciones'] = perfil.get('total_interacciones', 0) + 1
-            self.guardar_memoria('sergio_profile.json', perfil)
-
-        threading.Thread(target=_actualizar, daemon=True).start()
+        perfil['ultima_interaccion'] = {
+            'fecha': datetime.now().isoformat(),
+            'tipo': tipo,
+            'contenido': mensaje[:200]
+        }
+        perfil['total_interacciones'] = perfil.get('total_interacciones', 0) + 1
+        self.guardar_memoria('sergio_profile.json', perfil)
 
     def registrar_idea_aprobada(self, titulo: str, descripcion: str,
                                  score: int, categoria: str, proximo_paso: str):
