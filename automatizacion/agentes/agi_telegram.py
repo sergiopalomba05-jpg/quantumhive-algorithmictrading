@@ -46,6 +46,16 @@ except ImportError as e:
     AGI_V2_AVAILABLE = False
 from agi_core.supabase_client import supabase_memory
 
+# GitHub Memory Manager — memoria persistente entre sesiones
+try:
+    from agi_memory.github_memory import github_memory
+    GITHUB_MEMORY_AVAILABLE = True
+    logger.info("GitHub Memory disponible")
+except Exception as e:
+    github_memory = None
+    GITHUB_MEMORY_AVAILABLE = False
+    logger.warning(f"GitHub Memory no disponible: {e}")
+
 app = Flask(__name__)
 
 # Cargar variables de entorno
@@ -964,35 +974,36 @@ def construir_mensaje_sistema(db_conn, tipo_mensaje: str) -> str:
     """
     Combina el system prompt base con el contexto dinámico actual y memoria persistente.
     AGI UPGRADE v2.0 - Integra MemoryManager para memoria persistente real.
+    GitHub Memory - Persiste memoria entre sesiones de Render.
     """
     # System prompt base (SYSTEM_PROMPT ya está definido)
     system_base = SYSTEM_PROMPT
-    
-    # Contexto dinámico según tipo de mensaje (SQLite)
-    contexto_dinamico = construir_contexto_dinamico(db_conn, tipo_mensaje)
-    
+    partes = [system_base]
+
+    # Memoria persistente de GitHub (entre sesiones)
+    if github_memory:
+        try:
+            contexto_github = github_memory.obtener_contexto_para_claude()
+            if contexto_github:
+                partes.append(f"\n\n---\n## MEMORIA PERSISTENTE (GitHub)\n{contexto_github}")
+        except Exception as e:
+            logger.error(f"Error cargando GitHub Memory: {e}")
+
     # AGI UPGRADE v2.0 - Cargar memoria persistente desde MemoryManager
-    contexto_memoria = ""
     if memory_manager:
         try:
             contexto_memoria = memory_manager.obtener_contexto_para_claude()
             if contexto_memoria:
-                contexto_memoria = f"\n\n---\n## MEMORIA PERSISTENTE (AGI UPGRADE v2.0)\n{contexto_memoria}"
+                partes.append(f"\n\n---\n## MEMORIA PERSISTENTE (AGI UPGRADE v2.0)\n{contexto_memoria}")
         except Exception as e:
             logger.error(f"Error cargando memoria persistente: {e}")
-    
-    # Combinar contextos
-    contexto_completo = ""
+
+    # Contexto dinámico según tipo de mensaje (SQLite)
+    contexto_dinamico = construir_contexto_dinamico(db_conn, tipo_mensaje)
     if contexto_dinamico:
-        contexto_completo += f"\n\n---\n## ESTADO ACTUAL DEL SISTEMA\n{contexto_dinamico}"
+        partes.append(f"\n\n---\n## ESTADO ACTUAL DEL SISTEMA\n{contexto_dinamico}")
     
-    if contexto_memoria:
-        contexto_completo += contexto_memoria
-    
-    if contexto_completo:
-        return f"{system_base}{contexto_completo}"
-    
-    return system_base
+    return "\n".join(partes)
 
 
 # Claude API client
@@ -1096,6 +1107,10 @@ def procesar_mensaje_con_claude(message_text, tipo_mensaje: str = "general"):
         # 5. Guardar mensaje del usuario y respuesta en historial
         guardar_en_historial(memoria.db_path, "user", message_text)
         guardar_en_historial(memoria.db_path, "assistant", respuesta)
+        
+        # 6. Actualizar perfil de Sergio en GitHub en background
+        if github_memory:
+            github_memory.actualizar_perfil_sergio(message_text, tipo_mensaje)
         
         return respuesta
         
