@@ -102,6 +102,15 @@ ALTER TABLE decisiones ENABLE ROW LEVEL SECURITY;
 ALTER TABLE agentes ENABLE ROW LEVEL SECURITY;
 
 -- Políticas RLS (permitir todo por ahora, se puede restringir después)
+-- Drop policies first if they exist (for idempotent script)
+DROP POLICY IF EXISTS "Permitir todo en conversaciones" ON conversaciones;
+DROP POLICY IF EXISTS "Permitir todo en ideas" ON ideas;
+DROP POLICY IF EXISTS "Permitir todo en mensajes" ON mensajes;
+DROP POLICY IF EXISTS "Permitir todo en metricas" ON metricas;
+DROP POLICY IF EXISTS "Permitir todo en alertas" ON alertas;
+DROP POLICY IF EXISTS "Permitir todo en decisiones" ON decisiones;
+DROP POLICY IF EXISTS "Permitir todo en agentes" ON agentes;
+
 CREATE POLICY "Permitir todo en conversaciones" ON conversaciones FOR ALL USING (true);
 CREATE POLICY "Permitir todo en ideas" ON ideas FOR ALL USING (true);
 CREATE POLICY "Permitir todo en mensajes" ON mensajes FOR ALL USING (true);
