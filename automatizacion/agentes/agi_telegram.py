@@ -18,20 +18,25 @@ from dotenv import load_dotenv
 import requests
 from anthropic import Anthropic
 
-# AGI UPGRADE v2.0 Modules (comentados temporalmente para deploy)
+# AGI UPGRADE v2.0 Modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
-# from agi_memory.intent_classifier import IntentClassifier as NewIntentClassifier
-# from agi_memory.challenge_mode import ChallengeMode
-# from agi_memory.memory_manager import MemoryManager
-# from agi_core.approval_gate import ApprovalGate
-# from agi_core.action_router import ActionRouter
-# from agi_core.agent_bus import AgentBus
-# from agi_autonomous.heartbeat_monitor import HeartbeatMonitor
-# from agi_autonomous.briefing_generator import BriefingGenerator
-# from agi_autonomous.proactive_alerts import ProactiveAlerts
-# from agi_autonomous.action_executor import ActionExecutor
-# from agi_autonomous.trigger_system import TriggerSystem
-# from agi_autonomous.agi_autonomous import AGIAutonomous
+try:
+    from agi_memory.intent_classifier import IntentClassifier as NewIntentClassifier
+    from agi_memory.challenge_mode import ChallengeMode
+    from agi_memory.memory_manager import MemoryManager
+    from agi_core.approval_gate import ApprovalGate
+    from agi_core.action_router import ActionRouter
+    from agi_core.agent_bus import AgentBus
+    from agi_autonomous.heartbeat_monitor import HeartbeatMonitor
+    from agi_autonomous.briefing_generator import BriefingGenerator
+    from agi_autonomous.proactive_alerts import ProactiveAlerts
+    from agi_autonomous.action_executor import ActionExecutor
+    from agi_autonomous.trigger_system import TriggerSystem
+    from agi_autonomous.agi_autonomous import AGIAutonomous
+    AGI_V2_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"AGI UPGRADE v2.0 modules no disponibles: {e}. Usando fallback legacy.")
+    AGI_V2_AVAILABLE = False
 from agi_core.supabase_client import supabase_memory
 
 # Configuración de logging
@@ -991,22 +996,37 @@ memoria = MemoriaSQLite()
 clasificador_intencion = ClasificadorIntencion()
 
 # AGI UPGRADE v2.0 - Inicializar módulos
-try:
-    new_intent_classifier = NewIntentClassifier()
-    challenge_mode = ChallengeMode()
-    memory_manager = MemoryManager()
-    approval_gate = ApprovalGate()
-    action_router = ActionRouter()
-    agent_bus = AgentBus()
-    heartbeat_monitor = HeartbeatMonitor()
-    briefing_generator = BriefingGenerator()
-    proactive_alerts = ProactiveAlerts()
-    action_executor = ActionExecutor()
-    trigger_system = TriggerSystem()
-    agi_autonomous = AGIAutonomous()
-    logger.info("AGI UPGRADE v2.0 módulos inicializados correctamente")
-except Exception as e:
-    logger.error(f"Error inicializando módulos AGI UPGRADE v2.0: {e}")
+if AGI_V2_AVAILABLE:
+    try:
+        new_intent_classifier = NewIntentClassifier()
+        challenge_mode = ChallengeMode()
+        memory_manager = MemoryManager()
+        approval_gate = ApprovalGate()
+        action_router = ActionRouter()
+        agent_bus = AgentBus()
+        heartbeat_monitor = HeartbeatMonitor()
+        briefing_generator = BriefingGenerator()
+        proactive_alerts = ProactiveAlerts()
+        action_executor = ActionExecutor()
+        trigger_system = TriggerSystem()
+        agi_autonomous = AGIAutonomous()
+        logger.info("AGI UPGRADE v2.0 módulos inicializados correctamente")
+    except Exception as e:
+        logger.error(f"Error inicializando módulos AGI UPGRADE v2.0: {e}")
+        new_intent_classifier = None
+        challenge_mode = None
+        memory_manager = None
+        approval_gate = None
+        action_router = None
+        agent_bus = None
+        heartbeat_monitor = None
+        briefing_generator = None
+        proactive_alerts = None
+        action_executor = None
+        trigger_system = None
+        agi_autonomous = None
+else:
+    # Fallback a clasificador legacy
     new_intent_classifier = None
     challenge_mode = None
     memory_manager = None
@@ -1019,6 +1039,7 @@ except Exception as e:
     action_executor = None
     trigger_system = None
     agi_autonomous = None
+    logger.info("Usando clasificador de intención legacy (ClasificadorIntencion)")
 
 def procesar_mensaje_con_claude(message_text, tipo_mensaje: str = "general"):
     """
