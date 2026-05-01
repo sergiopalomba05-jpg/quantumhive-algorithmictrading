@@ -18,20 +18,20 @@ from dotenv import load_dotenv
 import requests
 from anthropic import Anthropic
 
-# AGI UPGRADE v2.0 Modules
-sys.path.insert(0, str(Path(__file__).parent.parent))
-from agi_memory.intent_classifier import IntentClassifier as NewIntentClassifier
-from agi_memory.challenge_mode import ChallengeMode
-from agi_memory.memory_manager import MemoryManager
-from agi_core.approval_gate import ApprovalGate
-from agi_core.action_router import ActionRouter
-from agi_core.agent_bus import AgentBus
-from agi_autonomous.heartbeat_monitor import HeartbeatMonitor
-from agi_autonomous.briefing_generator import BriefingGenerator
-from agi_autonomous.proactive_alerts import ProactiveAlerts
-from agi_autonomous.action_executor import ActionExecutor
-from agi_autonomous.trigger_system import TriggerSystem
-from agi_autonomous.agi_autonomous import AGIAutonomous
+# AGI UPGRADE v2.0 Modules (comentados temporalmente para deploy)
+# sys.path.insert(0, str(Path(__file__).parent.parent))
+# from agi_memory.intent_classifier import IntentClassifier as NewIntentClassifier
+# from agi_memory.challenge_mode import ChallengeMode
+# from agi_memory.memory_manager import MemoryManager
+# from agi_core.approval_gate import ApprovalGate
+# from agi_core.action_router import ActionRouter
+# from agi_core.agent_bus import AgentBus
+# from agi_autonomous.heartbeat_monitor import HeartbeatMonitor
+# from agi_autonomous.briefing_generator import BriefingGenerator
+# from agi_autonomous.proactive_alerts import ProactiveAlerts
+# from agi_autonomous.action_executor import ActionExecutor
+# from agi_autonomous.trigger_system import TriggerSystem
+# from agi_autonomous.agi_autonomous import AGIAutonomous
 from agi_core.supabase_client import supabase_memory
 
 # Configuración de logging
