@@ -15,7 +15,7 @@ from typing import Optional, Dict, Any
 logger = logging.getLogger(__name__)
 
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN', '')
-GITHUB_REPO = os.getenv('GITHUB_REPO', 'sergiopalomba05-jpg/agi-whatsapp-railway')
+GITHUB_REPO = os.getenv('GITHUB_REPO', 'sergiopalomba05-jpg/quantumhive-algorithmictrading')
 GITHUB_BRANCH = os.getenv('GITHUB_BRANCH', 'main')
 MEMORIA_DIR = 'agi_memoria_github'
 
