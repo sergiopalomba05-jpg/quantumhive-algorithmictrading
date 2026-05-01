@@ -19,7 +19,7 @@ import requests
 from anthropic import Anthropic
 
 # AGI UPGRADE v2.0 Modules (comentados temporalmente para deploy)
-# sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 # from agi_memory.intent_classifier import IntentClassifier as NewIntentClassifier
 # from agi_memory.challenge_mode import ChallengeMode
 # from agi_memory.memory_manager import MemoryManager
