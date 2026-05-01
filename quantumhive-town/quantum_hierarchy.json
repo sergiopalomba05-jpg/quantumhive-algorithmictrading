@@ -1,0 +1,987 @@
+{
+  "version": "1.0.0",
+  "worldName": "QuantumHive Town",
+  "description": "Capa visual de la operativa real de trading de QuantumHive - 19 Divisiones",
+  "lastUpdated": "2026-04-29T03:00:00Z",
+  "totalAgents": 186,
+  "businessRules": {
+    "splitRule": {
+      "name": "Regla de Split 40/40/20",
+      "description": "División de ganancias: 40% QuantumHive, 40% Cliente, 20% PropFirm",
+      "appliesTo": ["D2", "D16"]
+    },
+    "d2bRule": {
+      "name": "Regla de Oro D2B",
+      "description": "Drawdown to Breakeven - Protección de capital",
+      "appliesTo": ["D1"]
+    },
+    "complianceRule": {
+      "name": "Regla de Compliance 80%",
+      "description": "Alerta crítica al 80% de drawdown en challenges",
+      "appliesTo": ["D1", "D2"],
+      "severity": "CRITICAL"
+    }
+  },
+  "macrodivisions": {
+    "macro0_biblioteca": {
+      "id": "M0",
+      "name": "Biblioteca de Conocimiento",
+      "divisionId": "D20",
+      "description": "Sistema centralizado de documentación y configuraciones",
+      "location": {
+        "x": 0,
+        "y": 0,
+        "width": 100,
+        "height": 100
+      },
+      "tileType": "library_zone",
+      "collision": true
+    },
+    "macro1_trading": {
+      "id": "M1",
+      "name": "Trading",
+      "divisionId": "D1",
+      "description": "Enjambre de Trading - bots híbridos EA MQL5 + ONNX",
+      "location": {
+        "x": 100,
+        "y": 0,
+        "width": 150,
+        "height": 100
+      },
+      "tileType": "trading_zone",
+      "collision": true
+    },
+    "macro2_operaciones": {
+      "id": "M2",
+      "name": "Operaciones Internas",
+      "divisionId": "D2",
+      "description": "Gestión de Fondeo y Challenges",
+      "location": {
+        "x": 250,
+        "y": 0,
+        "width": 120,
+        "height": 100
+      },
+      "tileType": "office_zone",
+      "collision": true
+    },
+    "macro3_marketing": {
+      "id": "M3",
+      "name": "Marketing",
+      "divisionId": "D4",
+      "description": "Marketing y Captación",
+      "location": {
+        "x": 370,
+        "y": 0,
+        "width": 130,
+        "height": 100
+      },
+      "tileType": "marketing_zone",
+      "collision": true
+    },
+    "macro4_fabrica": {
+      "id": "M4",
+      "name": "Fábrica",
+      "divisionId": "D8",
+      "description": "Fábrica de Bots y Mercado Interno",
+      "location": {
+        "x": 500,
+        "y": 0,
+        "width": 140,
+        "height": 100
+      },
+      "tileType": "factory_zone",
+      "collision": true
+    },
+    "macro5_innovacion": {
+      "id": "M5",
+      "name": "Innovación",
+      "divisionId": "D5",
+      "description": "High Ticket Enterprise",
+      "location": {
+        "x": 640,
+        "y": 0,
+        "width": 110,
+        "height": 100
+      },
+      "tileType": "innovation_zone",
+      "collision": true
+    },
+    "macro6_legal": {
+      "id": "M6",
+      "name": "Legal",
+      "divisionId": "D13",
+      "description": "Legal y Compliance",
+      "location": {
+        "x": 750,
+        "y": 0,
+        "width": 100,
+        "height": 100
+      },
+      "tileType": "legal_zone",
+      "collision": true
+    },
+    "macro7_colmena": {
+      "id": "M7",
+      "name": "Colmena",
+      "divisionId": "D16",
+      "description": "Sala de Inversión Colmena",
+      "location": {
+        "x": 850,
+        "y": 0,
+        "width": 130,
+        "height": 100
+      },
+      "tileType": "colmena_zone",
+      "collision": true
+    },
+    "macro8_apps": {
+      "id": "M8",
+      "name": "Apps",
+      "divisionId": "D10",
+      "description": "Diseño y Optimización Web",
+      "location": {
+        "x": 980,
+        "y": 0,
+        "width": 120,
+        "height": 100
+      },
+      "tileType": "dev_zone",
+      "collision": true
+    },
+    "macro9_academia": {
+      "id": "M9",
+      "name": "Academia",
+      "divisionId": "D5",
+      "description": "Infoproductos y Afiliados",
+      "location": {
+        "x": 1100,
+        "y": 0,
+        "width": 110,
+        "height": 100
+      },
+      "tileType": "academy_zone",
+      "collision": true
+    },
+    "macro10_universidad": {
+      "id": "M10",
+      "name": "Universidad",
+      "divisionId": "D12",
+      "description": "Crecimiento y Optimización",
+      "location": {
+        "x": 1210,
+        "y": 0,
+        "width": 120,
+        "height": 100
+      },
+      "tileType": "university_zone",
+      "collision": true
+    },
+    "macro11_comunicaciones": {
+      "id": "M11",
+      "name": "Comunicaciones",
+      "divisionId": "D11",
+      "description": "Atención al Cliente y Ventas",
+      "location": {
+        "x": 1330,
+        "y": 0,
+        "width": 110,
+        "height": 100
+      },
+      "tileType": "communications_zone",
+      "collision": true
+    }
+  },
+  "divisions": {
+    "D1_trading": {
+      "id": "D1",
+      "name": "Enjambre de Trading",
+      "macroId": "M1",
+      "description": "Bots híbridos EA MQL5 + ONNX (Madre + Reversión + Continuación + Scalper)",
+      "agents": ["agente_auditoria", "agente_compliance", "agente_optimizador", "agente_recolector"],
+      "location": {"x": 100, "y": 0, "width": 150, "height": 100},
+      "tileType": "trading_zone",
+      "collision": true
+    },
+    "D2_fondeo": {
+      "id": "D2",
+      "name": "Gestión de Fondeo y Challenges",
+      "macroId": "M2",
+      "description": "Challenge cliente → cuenta live → split 40/40/20",
+      "agents": ["agente_challenge", "agente_cuentas_fondeadas", "agente_cobro_fondeo", "agente_afiliaciones", "agente_onboarding_cliente"],
+      "location": {"x": 250, "y": 0, "width": 120, "height": 100},
+      "tileType": "office_zone",
+      "collision": true
+    },
+    "D2B_propfirms": {
+      "id": "D2B",
+      "name": "PropFirms y Dispersión de Cuentas",
+      "macroId": "M2",
+      "description": "Gestión multi-cuenta en PropFirms (FTMO, FundingPips, Apex, MyFundedFX)",
+      "agents": [],
+      "location": {"x": 250, "y": 100, "width": 120, "height": 50},
+      "tileType": "office_zone",
+      "collision": true
+    },
+    "D3_senales": {
+      "id": "D3",
+      "name": "Grupo de Señales",
+      "macroId": "M3",
+      "description": "Embudo señales gratis 3 días → suscripción semanal/mensual → Colmena",
+      "agents": ["agente_formateador_senales", "agente_gestor_grupos", "agente_cobro_senales", "agente_retencion", "agente_captacion_senales"],
+      "location": {"x": 370, "y": 0, "width": 130, "height": 100},
+      "tileType": "marketing_zone",
+      "collision": true
+    },
+    "D4_marketing": {
+      "id": "D4",
+      "name": "Marketing y Captación",
+      "macroId": "M3",
+      "description": "Contenido automático con resultados reales del enjambre",
+      "agents": ["agente_partnerships_traders", "agente_captacion_seguidores", "agente_naming_bots"],
+      "location": {"x": 370, "y": 100, "width": 130, "height": 50},
+      "tileType": "marketing_zone",
+      "collision": true
+    },
+    "D5_infoproductos": {
+      "id": "D5",
+      "name": "Infoproductos y Afiliados",
+      "macroId": "M9",
+      "description": "Infoproductos digitales + software (EAs, datasets, modelos ONNX)",
+      "agents": ["agente_creador_infoproductos", "agente_analista_tendencias_infoproductos", "agente_entrenador_ventas_infoproductos"],
+      "location": {"x": 1100, "y": 0, "width": 110, "height": 100},
+      "tileType": "academy_zone",
+      "collision": true
+    },
+    "D6_enterprise": {
+      "id": "D6",
+      "name": "High Ticket Enterprise",
+      "macroId": "M5",
+      "description": "Venta del framework a hedge funds y prop firms (licencia SaaS)",
+      "agents": [],
+      "location": {"x": 640, "y": 0, "width": 110, "height": 100},
+      "tileType": "innovation_zone",
+      "collision": true
+    },
+    "D7_propfirm_broker": {
+      "id": "D7",
+      "name": "PropFirm y Broker (FASE 5)",
+      "macroId": "M5",
+      "description": "Fondea traders con los propios bots. Capital objetivo: 8 cifras",
+      "agents": [],
+      "location": {"x": 640, "y": 100, "width": 110, "height": 50},
+      "tileType": "innovation_zone",
+      "collision": true
+    },
+    "D8_fabrica": {
+      "id": "D8",
+      "name": "Fábrica de Bots y Mercado Interno",
+      "macroId": "M4",
+      "description": "EAs mecánicos/asistidos/híbridos + tienda + comunidad Telegram",
+      "agents": ["agente_control_calidad", "agente_pricing", "agente_catalogo"],
+      "location": {"x": 500, "y": 0, "width": 140, "height": 100},
+      "tileType": "factory_zone",
+      "collision": true
+    },
+    "D9_limpieza": {
+      "id": "D9",
+      "name": "Limpieza y Mantenimiento",
+      "macroId": "M2",
+      "description": "Limpieza datos/modelos/logs/prompts cada domingo",
+      "agents": ["agente_limpieza_datos", "agente_limpieza_modelos", "agente_limpieza_logs", "agente_limpieza_prompts"],
+      "location": {"x": 250, "y": 150, "width": 120, "height": 50},
+      "tileType": "maintenance_zone",
+      "collision": true
+    },
+    "D10_web": {
+      "id": "D10",
+      "name": "Diseño y Optimización Web",
+      "macroId": "M8",
+      "description": "quantumhive.io + dashboard + SEO + A/B testing",
+      "agents": ["agente_analytics_web", "agente_seo", "agente_ab_testing", "agente_diseno_contenido"],
+      "location": {"x": 980, "y": 0, "width": 120, "height": 100},
+      "tileType": "dev_zone",
+      "collision": true
+    },
+    "D11_ventas": {
+      "id": "D11",
+      "name": "Atención al Cliente y Ventas",
+      "macroId": "M11",
+      "description": "Pipeline Lead→Bot Bienvenida→Especialista→Closer→Onboarding→Retención",
+      "agents": ["agente_bienvenida", "agente_especialista_senales", "agente_especialista_fondeo", "agente_especialista_bots", "agente_closer", "agente_onboarding_ventas", "agente_retencion_ventas"],
+      "location": {"x": 1330, "y": 0, "width": 110, "height": 100},
+      "tileType": "communications_zone",
+      "collision": true
+    },
+    "D12_crecimiento": {
+      "id": "D12",
+      "name": "Crecimiento y Optimización",
+      "macroId": "M10",
+      "description": "Meta-división: CEO estratégico, Scout, Clasificador, Entrenadores, Supervisor, Premios",
+      "agents": ["agente_ceo_estrategico", "agente_scout", "agente_clasificador", "agente_entrenador_bots", "agente_entrenador_divisiones", "agente_supervisor_global", "agente_premios", "agente_organizador_actualizaciones", "agente_gestion_inteligencias", "agente_comunicacion_ceo", "agente_ceo_inteligencia_infinita", "agente_backtesting_mt5"],
+      "location": {"x": 1210, "y": 0, "width": 120, "height": 100},
+      "tileType": "university_zone",
+      "collision": true
+    },
+    "D13_legal": {
+      "id": "D13",
+      "name": "Legal y Compliance",
+      "macroId": "M6",
+      "description": "Términos, contratos, regulaciones, propfirm compliance, privacidad GDPR",
+      "agents": ["agente_terminos", "agente_contratos", "agente_regulaciones", "agente_propfirm_compliance", "agente_privacidad"],
+      "location": {"x": 750, "y": 0, "width": 100, "height": 100},
+      "tileType": "legal_zone",
+      "collision": true
+    },
+    "D14_infra": {
+      "id": "D14",
+      "name": "Infraestructura y DevOps",
+      "macroId": "M2",
+      "description": "Monitoreo, backup, actualizaciones, performance, alertas críticas",
+      "agents": ["agente_monitoreo_sistema", "agente_backup", "agente_actualizaciones", "agente_performance", "agente_alertas_criticas"],
+      "location": {"x": 250, "y": 200, "width": 120, "height": 50},
+      "tileType": "maintenance_zone",
+      "collision": true
+    },
+    "D15_bi": {
+      "id": "D15",
+      "name": "Business Intelligence",
+      "macroId": "M2",
+      "description": "Dashboard ejecutivo, métricas trading/negocio, alertas negocio, reportes inversores",
+      "agents": ["agente_dashboard_ejecutivo", "agente_metricas_trading", "agente_metricas_negocio", "agente_alertas_negocio", "agente_reportes_inversores", "agente_dashboard_manager"],
+      "location": {"x": 250, "y": 250, "width": 120, "height": 50},
+      "tileType": "office_zone",
+      "collision": true
+    },
+    "D16_sala_inversion": {
+      "id": "D16",
+      "name": "Sala de Inversión Colmena",
+      "macroId": "M7",
+      "description": "Hedge fund gamificado. Bots operando cuentas reales visibles en tiempo real",
+      "agents": ["agente_pool_capital", "agente_distribucion_ganancias", "agente_sala_visual", "agente_retiros", "agente_ceo_sala"],
+      "location": {"x": 850, "y": 0, "width": 130, "height": 100},
+      "tileType": "colmena_zone",
+      "collision": true
+    },
+    "D17_ecosistema": {
+      "id": "D17",
+      "name": "Ecosistema de Partners",
+      "macroId": "M7",
+      "description": "Empresas de fondeo, traders independientes y gestores se suman al ecosistema",
+      "agents": [],
+      "location": {"x": 850, "y": 100, "width": 130, "height": 50},
+      "tileType": "colmena_zone",
+      "collision": true
+    },
+    "D18_uci": {
+      "id": "D18",
+      "name": "Unidad de Conocimiento e Inteligencia",
+      "macroId": "M5",
+      "description": "Fábrica de datos de entrenamiento para todos los bots",
+      "agents": ["agente_recolector_videos", "agente_procesador_pdfs", "agente_generador_cnn", "agente_base_conocimiento"],
+      "location": {"x": 640, "y": 150, "width": 110, "height": 50},
+      "tileType": "innovation_zone",
+      "collision": true
+    },
+    "D19_localizacion": {
+      "id": "D19",
+      "name": "Localización y Expansión Multinacional",
+      "macroId": "M3",
+      "description": "Adaptación cultural, legal y lingüística para 10+ mercados internacionales",
+      "agents": [],
+      "location": {"x": 370, "y": 150, "width": 130, "height": 50},
+      "tileType": "marketing_zone",
+      "collision": true
+    },
+    "D20_biblioteca": {
+      "id": "D20",
+      "name": "Biblioteca de Conocimiento",
+      "macroId": "M0",
+      "description": "Sistema centralizado de documentación y configuraciones",
+      "agents": [],
+      "location": {"x": 0, "y": 0, "width": 100, "height": 100},
+      "tileType": "library_zone",
+      "collision": true
+    }
+  },
+  "agentRegistry": {
+    "agente_auditoria": {
+      "division": "D1",
+      "role": "Auditor de Operaciones",
+      "dialogue": "Audito operaciones 24hs, detecto anomalías y verifico integridad",
+      "skills": ["audit", "anomaly_detection", "integrity_check"],
+      "sprite": "agent_auditor"
+    },
+    "agente_compliance": {
+      "division": "D1",
+      "role": "Compliance FTMO",
+      "dialogue": "Verifico FTMO challenge/live, zona riesgo 80%, pausas y progreso",
+      "skills": ["compliance_check", "risk_monitoring", "progress_tracking"],
+      "sprite": "agent_compliance"
+    },
+    "agente_optimizador": {
+      "division": "D1",
+      "role": "Optimizador de Bots",
+      "dialogue": "Analizo skills y ajusto automáticamente score_min (55-75)",
+      "skills": ["optimization", "parameter_tuning", "model_degradation"],
+      "sprite": "agent_optimizer"
+    },
+    "agente_recolector": {
+      "division": "D1",
+      "role": "Recolector de Datos",
+      "dialogue": "Descargo datos de MT5 todos los timeframes",
+      "skills": ["data_collection", "MT5_API", "timeframe_management"],
+      "sprite": "agent_collector"
+    },
+    "agente_challenge": {
+      "division": "D2",
+      "role": "Gestor de Challenges",
+      "dialogue": "Gestiono pase de challenge por cliente",
+      "skills": ["challenge_management", "client_tracking", "progress_monitoring"],
+      "sprite": "agent_challenge"
+    },
+    "agente_cuentas_fondeadas": {
+      "division": "D2",
+      "role": "Gestor de Cuentas Fondeadas",
+      "dialogue": "Registro cuentas fondeadas, balance, DD, cobro pendiente QH",
+      "skills": ["account_management", "balance_tracking", "DD_monitoring"],
+      "sprite": "agent_funded_accounts"
+    },
+    "agente_cobro_fondeo": {
+      "division": "D2",
+      "role": "Cobrador de Fondeo",
+      "dialogue": "Cobro parte QH cuando PropFirm paga",
+      "skills": ["payment_collection", "revenue_tracking", "invoice_generation"],
+      "sprite": "agent_billing"
+    },
+    "agente_afiliaciones": {
+      "division": "D2",
+      "role": "Gestor de Afiliaciones",
+      "dialogue": "Acuerdos con PropFirms, cupones, comisiones",
+      "skills": ["partnership_management", "commission_tracking", "coupon_management"],
+      "sprite": "agent_affiliate"
+    },
+    "agente_onboarding_cliente": {
+      "division": "D2",
+      "role": "Onboarding de Cliente",
+      "dialogue": "Alta de nuevo cliente, asigno bot challenge",
+      "skills": ["onboarding", "client_activation", "bot_assignment"],
+      "sprite": "agent_onboarding"
+    },
+    "agente_formateador_senales": {
+      "division": "D3",
+      "role": "Formateador de Señales",
+      "dialogue": "Formateo señales para Telegram",
+      "skills": ["signal_formatting", "telegram_api", "message_structuring"],
+      "sprite": "agent_signal_formatter"
+    },
+    "agente_gestor_grupos": {
+      "division": "D3",
+      "role": "Gestor de Grupos",
+      "dialogue": "Gestiono accesos trial/pago/expiración",
+      "skills": ["group_management", "access_control", "subscription_tracking"],
+      "sprite": "agent_group_manager"
+    },
+    "agente_cobro_senales": {
+      "division": "D3",
+      "role": "Cobrador de Señales",
+      "dialogue": "Cobro suscripciones MP/Stripe",
+      "skills": ["payment_processing", "subscription_management", "revenue_tracking"],
+      "sprite": "agent_signal_billing"
+    },
+    "agente_retencion": {
+      "division": "D3",
+      "role": "Especialista en Retención",
+      "dialogue": "Clientes sin renovar, descuento recuperación",
+      "skills": ["retention_strategy", "discount_management", "churn_prevention"],
+      "sprite": "agent_retention"
+    },
+    "agente_captacion_senales": {
+      "division": "D3",
+      "role": "Captador de Señales",
+      "dialogue": "Publico resultados en redes, gestiono DMs",
+      "skills": ["social_media", "lead_generation", "DM_management"],
+      "sprite": "agent_signal_capture"
+    },
+    "agente_partnerships_traders": {
+      "division": "D4",
+      "role": "Gestor de Partnerships",
+      "dialogue": "Pipeline de partnerships con traders reconocidos",
+      "skills": ["partnership_development", "trader_relations", "pipeline_management"],
+      "sprite": "agent_partnership"
+    },
+    "agente_captacion_seguidores": {
+      "division": "D4",
+      "role": "Captador de Seguidores",
+      "dialogue": "Captación de seguidores post-acuerdo con rate limit 50/día",
+      "skills": ["follower_acquisition", "rate_limiting", "social_growth"],
+      "sprite": "agent_follower_capture"
+    },
+    "agente_naming_bots": {
+      "division": "D4",
+      "role": "Generador de Nombres",
+      "dialogue": "Generador de nombres técnicos propios para bots",
+      "skills": ["naming_conventions", "branding", "technical_naming"],
+      "sprite": "agent_namer"
+    },
+    "agente_creador_infoproductos": {
+      "division": "D5",
+      "role": "Creador de Infoproductos",
+      "dialogue": "Estructuras modulares, guiones, pipeline producción",
+      "skills": ["content_creation", "product_development", "pipeline_management"],
+      "sprite": "agent_product_creator"
+    },
+    "agente_analista_tendencias_infoproductos": {
+      "division": "D5",
+      "role": "Analista de Tendencias",
+      "dialogue": "Nichos hot, pricing, estrategias lanzamiento",
+      "skills": ["trend_analysis", "market_research", "pricing_strategy"],
+      "sprite": "agent_trend_analyst"
+    },
+    "agente_entrenador_ventas_infoproductos": {
+      "division": "D5",
+      "role": "Entrenador de Ventas",
+      "dialogue": "Copywriting, email marketing, funnels, afiliados",
+      "skills": ["sales_training", "copywriting", "funnel_optimization"],
+      "sprite": "agent_sales_trainer"
+    },
+    "agente_control_calidad": {
+      "division": "D8",
+      "role": "Control de Calidad",
+      "dialogue": "Backtest automático, aprobación/rechazo",
+      "skills": ["quality_control", "backtesting", "approval_process"],
+      "sprite": "agent_qa"
+    },
+    "agente_pricing": {
+      "division": "D8",
+      "role": "Analista de Precios",
+      "dialogue": "Análisis mercado EAs, precio óptimo",
+      "skills": ["pricing_analysis", "market_research", "competitive_analysis"],
+      "sprite": "agent_pricing"
+    },
+    "agente_catalogo": {
+      "division": "D8",
+      "role": "Gestor de Catálogo",
+      "dialogue": "Catálogo productos, descripciones, métricas",
+      "skills": ["catalog_management", "product_description", "metrics_tracking"],
+      "sprite": "agent_catalog"
+    },
+    "agente_limpieza_datos": {
+      "division": "D9",
+      "role": "Limpieza de Datos",
+      "dialogue": "Elimino datos antiguos, comprimo parquet",
+      "skills": ["data_cleaning", "compression", "storage_management"],
+      "sprite": "agent_data_cleaner"
+    },
+    "agente_limpieza_modelos": {
+      "division": "D9",
+      "role": "Limpieza de Modelos",
+      "dialogue": "Archivo ONNX obsoletos",
+      "skills": ["model_archiving", "version_management", "cleanup"],
+      "sprite": "agent_model_cleaner"
+    },
+    "agente_limpieza_logs": {
+      "division": "D9",
+      "role": "Limpieza de Logs",
+      "dialogue": "Roto logs >30 días, comprimo .gz",
+      "skills": ["log_rotation", "compression", "maintenance"],
+      "sprite": "agent_log_cleaner"
+    },
+    "agente_limpieza_prompts": {
+      "division": "D9",
+      "role": "Limpieza de Prompts",
+      "dialogue": "Archivo prompts de sesiones anteriores",
+      "skills": ["prompt_archiving", "session_management", "cleanup"],
+      "sprite": "agent_prompt_cleaner"
+    },
+    "agente_analytics_web": {
+      "division": "D10",
+      "role": "Analista Web",
+      "dialogue": "Google Analytics/Plausible, funnel",
+      "skills": ["web_analytics", "funnel_analysis", "conversion_tracking"],
+      "sprite": "agent_web_analyst"
+    },
+    "agente_seo": {
+      "division": "D10",
+      "role": "Especialista SEO",
+      "dialogue": "Keywords competidores, contenido, posicionamiento",
+      "skills": ["SEO", "keyword_research", "content_optimization"],
+      "sprite": "agent_seo"
+    },
+    "agente_ab_testing": {
+      "division": "D10",
+      "role": "Especialista A/B Testing",
+      "dialogue": "Variantes landing pages, conversión",
+      "skills": ["A/B_testing", "conversion_optimization", "experimentation"],
+      "sprite": "agent_ab_tester"
+    },
+    "agente_diseno_contenido": {
+      "division": "D10",
+      "role": "Diseñador de Contenido",
+      "dialogue": "Assets visuales web automáticos",
+      "skills": ["graphic_design", "content_creation", "automation"],
+      "sprite": "agent_content_designer"
+    },
+    "agente_bienvenida": {
+      "division": "D11",
+      "role": "Bot de Bienvenida",
+      "dialogue": "Primer contacto, califica lead, deriva",
+      "skills": ["lead_qualification", "first_contact", "routing"],
+      "sprite": "agent_welcome"
+    },
+    "agente_especialista_senales": {
+      "division": "D11",
+      "role": "Especialista en Señales",
+      "dialogue": "Experto grupo señales",
+      "skills": ["signals_expertise", "group_management", "consultation"],
+      "sprite": "agent_signals_specialist"
+    },
+    "agente_especialista_fondeo": {
+      "division": "D11",
+      "role": "Especialista en Fondeo",
+      "dialogue": "Experto gestión challenges",
+      "skills": ["funding_expertise", "challenge_management", "consultation"],
+      "sprite": "agent_funding_specialist"
+    },
+    "agente_especialista_bots": {
+      "division": "D11",
+      "role": "Especialista en Bots",
+      "dialogue": "Experto venta EAs/bots",
+      "skills": ["bots_expertise", "sales_consultation", "technical_knowledge"],
+      "sprite": "agent_bots_specialist"
+    },
+    "agente_closer": {
+      "division": "D11",
+      "role": "Closer de Ventas",
+      "dialogue": "Cierro ventas, links pago, seguimiento",
+      "skills": ["closing", "payment_processing", "follow_up"],
+      "sprite": "agent_closer"
+    },
+    "agente_onboarding_ventas": {
+      "division": "D11",
+      "role": "Onboarding de Ventas",
+      "dialogue": "Acceso post-pago, instrucciones",
+      "skills": ["post_purchase_onboarding", "instruction_delivery", "customer_success"],
+      "sprite": "agent_sales_onboarding"
+    },
+    "agente_retencion_ventas": {
+      "division": "D11",
+      "role": "Especialista en Retención",
+      "dialogue": "Clientes inactivos, campaña retención",
+      "skills": ["retention_campaigns", "churn_prevention", "customer_reactivation"],
+      "sprite": "agent_sales_retention"
+    },
+    "agente_ceo_estrategico": {
+      "division": "D12",
+      "role": "CEO Estratégico",
+      "dialogue": "Evalúo métricas globales diarias, puente directo a todas las áreas",
+      "skills": ["strategic_analysis", "global_metrics", "cross_division_coordination"],
+      "sprite": "agent_ceo"
+    },
+    "agente_scout": {
+      "division": "D12",
+      "role": "Scout de Innovación",
+      "dialogue": "Busco repos/papers/herramientas nuevas",
+      "skills": ["research", "innovation_scouting", "technology_monitoring"],
+      "sprite": "agent_scout"
+    },
+    "agente_clasificador": {
+      "division": "D12",
+      "role": "Clasificador de Hallazgos",
+      "dialogue": "Evalúo hallazgos del scout",
+      "skills": ["classification", "evaluation", "prioritization"],
+      "sprite": "agent_classifier"
+    },
+    "agente_entrenador_bots": {
+      "division": "D12",
+      "role": "Entrenador de Bots",
+      "dialogue": "Monitoreo métricas, decido reentrenar",
+      "skills": ["model_training", "performance_monitoring", "retraining_decision"],
+      "sprite": "agent_bot_trainer"
+    },
+    "agente_entrenador_divisiones": {
+      "division": "D12",
+      "role": "Entrenador de Divisiones",
+      "dialogue": "Monitoreo KPIs divisiones",
+      "skills": ["KPI_monitoring", "division_optimization", "performance_tracking"],
+      "sprite": "agent_division_trainer"
+    },
+    "agente_supervisor_global": {
+      "division": "D12",
+      "role": "Supervisor Global",
+      "dialogue": "Cruzo datos áreas, detecto cuellos de botella",
+      "skills": ["supervision", "bottleneck_detection", "cross_functional_analysis"],
+      "sprite": "agent_supervisor"
+    },
+    "agente_premios": {
+      "division": "D12",
+      "role": "Gestor de Premios",
+      "dialogue": "Registro mejoras >5% en 7 días",
+      "skills": ["improvement_tracking", "reward_system", "performance_recognition"],
+      "sprite": "agent_rewards"
+    },
+    "agente_organizador_actualizaciones": {
+      "division": "D12",
+      "role": "Organizador de Actualizaciones",
+      "dialogue": "Centralizo actualizaciones, comunico cambios, sincronizo divisiones",
+      "skills": ["update_management", "communication", "synchronization"],
+      "sprite": "agent_update_organizer"
+    },
+    "agente_gestion_inteligencias": {
+      "division": "D12",
+      "role": "Gestor de Inteligencias",
+      "dialogue": "Gestiono inteligencias agentes CEO, planilla dashboard, monitoreo mejoras",
+      "skills": ["intelligence_management", "dashboard_integration", "upgrade_monitoring"],
+      "sprite": "agent_intelligence_manager"
+    },
+    "agente_comunicacion_ceo": {
+      "division": "D12",
+      "role": "Comunicación CEO",
+      "dialogue": "Puente directo CEO-empresa vía WhatsApp, comandos interactivos, capacidades multimedia",
+      "skills": ["communication", "WhatsApp_integration", "multimedia_processing"],
+      "sprite": "agent_communication"
+    },
+    "agente_ceo_inteligencia_infinita": {
+      "division": "D12",
+      "role": "CEO Inteligencia Infinita",
+      "dialogue": "Recibe ideas WhatsApp, ciclo inteligencia infinita, pasa a CEO estratégico",
+      "skills": ["idea_processing", "infinite_intelligence_cycle", "WhatsApp_integration"],
+      "sprite": "agent_infinite_intelligence"
+    },
+    "agente_backtesting_mt5": {
+      "division": "D12",
+      "role": "Backtesting MT5",
+      "dialogue": "Backtesting intensivo MT5, grid search temporalidades/años/parametros",
+      "skills": ["backtesting", "MT5_integration", "grid_search"],
+      "sprite": "agent_backtesting"
+    },
+    "agente_terminos": {
+      "division": "D13",
+      "role": "Gestor de Términos",
+      "dialogue": "Términos de servicio versionados",
+      "skills": ["terms_management", "versioning", "legal_documentation"],
+      "sprite": "agent_terms"
+    },
+    "agente_contratos": {
+      "division": "D13",
+      "role": "Gestor de Contratos",
+      "dialogue": "Contratos PDF clientes fondeo",
+      "skills": ["contract_management", "PDF_generation", "legal_documentation"],
+      "sprite": "agent_contracts"
+    },
+    "agente_regulaciones": {
+      "division": "D13",
+      "role": "Monitor de Regulaciones",
+      "dialogue": "Monitorea regulaciones por país",
+      "skills": ["regulatory_monitoring", "compliance_tracking", "jurisdiction_management"],
+      "sprite": "agent_regulations"
+    },
+    "agente_propfirm_compliance": {
+      "division": "D13",
+      "role": "Compliance PropFirms",
+      "dialogue": "Reglas PropFirms, alerta cambios",
+      "skills": ["propfirm_compliance", "TOS_monitoring", "change_alerting"],
+      "sprite": "agent_propfirm_compliance"
+    },
+    "agente_privacidad": {
+      "division": "D13",
+      "role": "Gestor de Privacidad",
+      "dialogue": "GDPR, eliminación datos",
+      "skills": ["GDPR_compliance", "data_privacy", "data_deletion"],
+      "sprite": "agent_privacy"
+    },
+    "agente_monitoreo_sistema": {
+      "division": "D14",
+      "role": "Monitor de Sistema",
+      "dialogue": "Verifica procesos cada 5 min, reinicia",
+      "skills": ["system_monitoring", "process_management", "auto_restart"],
+      "sprite": "agent_system_monitor"
+    },
+    "agente_backup": {
+      "division": "D14",
+      "role": "Gestor de Backup",
+      "dialogue": "Backup diario ONNX/SQLite/config",
+      "skills": ["backup_management", "data_protection", "automated_scheduling"],
+      "sprite": "agent_backup"
+    },
+    "agente_actualizaciones": {
+      "division": "D14",
+      "role": "Gestor de Actualizaciones",
+      "dialogue": "Versiones nuevas dependencias",
+      "skills": ["dependency_management", "version_control", "update_automation"],
+      "sprite": "agent_updates"
+    },
+    "agente_performance": {
+      "division": "D14",
+      "role": "Monitor de Performance",
+      "dialogue": "CPU/RAM/disco, alerta >80%",
+      "skills": ["performance_monitoring", "resource_tracking", "alert_management"],
+      "sprite": "agent_performance"
+    },
+    "agente_alertas_criticas": {
+      "division": "D14",
+      "role": "Gestor de Alertas Críticas",
+      "dialogue": "Alertas por niveles VERDE→NEGRO",
+      "skills": ["critical_alerting", "escalation_management", "emergency_response"],
+      "sprite": "agent_critical_alerts"
+    },
+    "agente_dashboard_ejecutivo": {
+      "division": "D15",
+      "role": "Dashboard Ejecutivo",
+      "dialogue": "Reporte diario KPIs todas divisiones",
+      "skills": ["executive_reporting", "KPI_tracking", "cross_division_analysis"],
+      "sprite": "agent_executive_dashboard"
+    },
+    "agente_metricas_trading": {
+      "division": "D15",
+      "role": "Analista de Métricas Trading",
+      "dialogue": "Winrate, PF, DD, Sharpe diario",
+      "skills": ["trading_metrics", "performance_analysis", "risk_assessment"],
+      "sprite": "agent_trading_metrics"
+    },
+    "agente_metricas_negocio": {
+      "division": "D15",
+      "role": "Analista de Métricas Negocio",
+      "dialogue": "MRR, churn, LTV, CAC, proyecciones",
+      "skills": ["business_metrics", "financial_analysis", "forecasting"],
+      "sprite": "agent_business_metrics"
+    },
+    "agente_alertas_negocio": {
+      "division": "D15",
+      "role": "Alertas de Negocio",
+      "dialogue": "Alerta si KPI cae bajo umbral",
+      "skills": ["KPI_monitoring", "alert_generation", "threshold_management"],
+      "sprite": "agent_business_alerts"
+    },
+    "agente_reportes_inversores": {
+      "division": "D15",
+      "role": "Generador de Reportes",
+      "dialogue": "PDF mensual profesional",
+      "skills": ["report_generation", "PDF_creation", "investor_communication"],
+      "sprite": "agent_investor_reports"
+    },
+    "agente_dashboard_manager": {
+      "division": "D15",
+      "role": "Gestor de Dashboard",
+      "dialogue": "Escanea logs divisiones, detecta estado agentes, actualiza dashboard HTML",
+      "skills": ["dashboard_management", "log_scanning", "agent_monitoring"],
+      "sprite": "agent_dashboard_manager"
+    },
+    "agente_pool_capital": {
+      "division": "D16",
+      "role": "Gestor de Pool Capital",
+      "dialogue": "Trackea capital clientes, porcentaje pool, PnL proporcional",
+      "skills": ["capital_tracking", "pool_management", "PnL_calculation"],
+      "sprite": "agent_pool_capital"
+    },
+    "agente_distribucion_ganancias": {
+      "division": "D16",
+      "role": "Distribuidor de Ganancias",
+      "dialogue": "Calcula distribución 80/20 al cierre sesión",
+      "skills": ["profit_distribution", "commission_calculation", "receipt_generation"],
+      "sprite": "agent_profit_distributor"
+    },
+    "agente_sala_visual": {
+      "division": "D16",
+      "role": "Visualizador de Sala",
+      "dialogue": "Actualiza métricas en vivo: PnL día, capital total, operaciones abiertas",
+      "skills": ["realtime_visualization", "metrics_display", "live_updates"],
+      "sprite": "agent_sala_visual"
+    },
+    "agente_retiros": {
+      "division": "D16",
+      "role": "Gestor de Retiros",
+      "dialogue": "Gestiona solicitudes retiro, verifica fondos, ejecuta transferencia",
+      "skills": ["withdrawal_management", "fund_verification", "payment_processing"],
+      "sprite": "agent_withdrawal"
+    },
+    "agente_ceo_sala": {
+      "division": "D16",
+      "role": "CEO de Sala",
+      "dialogue": "Supervisa sala, activa kill-switch si DD >5% pool total",
+      "skills": ["sala_supervision", "risk_management", "emergency_shutdown"],
+      "sprite": "agent_sala_ceo"
+    },
+    "agente_recolector_videos": {
+      "division": "D18",
+      "role": "Recolector de Videos",
+      "dialogue": "Recibe URLs YouTube, descarga audio, transcribe con Whisper",
+      "skills": ["video_collection", "audio_download", "transcription"],
+      "sprite": "agent_video_collector"
+    },
+    "agente_procesador_pdfs": {
+      "division": "D18",
+      "role": "Procesador de PDFs",
+      "dialogue": "Procesa PDFs estrategias, extrae patrones, reglas",
+      "skills": ["PDF_processing", "pattern_extraction", "rule_extraction"],
+      "sprite": "agent_pdf_processor"
+    },
+    "agente_generador_cnn": {
+      "division": "D18",
+      "role": "Generador de CNN",
+      "dialogue": "Captura pantallazos MT5, etiqueta auto, guarda entrenamiento",
+      "skills": ["screenshot_capture", "auto_labeling", "training_data_generation"],
+      "sprite": "agent_cnn_generator"
+    },
+    "agente_base_conocimiento": {
+      "division": "D18",
+      "role": "Base de Conocimiento",
+      "dialogue": "Indexa conocimiento en base vectorial, responde consultas",
+      "skills": ["vector_indexing", "knowledge_retrieval", "query_answering"],
+      "sprite": "agent_knowledge_base"
+    }
+  },
+  "animationStates": {
+    "IDLE": {
+      "description": "Agente en reposo, esperando tareas",
+      "speed": 0,
+      "behavior": "static"
+    },
+    "WORKING": {
+      "description": "Agente trabajando en su escritorio/estación",
+      "speed": 1,
+      "behavior": "stationary_animation"
+    },
+    "ALERT": {
+      "description": "Movimiento rápido a zona de compliance",
+      "speed": 3,
+      "behavior": "emergency_movement",
+      "trigger": "COMPLIANCE_ALARM"
+    },
+    "MEETING": {
+      "description": "Agrupación de agentes para colaboración",
+      "speed": 0.5,
+      "behavior": "group_gathering"
+    }
+  },
+  "eventTriggers": {
+    "COMPLIANCE_ALARM": {
+      "severity": "CRITICAL",
+      "description": "Drawdown del 80% en challenge/live",
+      "affectedDivision": "D1",
+      "action": "ALERT",
+      "notification": "push"
+    },
+    "D2B_TRIGGER": {
+      "severity": "HIGH",
+      "description": "Regla D2B activada - Drawdown to Breakeven",
+      "affectedDivision": "D1",
+      "action": "WORKING",
+      "notification": "push"
+    },
+    "SPLIT_PAYMENT": {
+      "severity": "INFO",
+      "description": "Split 40/40/20 ejecutado",
+      "affectedDivision": "D2",
+      "action": "MEETING",
+      "notification": "log"
+    },
+    "BACKTEST_COMPLETE": {
+      "severity": "INFO",
+      "description": "Backtesting MT5 completado",
+      "affectedDivision": "D12",
+      "action": "WORKING",
+      "notification": "log"
+    }
+  }
+}
