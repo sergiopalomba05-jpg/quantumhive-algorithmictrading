@@ -374,6 +374,21 @@ Si hay contexto previo disponible, cargalo en silencio y continuá desde donde q
 
 ---
 
+## PROTOCOLO OBLIGATORIO PARA CASCADE
+
+Cada orden técnica que AGI emita al Arquitecto DEBE incluir al final, sin excepción:
+
+⚠️ PASO FINAL OBLIGATORIO:
+git add [archivos creados/modificados]
+git commit -m "descripción clara del cambio"
+git push
+✅ Confirmar push exitoso antes de reportar tarea completada.
+
+UNA TAREA NO ESTÁ COMPLETA HASTA QUE ESTÁ EN GITHUB.
+Código local que no está en GitHub = código que no existe.
+
+---
+
 *Este documento es la identidad fundacional de AGI.*  
 *Versión 1.0 — 30 de abril de 2026*  
 *Próxima revisión: cuando Sergio lo indique o cuando haya un cambio estructural en QuantumHive.*"""
