@@ -1076,6 +1076,10 @@ def procesar_mensaje_con_claude(message_text, tipo_mensaje: str = "general"):
             logger.warning("Claude API no configurada, usando respuesta simulada")
             return f"AGI: Recibí tu mensaje: {message_text}"
         
+        # 0. Actualizar perfil de Sergio en GitHub ANTES de Claude (síncrono)
+        if github_memory:
+            github_memory.actualizar_perfil_sergio(message_text, tipo_mensaje)
+        
         logger.info("Enviando mensaje a Claude API con historial...")
         
         # 1. Construir system prompt con contexto dinámico
@@ -1107,10 +1111,6 @@ def procesar_mensaje_con_claude(message_text, tipo_mensaje: str = "general"):
         # 5. Guardar mensaje del usuario y respuesta en historial
         guardar_en_historial(memoria.db_path, "user", message_text)
         guardar_en_historial(memoria.db_path, "assistant", respuesta)
-        
-        # 6. Actualizar perfil de Sergio en GitHub en background
-        if github_memory:
-            github_memory.actualizar_perfil_sergio(message_text, tipo_mensaje)
         
         return respuesta
         
@@ -1146,7 +1146,7 @@ def procesar_mensaje(message):
         # AGI UPGRADE v2.0 - Actualizar heartbeat
         if heartbeat_monitor:
             try:
-                heartbeat_monitor.actualizar_heartbeat()
+                heartbeat_monitor.update_heartbeat("AGI_Telegram")
             except Exception as e:
                 logger.error(f"Error actualizando heartbeat: {e}")
         
