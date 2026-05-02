@@ -28,8 +28,30 @@ except ImportError as e:
     KEYSVAULT_AVAILABLE = False
     logger.warning(f"KeysVault no disponible: {e}")
 
+# Importar Agente Seguridad
+try:
+    from agente_seguridad import agente_seguridad, solicitar_credencial
+    SEGURIDAD_AVAILABLE = True
+    logger.info("Agente Seguridad disponible para gestión de credenciales encriptadas")
+except ImportError as e:
+    SEGURIDAD_AVAILABLE = False
+    logger.warning(f"Agente Seguridad no disponible: {e}")
+
 # Render API Configuration
-if KEYSVAULT_AVAILABLE:
+if SEGURIDAD_AVAILABLE:
+    # Usar agente de seguridad para obtener credenciales
+    RENDER_API_KEY = solicitar_credencial("RENDER_API_KEY", "agente_render", "Gestión de servicios Render")
+    RENDER_SERVICE_ID = solicitar_credencial("RENDER_SERVICE_ID", "agente_render", "Gestión de servicios Render")
+    if not RENDER_API_KEY or not RENDER_SERVICE_ID:
+        # Fallback a KeysVault si seguridad no tiene credenciales
+        if KEYSVAULT_AVAILABLE:
+            render_creds = keys_vault.obtener_render()
+            RENDER_API_KEY = RENDER_API_KEY or render_creds.get('api_key', '')
+            RENDER_SERVICE_ID = RENDER_SERVICE_ID or render_creds.get('service_id', '')
+        else:
+            RENDER_API_KEY = RENDER_API_KEY or os.getenv('RENDER_API_KEY', '')
+            RENDER_SERVICE_ID = RENDER_SERVICE_ID or os.getenv('RENDER_SERVICE_ID', '')
+elif KEYSVAULT_AVAILABLE:
     render_creds = keys_vault.obtener_render()
     RENDER_API_KEY = render_creds.get('api_key', '')
     RENDER_SERVICE_ID = render_creds.get('service_id', '')
@@ -124,7 +146,16 @@ class AgenteRender:
     
     def agregar_variables_groq(self) -> bool:
         """Agrega las variables de entorno necesarias para Groq."""
-        if KEYSVAULT_AVAILABLE:
+        if SEGURIDAD_AVAILABLE:
+            groq_api_key = solicitar_credencial("GROQ_API_KEY", "agente_render", "Configuración de motor LLM Groq")
+            if not groq_api_key:
+                # Fallback a KeysVault si seguridad no tiene credenciales
+                if KEYSVAULT_AVAILABLE:
+                    groq_creds = keys_vault.obtener_groq()
+                    groq_api_key = groq_creds.get('api_key', '')
+                else:
+                    groq_api_key = os.getenv('GROQ_API_KEY', '')
+        elif KEYSVAULT_AVAILABLE:
             groq_creds = keys_vault.obtener_groq()
             groq_api_key = groq_creds.get('api_key', '')
         else:

@@ -12,3 +12,6 @@ pytz
 # Alternativas gratuitas de IA
 openai
 groq
+
+# Seguridad y encriptación
+cryptography
