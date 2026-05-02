@@ -106,14 +106,16 @@ class AgenteRender:
             
             # Si no existe, crear nueva
             logger.info(f"Creando variable {key}...")
-            url = f"{RENDER_API_BASE}/services/{self.service_id}/env-vars"
-            response = requests.post(url, headers=headers, json={'key': key, 'value': value}, timeout=10)
+            # Render API usa PUT para agregar/actualizar variables
+            url = f"{RENDER_API_BASE}/services/{self.service_id}/env-vars/{key}"
+            response = requests.put(url, headers=headers, json={'value': value}, timeout=10)
             
-            if response.status_code == 201:
+            if response.status_code == 200:
                 logger.info(f"Variable {key} creada correctamente")
                 return True
             else:
                 logger.error(f"Error creando variable: {response.status_code}")
+                logger.error(f"Response: {response.text}")
                 return False
                 
         except Exception as e:
