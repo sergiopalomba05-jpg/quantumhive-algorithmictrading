@@ -277,11 +277,11 @@
 | Estado | Cantidad |
 |--------|----------|
 | Activo | 46 |
-| Planificado | 58 |
-| Futuro | 28 |
-| **Total agentes registrados** | **132** |
+| Planificado | 122 |
+| Futuro | 18 |
+| **Total agentes registrados** | **186** |
 
 ---
 
-*Última actualización: 28 de abril de 2026 — sesión estratégica CEO*
-*Agregados agentes de MACRO 6B Finanzas, MACRO 6A IP Guardian, MACRO 3 UCMI, MACRO 4 Pipeline Fábrica, MACRO 10 Universidad, MACRO 11 Comunicaciones*
+*Última actualización: 2 de mayo de 2026 — conteo completo revisado*
+*Total actualizado a 186 agentes basado en todos los archivos CONTEXTO_MACRO* y archivos físicos en automatizacion/agentes/*

@@ -10,7 +10,7 @@
 - **Tipo**: Hedge fund gamificado + fabrica de bots de trading algoritmico
 - **Activo principal**: US30 (Dow Jones CFD via IC Markets)
 - **Estrategia**: Multi-timeframe (M1/M5/M15/H1) con RL (PPO) + ONNX export a MT5
-- **Framework**: 19 Divisiones, 70+ agentes autonomos, pipeline end-to-end
+- **Framework**: 11 Macrodivisiones, 186 agentes autonomos (46 activos, 122 planificados, 18 futuro), pipeline end-to-end
 
 ---
 
