@@ -1245,8 +1245,11 @@ def procesar_mensaje(message):
         
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
+        # Detectar si el usuario envió audio (para respuesta simétrica)
+        usuario_envio_audio = 'voice' in message
+        
         # Procesar audio si está presente
-        if 'voice' in message:
+        if usuario_envio_audio:
             logger.info("Mensaje de audio recibido")
             try:
                 voice_file_id = message['voice']['file_id']
@@ -1318,11 +1321,11 @@ def procesar_mensaje(message):
         # Limpiar historial antiguo para no acumular infinito
         limpiar_historial_antiguo(memoria.db_path, mantener=100)
         
-        return respuesta
+        return respuesta, usuario_envio_audio
         
     except Exception as e:
         logger.error(f"Error procesando mensaje: {e}")
-        return "Lo siento, hubo un error procesando tu mensaje."
+        return "Lo siento, hubo un error procesando tu mensaje.", False
 
 def enviar_mensaje_telegram(chat_id, text, enviar_audio: bool = False):
     """Envía mensaje a Telegram. Opcionalmente envía también audio."""
@@ -1378,11 +1381,11 @@ def telegram_webhook():
             message = data['message']
             chat_id = message['chat']['id']
             
-            # Procesar mensaje
-            respuesta = procesar_mensaje(message)
+            # Procesar mensaje y detectar si usuario envió audio
+            respuesta, usuario_envio_audio = procesar_mensaje(message)
             
-            # Enviar respuesta con audio habilitado
-            enviar_mensaje_telegram(chat_id, respuesta, enviar_audio=True)
+            # Enviar respuesta con audio solo si usuario envió audio (respuesta simétrica)
+            enviar_mensaje_telegram(chat_id, respuesta, enviar_audio=usuario_envio_audio)
             
             return jsonify({'status': 'ok'}), 200
         
