@@ -8,6 +8,7 @@ import os
 import json
 import logging
 import hashlib
+import sqlite3
 from typing import Dict, Optional, List
 from datetime import datetime
 from cryptography.fernet import Fernet
@@ -39,9 +40,11 @@ class AgenteSeguridad:
         self.cipher_suite = self._crear_cipher_suite()
         self.vault_path = "security_vault.json"
         self.solicitudes_path = "security_requests.json"
+        self.db_path = "accesos_credenciales.db"
         
         self.cargar_vault()
         self.cargar_solicitudes()
+        self._inicializar_db_accesos()
         
         logger.info("AgenteSeguridad inicializado")
     
@@ -256,6 +259,89 @@ class AgenteSeguridad:
             logger.info(f"Credencial {nombre} eliminada")
             return True
         return False
+    
+    def _inicializar_db_accesos(self):
+        """Inicializa la tabla SQLite de accesos a credenciales."""
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS accesos_credenciales (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp TEXT,
+                    agente_solicitante TEXT,
+                    clave_solicitada TEXT,
+                    motivo TEXT,
+                    aprobado INTEGER,
+                    aprobado_por TEXT,
+                    ttl_segundos INTEGER
+                )
+            ''')
+            
+            conn.commit()
+            conn.close()
+            logger.info("Tabla accesos_credenciales inicializada")
+        except Exception as e:
+            logger.error(f"Error inicializando DB de accesos: {e}")
+    
+    def log_acceso(self, agente: str, clave: str, accion: str, resultado: str, aprobado_por: Optional[str] = None, ttl: int = 60):
+        """
+        Registra un acceso a credenciales en SQLite.
+        
+        Args:
+            agente: Agente solicitante
+            clave: Clave solicitada
+            accion: Acción realizada (solicitud, aprobación, rechazo, entrega)
+            resultado: Resultado de la acción
+            aprobado_por: Quién aprobó (si aplica)
+            ttl: Tiempo de vida en segundos de la aprobación
+        """
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            aprobado = 1 if accion in ['aprobación', 'entrega'] else 0
+            
+            cursor.execute('''
+                INSERT INTO accesos_credenciales 
+                (timestamp, agente_solicitante, clave_solicitada, motivo, aprobado, aprobado_por, ttl_segundos)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (datetime.now().isoformat(), agente, clave, accion, aprobado, aprobado_por, ttl))
+            
+            conn.commit()
+            conn.close()
+            logger.info(f"Acceso registrado: {agente} - {clave} - {accion}")
+        except Exception as e:
+            logger.error(f"Error registrando acceso: {e}")
+    
+    def revocar_credencial_activa(self, nombre_clave: str) -> bool:
+        """
+        Revoca una credencial activa (elimina todas las aprobaciones pendientes).
+        
+        Args:
+            nombre_clave: Nombre de la credencial a revocar
+        """
+        try:
+            # Eliminar todas las solicitudes pendientes para esta credencial
+            solicitudes_a_eliminar = [
+                sol_id for sol_id, sol in self.solicitudes.items()
+                if sol.get('credencial') == nombre_clave and sol.get('estado') == 'aprobado'
+            ]
+            
+            for sol_id in solicitudes_a_eliminar:
+                del self.solicitudes[sol_id]
+            
+            if solicitudes_a_eliminar:
+                self.guardar_solicitudes()
+                logger.info(f"Credencial {nombre_clave} revocada ({len(solicitudes_a_eliminar)} aprobaciones eliminadas)")
+                return True
+            
+            logger.warning(f"No se encontraron aprobaciones activas para {nombre_clave}")
+            return False
+        except Exception as e:
+            logger.error(f"Error revocando credencial {nombre_clave}: {e}")
+            return False
     
     def reporte_estado(self) -> str:
         """Genera un reporte del estado del agente de seguridad."""
