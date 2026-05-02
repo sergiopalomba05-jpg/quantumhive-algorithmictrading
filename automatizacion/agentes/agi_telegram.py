@@ -179,6 +179,32 @@ async def procesar_video(file_path: str) -> str:
         logger.error(f"Error procesando video: {e}")
         return ""
 
+
+async def generar_audio(texto: str) -> str:
+    """
+    Genera audio usando OpenAI TTS API.
+    Retorna el path del archivo de audio generado.
+    """
+    try:
+        import openai
+        
+        # Generar audio
+        response = openai.audio.speech.create(
+            model="tts-1",
+            voice="alloy",
+            input=texto
+        )
+        
+        # Guardar archivo temporal
+        temp_path = f"/tmp/agi_response_{datetime.now().timestamp()}.mp3"
+        response.stream_to_file(temp_path)
+        
+        logger.info(f"Audio generado: {temp_path}")
+        return temp_path
+    except Exception as e:
+        logger.error(f"Error generando audio: {e}")
+        return ""
+
 # System prompt del AGI — CEO II | Inteligencia Infinita
 SYSTEM_PROMPT = """# SYSTEM PROMPT — AGI | CEO II | INTELIGENCIA INFINITA
 # QuantumHive Trading Autonomous Intelligence System
@@ -1298,8 +1324,8 @@ def procesar_mensaje(message):
         logger.error(f"Error procesando mensaje: {e}")
         return "Lo siento, hubo un error procesando tu mensaje."
 
-def enviar_mensaje_telegram(chat_id, text):
-    """Envía mensaje a Telegram."""
+def enviar_mensaje_telegram(chat_id, text, enviar_audio: bool = False):
+    """Envía mensaje a Telegram. Opcionalmente envía también audio."""
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
         payload = {
@@ -1312,6 +1338,27 @@ def enviar_mensaje_telegram(chat_id, text):
         
         if response.status_code == 200:
             logger.info(f"Mensaje enviado a chat_id {chat_id}")
+            
+            # Generar y enviar audio si está habilitado
+            if enviar_audio and text:
+                try:
+                    audio_path = generar_audio(text)
+                    if audio_path:
+                        # Enviar audio como mensaje de voz
+                        audio_url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendVoice"
+                        with open(audio_path, 'rb') as audio_file:
+                            files = {'voice': audio_file}
+                            audio_payload = {'chat_id': chat_id}
+                            audio_response = requests.post(audio_url, data=audio_payload, files=files, timeout=10)
+                        
+                        # Eliminar archivo temporal
+                        os.remove(audio_path)
+                        
+                        if audio_response.status_code == 200:
+                            logger.info(f"Audio enviado a chat_id {chat_id}")
+                except Exception as e:
+                    logger.error(f"Error enviando audio: {e}")
+            
             return True
         else:
             logger.error(f"Error enviando mensaje: {response.text}")
@@ -1334,8 +1381,8 @@ def telegram_webhook():
             # Procesar mensaje
             respuesta = procesar_mensaje(message)
             
-            # Enviar respuesta
-            enviar_mensaje_telegram(chat_id, respuesta)
+            # Enviar respuesta con audio habilitado
+            enviar_mensaje_telegram(chat_id, respuesta, enviar_audio=True)
             
             return jsonify({'status': 'ok'}), 200
         
