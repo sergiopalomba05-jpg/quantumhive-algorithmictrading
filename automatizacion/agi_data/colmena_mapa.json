@@ -1,0 +1,544 @@
+{
+  "total_agentes": 26,
+  "por_division": {
+    "general": [
+      "agente_ai_town",
+      "agente_configurar_webhook_meta",
+      "agente_crear_bot_telegram",
+      "agente_experto_errores",
+      "agente_gestor_gmail",
+      "agente_informes_logs",
+      "agente_investigacion_modelos",
+      "agente_limpiador_basura",
+      "agente_optimizador_agentes",
+      "agente_optimizador_procesos",
+      "agente_recolector_inteligencia",
+      "agente_render",
+      "agente_seguridad"
+    ],
+    "fabrica_bots": [
+      "agente_analizador_rendimiento",
+      "agente_combinador_estrategias",
+      "agente_estructurador_estrategias",
+      "agente_filtro_combinaciones",
+      "agente_marketing_bots",
+      "agente_recolector_estrategias",
+      "agente_walk_forward_analysis"
+    ],
+    "recursos_gratis": [
+      "agente_administrador_recursos",
+      "agente_gestor_nubes",
+      "agente_investigador_gpus",
+      "agente_recolector_nubes",
+      "agente_recolector_recursos_varios",
+      "agente_reporteador"
+    ]
+  },
+  "por_estado": {
+    "activo": 26,
+    "esqueleto": 0
+  },
+  "duplicados_detectados": [
+    {
+      "agente1": "agente_recolector_nubes",
+      "agente2": "agente_recolector_recursos_varios",
+      "score_similitud": 83.33333333333334,
+      "tipo": "probable_duplicado"
+    }
+  ],
+  "gaps_detectados": [
+    {
+      "nombre": "agente_recolector.py",
+      "division": "1 - Enjambre de Trading",
+      "estado": "operativo",
+      "descripcion": "Descarga automática de todos los timeframes",
+      "prioridad": 5
+    },
+    {
+      "nombre": "agente_riesgo.py",
+      "division": "1 - Enjambre de Trading",
+      "estado": "operativo",
+      "descripcion": "Monitorea drawdown en tiempo real",
+      "prioridad": 5
+    },
+    {
+      "nombre": "agente_auditoria.py",
+      "division": "1 - Enjambre de Trading",
+      "estado": "operativo",
+      "descripcion": "Audita operaciones 24hs, anomalías",
+      "prioridad": 5
+    },
+    {
+      "nombre": "agente_compliance.py",
+      "division": "1 - Enjambre de Trading",
+      "estado": "operativo",
+      "descripcion": "Verifica FTMO challenge/live",
+      "prioridad": 5
+    },
+    {
+      "nombre": "agente_optimizador.py",
+      "division": "1 - Enjambre de Trading",
+      "estado": "operativo",
+      "descripcion": "Análisis de skills, ajuste automático score_min",
+      "prioridad": 5
+    },
+    {
+      "nombre": "agente_challenge.py",
+      "division": "2 - Gestión de Fondeo",
+      "estado": "operativo",
+      "descripcion": "Gestiona pase de challenge",
+      "prioridad": 5
+    },
+    {
+      "nombre": "agente_cuentas_fondeadas.py",
+      "division": "2 - Gestión de Fondeo",
+      "estado": "operativo",
+      "descripcion": "Registra cuentas fondeadas activas",
+      "prioridad": 5
+    },
+    {
+      "nombre": "agente_formateador_senales.py",
+      "division": "3 - Grupo de Señales",
+      "estado": "operativo",
+      "descripcion": "Formatea mensaje para Telegram",
+      "prioridad": 5
+    },
+    {
+      "nombre": "agente_gestor_grupos.py",
+      "division": "3 - Grupo de Señales",
+      "estado": "operativo",
+      "descripcion": "Gestiona trial 3 días / pago semanal / pago mensual",
+      "prioridad": 5
+    },
+    {
+      "nombre": "agente_contenido_instagram.py",
+      "division": "4 - Marketing",
+      "estado": "operativo",
+      "descripcion": "Genera imágenes con resultados reales",
+      "prioridad": 5
+    },
+    {
+      "nombre": "orquestador.py",
+      "division": "7 - PropFirm",
+      "estado": "operativo",
+      "descripcion": "Coordina todos los agentes de Division 1",
+      "prioridad": 5
+    },
+    {
+      "nombre": "agente_bienvenida.py",
+      "division": "11 - Atención Cliente",
+      "estado": "operativo",
+      "descripcion": "Primer contacto, califica lead",
+      "prioridad": 5
+    },
+    {
+      "nombre": "agente_closer.py",
+      "division": "11 - Atención Cliente",
+      "estado": "operativo",
+      "descripcion": "Cierra ventas, links pago",
+      "prioridad": 5
+    },
+    {
+      "nombre": "agente_supervisor_global.py",
+      "division": "12 - Crecimiento",
+      "estado": "operativo",
+      "descripcion": "Cruza datos áreas, detecta cuellos de botella",
+      "prioridad": 5
+    },
+    {
+      "nombre": "agente_monitoreo_sistema.py",
+      "division": "14 - Infraestructura",
+      "estado": "operativo",
+      "descripcion": "Verifica procesos críticos cada 5 min",
+      "prioridad": 5
+    },
+    {
+      "nombre": "agente_backup.py",
+      "division": "14 - Infraestructura",
+      "estado": "operativo",
+      "descripcion": "Backup diario ONNX / SQLite / config",
+      "prioridad": 5
+    },
+    {
+      "nombre": "agente_alertas_criticas.py",
+      "division": "14 - Infraestructura",
+      "estado": "operativo",
+      "descripcion": "Alertas por niveles: VERDE → NEGRO",
+      "prioridad": 5
+    },
+    {
+      "nombre": "agente_dashboard_ejecutivo.py",
+      "division": "15 - Business Intelligence",
+      "estado": "operativo",
+      "descripcion": "Reporte diario KPIs todas las divisiones",
+      "prioridad": 5
+    },
+    {
+      "nombre": "agente_metricas_negocio.py",
+      "division": "15 - Business Intelligence",
+      "estado": "operativo",
+      "descripcion": "MRR, churn, LTV, CAC, proyecciones",
+      "prioridad": 5
+    },
+    {
+      "nombre": "agente_entrenador.py",
+      "division": "1 - Enjambre de Trading",
+      "estado": "pendiente",
+      "descripcion": "Detecta necesidad de reentrenamiento, lanza jobs en Kaggle",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_tester.py",
+      "division": "1 - Enjambre de Trading",
+      "estado": "pendiente",
+      "descripcion": "Backtesting automático con datos históricos",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_cobro_fondeo.py",
+      "division": "2 - Gestión de Fondeo",
+      "estado": "pendiente",
+      "descripcion": "Cobra parte QuantumHive cuando PropFirm paga",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_afiliaciones.py",
+      "division": "2 - Gestión de Fondeo",
+      "estado": "pendiente",
+      "descripcion": "Acuerdos con PropFirms oficiales",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_onboarding_cliente.py",
+      "division": "2 - Gestión de Fondeo",
+      "estado": "pendiente",
+      "descripcion": "Alta de nuevo cliente en challenge",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_cobro_senales.py",
+      "division": "3 - Grupo de Señales",
+      "estado": "pendiente",
+      "descripcion": "Links de pago automáticos",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_retencion.py",
+      "division": "3 - Grupo de Señales",
+      "estado": "pendiente",
+      "descripcion": "Detecta clientes sin renovar",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_captacion_senales.py",
+      "division": "3 - Grupo de Señales",
+      "estado": "pendiente",
+      "descripcion": "Publica resultados en redes",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_viral_seo.py",
+      "division": "4 - Marketing",
+      "estado": "pendiente",
+      "descripcion": "Optimiza contenido para viralización y SEO",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_captacion_dms.py",
+      "division": "4 - Marketing",
+      "estado": "pendiente",
+      "descripcion": "Responde DMs automáticamente",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_cierre_ventas.py",
+      "division": "4 - Marketing",
+      "estado": "pendiente",
+      "descripcion": "Cierra ventas automáticamente",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_creador_infoproductos.py",
+      "division": "5 - Infoproductos",
+      "estado": "pendiente",
+      "descripcion": "Usa Claude API para crear cursos completos",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_publicador_hotmart.py",
+      "division": "5 - Infoproductos",
+      "estado": "pendiente",
+      "descripcion": "Publica cursos en Hotmart/Udemy/Teachable",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_marketplace_productos.py",
+      "division": "5 - Infoproductos",
+      "estado": "pendiente",
+      "descripcion": "Gestiona marketplace propio + MQL5 Market",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_afiliados.py",
+      "division": "5 - Infoproductos",
+      "estado": "pendiente",
+      "descripcion": "Tracking de afiliados y pagos automáticos",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_enterprise_sales.py",
+      "division": "6 - High Ticket",
+      "estado": "pendiente",
+      "descripcion": "Venta del framework QuantumHive a hedge funds",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_gestor_licencias.py",
+      "division": "6 - High Ticket",
+      "estado": "pendiente",
+      "descripcion": "Gestiona licencias SaaS mensuales",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_soporte_tecnico.py",
+      "division": "6 - High Ticket",
+      "estado": "pendiente",
+      "descripcion": "Soporte dedicado a clientes enterprise",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_propfirm.py",
+      "division": "7 - PropFirm",
+      "estado": "pendiente",
+      "descripcion": "Fondea traders con los propios bots de QuantumHive",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_control_calidad.py",
+      "division": "8 - Fábrica de Bots",
+      "estado": "pendiente",
+      "descripcion": "Backtest automático, aprobación/rechazo de bots",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_pricing.py",
+      "division": "8 - Fábrica de Bots",
+      "estado": "pendiente",
+      "descripcion": "Análisis mercado EAs, precio óptimo",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_catalogo.py",
+      "division": "8 - Fábrica de Bots",
+      "estado": "pendiente",
+      "descripcion": "Catálogo productos, descripciones, métricas",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_limpieza_datos.py",
+      "division": "9 - Limpieza",
+      "estado": "pendiente",
+      "descripcion": "Elimina datos antiguos, comprime parquet",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_limpieza_modelos.py",
+      "division": "9 - Limpieza",
+      "estado": "pendiente",
+      "descripcion": "Archiva ONNX obsoletos",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_limpieza_logs.py",
+      "division": "9 - Limpieza",
+      "estado": "pendiente",
+      "descripcion": "Rota logs >30 días, comprime .gz",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_limpieza_prompts.py",
+      "division": "9 - Limpieza",
+      "estado": "pendiente",
+      "descripcion": "Archiva prompts de sesiones anteriores",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_analytics_web.py",
+      "division": "10 - Diseño Web",
+      "estado": "pendiente",
+      "descripcion": "Google Analytics / Plausible, funnel conversiones",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_seo.py",
+      "division": "10 - Diseño Web",
+      "estado": "pendiente",
+      "descripcion": "Keywords competidores, contenido, posicionamiento",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_ab_testing.py",
+      "division": "10 - Diseño Web",
+      "estado": "pendiente",
+      "descripcion": "Variantes landing pages, conversión",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_diseno_contenido.py",
+      "division": "10 - Diseño Web",
+      "estado": "pendiente",
+      "descripcion": "Assets visuales web automáticos",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_especialista_senales.py",
+      "division": "11 - Atención Cliente",
+      "estado": "pendiente",
+      "descripcion": "Expertos en grupo de señales",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_especialista_fondeo.py",
+      "division": "11 - Atención Cliente",
+      "estado": "pendiente",
+      "descripcion": "Expertos en gestión de challenges",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_especialista_bots.py",
+      "division": "11 - Atención Cliente",
+      "estado": "pendiente",
+      "descripcion": "Expertos en venta de EAs / bots",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_onboarding_ventas.py",
+      "division": "11 - Atención Cliente",
+      "estado": "pendiente",
+      "descripcion": "Acceso post-pago, instrucciones",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_retencion_ventas.py",
+      "division": "11 - Atención Cliente",
+      "estado": "pendiente",
+      "descripcion": "Clientes inactivos, campaña retención",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_ceo_estrategico.py",
+      "division": "12 - Crecimiento",
+      "estado": "pendiente",
+      "descripcion": "Evalúa métricas globales diarias",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_scout.py",
+      "division": "12 - Crecimiento",
+      "estado": "pendiente",
+      "descripcion": "Busca repos / papers / herramientas nuevas",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_clasificador.py",
+      "division": "12 - Crecimiento",
+      "estado": "pendiente",
+      "descripcion": "Evalúa hallazgos del scout",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_entrenador_bots.py",
+      "division": "12 - Crecimiento",
+      "estado": "pendiente",
+      "descripcion": "Monitorea métricas bots, decide reentrenar",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_entrenador_divisiones.py",
+      "division": "12 - Crecimiento",
+      "estado": "pendiente",
+      "descripcion": "Monitorea KPIs divisiones, ajusta agentes",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_premios.py",
+      "division": "12 - Crecimiento",
+      "estado": "pendiente",
+      "descripcion": "Registra mejoras >5% en 7 días",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_terminos.py",
+      "division": "13 - Legal",
+      "estado": "pendiente",
+      "descripcion": "Términos de servicio versionados",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_contratos.py",
+      "division": "13 - Legal",
+      "estado": "pendiente",
+      "descripcion": "Contratos PDF clientes fondeo",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_regulaciones.py",
+      "division": "13 - Legal",
+      "estado": "pendiente",
+      "descripcion": "Monitorea regulaciones por país",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_propfirm_compliance.py",
+      "division": "13 - Legal",
+      "estado": "pendiente",
+      "descripcion": "Reglas PropFirms, alerta cambios",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_privacidad.py",
+      "division": "13 - Legal",
+      "estado": "pendiente",
+      "descripcion": "GDPR, eliminación datos",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_actualizaciones.py",
+      "division": "14 - Infraestructura",
+      "estado": "pendiente",
+      "descripcion": "Versiones nuevas dependencias",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_performance.py",
+      "division": "14 - Infraestructura",
+      "estado": "pendiente",
+      "descripcion": "CPU/RAM/disco, alerta >80%",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_metricas_trading.py",
+      "division": "15 - Business Intelligence",
+      "estado": "pendiente",
+      "descripcion": "Winrate, PF, DD, Sharpe diario",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_alertas_negocio.py",
+      "division": "15 - Business Intelligence",
+      "estado": "pendiente",
+      "descripcion": "Alerta si KPI cae bajo umbral",
+      "prioridad": 3
+    },
+    {
+      "nombre": "agente_reportes_inversores.py",
+      "division": "15 - Business Intelligence",
+      "estado": "pendiente",
+      "descripcion": "PDF mensual profesional",
+      "prioridad": 3
+    }
+  ],
+  "score_promedio": 69.42,
+  "recomendaciones": [],
+  "fecha_generacion": "2026-05-02T15:56:19.818601"
+}

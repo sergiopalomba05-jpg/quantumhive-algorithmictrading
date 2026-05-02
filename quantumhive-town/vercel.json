@@ -1,36 +1,9 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": ".next",
-  "framework": "nextjs",
-  "installCommand": "npm install",
-  "devCommand": "npm run dev",
-  "env": {
-    "CONVEX_DEPLOYMENT": {
-      "description": "URL del deployment de Convex",
-      "value": ""
-    },
-    "CONVEX_URL": {
-      "description": "URL del backend de Convex",
-      "value": ""
-    }
-  },
-  "headers": [
+  "framework": "vite",
+  "rewrites": [
     {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        },
-        {
-          "key": "X-XSS-Protection",
-          "value": "1; mode=block"
-        }
-      ]
+      "source": "/ai-town/:match*",
+      "destination": "/:match*"
     }
   ]
 }
