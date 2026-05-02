@@ -1,0 +1,75 @@
+{
+  "contexto_empresa": {
+    "vision_ceo": "QuantumHive es un sistema de trading algorítmico autónomo que evoluciona continuamente. El objetivo es crear una IA que opere trading de forma completamente autónoma, aprendiendo de sus decisiones y mejorando constantemente.",
+    "objetivos_actuales": [
+      "Implementar Event Bus + Scheduler + Handlers Colmena",
+      "Verificar deploy en Render con logs",
+      "Testing de Event Bus y Scheduler",
+      "Mejorar memoria persistente del sistema"
+    ],
+    "proyectos_en_curso": [
+      {
+        "nombre": "Event Bus + Scheduler + Handlers Colmena",
+        "estado": "Implementación completada, pendiente deploy en Render",
+        "commit": "85d6fbb",
+        "descripcion": "Sistema de eventos programados y handlers para automatización de QuantumHive"
+      },
+      {
+        "nombre": "Memoria Persistente SWE-1.6",
+        "estado": "En implementación",
+        "descripcion": "Sistema de memoria persistente para el arquitecto SWE-1.6 (Cascade)"
+      }
+    ]
+  },
+  "memoria_codigo": {
+    "archivos_clave": {
+      "agi_telegram.py": "Controlador principal del bot de Telegram con Claude API, AGI v2.0, Event Bus y Scheduler",
+      "scheduler.py": "Scheduler con jobs periódicos (heartbeat, monitor_bots, briefing_diario, limpiar_historial, verificar_alertas)",
+      "event_bus.py": "Bus de eventos central con polling cada 5 segundos y sistema de suscriptores",
+      "handlers_colmena.py": "Handlers para eventos (drawdown, compliance, bot_pausado, cliente_nuevo, pago_confirmado, agente_problema, error_critico)",
+      "github_memory.py": "Gestor de memoria persistente en GitHub para AGI",
+      "requirements.txt": "Dependencias del proyecto (flask, requests, anthropic, apscheduler, pytz, etc.)"
+    },
+    "patrones_arquitectura": [
+      "Event-driven architecture con Event Bus y Handlers",
+      "Scheduler para tareas periódicas",
+      "Memoria persistente multi-capa (GitHub + SQLite + Supabase)",
+      "AGI v2.0 con módulos modulares (ApprovalGate, ActionRouter, AgentBus, HeartbeatMonitor, BriefingGenerator, ProactiveAlerts, ActionExecutor, TriggerSystem, AGIAutonomous)"
+    ],
+    "decisiones_tecnicas": [
+      "Usar APScheduler para tareas programadas",
+      "SQLite para base de datos local (agi_memoria_telegram.db)",
+      "GitHub Memory para persistencia entre sesiones",
+      "Supabase como backup de conversaciones",
+      "Flask para API web y webhooks de Telegram"
+    ],
+    "estructura_bd": {
+      "ideas": "Registro de ideas de Sergio",
+      "decisiones": "Decisiones tomadas",
+      "agentes": "Estado de agentes de la colmena",
+      "metricas": "Métricas de la empresa",
+      "alertas": "Alertas y riesgos",
+      "comunicaciones_colmena": "Comunicaciones con la colmena",
+      "conversaciones": "Historial de conversaciones",
+      "mensajes": "Mensajes (compatibilidad)",
+      "eventos": "Eventos del Event Bus (nuevo)"
+    }
+  },
+  "estado_actual": {
+    "ultima_tarea": "Implementación de Event Bus + Scheduler + Handlers Colmena completada",
+    "bloqueos": [
+      "Render no desplegó la nueva versión automáticamente - requiere rebuild manual"
+    ],
+    "proximos_pasos": [
+      "Rebuild manual en Render para desplegar Event Bus + Scheduler",
+      "Verificar logs de Render confirmando Event Bus y Scheduler iniciados",
+      "Testing de Event Bus vía POST /sistema/evento",
+      "Verificar notificaciones Telegram y SQLite"
+    ]
+  },
+  "metadatos": {
+    "ultima_actualizacion": "2026-05-02T00:48:00-03:00",
+    "total_sesiones": 1,
+    "version": "1.0.0"
+  }
+}

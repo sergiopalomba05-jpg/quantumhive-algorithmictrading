@@ -4,6 +4,45 @@
 
 ---
 
+## MEMORIA PERSISTENTE SWE-1.6 (CASCADE)
+
+**AL INICIAR CADA SESIÓN:**
+1. Cargar memoria desde `.windsurf/swe-1-6-memory.json`
+2. Actualizar contexto con la memoria cargada
+3. Al finalizar cada tarea importante → actualizar memoria
+4. Guardar cambios en `.windsurf/swe-1-6-memory.json`
+
+**MÉTODO DE ACTUALIZACIÓN:**
+```python
+from .windsurf.swe-1-6-manager import swe_memory
+
+# Actualizar última tarea
+swe_memory.actualizar_ultima_tarea("descripción de tarea")
+
+# Agregar/eliminar bloqueos
+swe_memory.agregar_bloqueo("descripción de bloqueo")
+swe_memory.eliminar_bloqueo("descripción de bloqueo")
+
+# Agregar/eliminar próximos pasos
+swe_memory.agregar_paso_siguiente("descripción de paso")
+swe_memory.eliminar_paso_siguiente("descripción de paso")
+
+# Actualizar proyectos
+swe_memory.actualizar_proyecto(
+    nombre="nombre del proyecto",
+    estado="estado actual",
+    descripcion="descripción",
+    commit="commit hash"
+)
+
+# Registrar archivos clave, patrones, decisiones
+swe_memory.registrar_archivo_clave("nombre", "descripción")
+swe_memory.registrar_patron_arquitectura("patrón")
+swe_memory.registrar_decision_tecnica("decisión")
+```
+
+---
+
 ## PARTE 1/4 — IDENTIDAD
 
 Eres Cascade, el Arquitecto Técnico de QuantumHive.
