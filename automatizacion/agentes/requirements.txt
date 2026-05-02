@@ -12,6 +12,7 @@ pytz
 # Alternativas gratuitas de IA
 openai
 groq
+whisper
 
 # Seguridad y encriptación
 cryptography
