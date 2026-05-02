@@ -156,6 +156,66 @@ def registrar_suscriptores_core():
     # RECOLECTORES - Publican eventos, no requieren suscripción
     logger.info("ℹ️  Recolectores (nubes, estrategias, recursos) publican eventos")
 
+    # AGENTE INVESTIGACION MODELOS - Suscribir a eventos de modelos
+    try:
+        from automatizacion.agentes.agente_investigacion_modelos import AgenteInvestigacionModelos
+        investigador = AgenteInvestigacionModelos()
+        
+        def manejar_modelo_deprecado(evento):
+            """Handler para modelos deprecados."""
+            payload = evento['payload']
+            logger.info(f"Modelo deprecado detectado: {payload.get('modelo')}")
+        
+        bus.suscribir('modelo_deprecado', manejar_modelo_deprecado)
+        logger.info("✅ Agente Investigación Modelos suscrito al Event Bus")
+    except Exception as e:
+        logger.error(f"❌ Error suscribiendo Agente Investigación Modelos: {e}")
+
+    # AGENTE GESTOR GMAIL - Suscribir a eventos de tokens
+    try:
+        from automatizacion.agentes.agente_gestor_gmail import AgenteGestorGmail
+        gestor = AgenteGestorGmail()
+        
+        def manejar_token_agotado(evento):
+            """Handler para tokens agotados."""
+            payload = evento['payload']
+            logger.info(f"Token agotado: {payload.get('cuenta')}")
+        
+        bus.suscribir('token_agotado', manejar_token_agotado)
+        logger.info("✅ Agente Gestor Gmail suscrito al Event Bus")
+    except Exception as e:
+        logger.error(f"❌ Error suscribiendo Agente Gestor Gmail: {e}")
+
+    # AGENTE AI TOWN - Suscribir a eventos de AI Town
+    try:
+        from automatizacion.agentes.agente_ai_town import AgenteAITown
+        ai_town = AgenteAITown()
+        
+        def manejar_ai_town_error(evento):
+            """Handler para errores en AI Town."""
+            payload = evento['payload']
+            logger.info(f"Error AI Town: {payload.get('descripcion')}")
+        
+        bus.suscribir('ai_town_error', manejar_ai_town_error)
+        logger.info("✅ Agente AI Town suscrito al Event Bus")
+    except Exception as e:
+        logger.error(f"❌ Error suscribiendo Agente AI Town: {e}")
+
+    # AGENTE CREAR BOT TELEGRAM - Suscribir a eventos de creación
+    try:
+        from automatizacion.agentes.agente_crear_bot_telegram import AgenteCrearBotTelegram
+        creador = AgenteCrearBotTelegram()
+        
+        def manejar_bot_solicitado(evento):
+            """Handler para bots solicitados."""
+            payload = evento['payload']
+            logger.info(f"Bot solicitado: {payload.get('nombre')}")
+        
+        bus.suscribir('bot_solicitado', manejar_bot_solicitado)
+        logger.info("✅ Agente Crear Bot Telegram suscrito al Event Bus")
+    except Exception as e:
+        logger.error(f"❌ Error suscribiendo Agente Crear Bot Telegram: {e}")
+
     return bus
 
 
