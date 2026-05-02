@@ -1184,9 +1184,9 @@ def procesar_mensaje_con_claude(message_text, tipo_mensaje: str = "general"):
             respuesta = anthropic_client.messages_create(llm_messages, max_tokens=1024)
             logger.info(f"Respuesta del wrapper: {respuesta[:100]}...")
         else:
-            # Usar Anthropic directo
+            # Usar Anthropic directo (fallback)
             response = anthropic_client.messages.create(
-                model="claude-sonnet-4-6",
+                model="claude-3-sonnet-20240229",
                 max_tokens=1024,
                 system=system_prompt_dinamico,
                 messages=messages

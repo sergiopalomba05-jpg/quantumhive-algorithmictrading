@@ -16,14 +16,16 @@
 
 ## PENDIENTES DE SESIONES ANTERIORES
 
-### Pendiente: Flujos de LLM (ayer)
-- Estado: NO RESUELTO
+### Pendiente: Flujos de LLM (ayer - 1 de mayo 2026)
+- Estado: IDENTIFICADO
 - Fecha: 1 de mayo 2026 (ayer)
-- Contexto: Algo relacionado con flujos de LLM quedó pendiente
-- Archivos relacionados:
-  - automatizacion/agi_core/llm_wrapper.py
-  - automatizacion/agentes/actualizar_render_llm.py
-- Acción requerida: Investigar qué es este pendiente y resolverlo
+- Contexto: agi_telegram.py tiene fallback a Anthropic directo con modelo incorrecto
+- Archivo: automatizacion/agentes/agi_telegram.py
+- Problema: Líneas 1187-1195 usan Anthropic directo con modelo "claude-sonnet-4-6" (no existe)
+- Solución requerida: Corregir modelo a "claude-3-sonnet-20240229" o eliminar fallback
+- Estado del wrapper: ✅ llm_wrapper.py está implementado y funcional
+- Integración: ✅ agi_telegram.py ya usa llm_wrapper cuando disponible (líneas 1071-1087)
+- Acción requerida: Corregir fallback en agi_telegram.py
 
 ### Pendiente: Event Bus Semana 2
 - Estado: PENDIENTE
