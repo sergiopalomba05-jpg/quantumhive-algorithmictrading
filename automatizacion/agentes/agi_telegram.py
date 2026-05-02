@@ -1346,7 +1346,9 @@ def enviar_mensaje_telegram(chat_id, text, enviar_audio: bool = False):
             # Generar y enviar audio si está habilitado
             if enviar_audio and text:
                 try:
-                    audio_path = generar_audio(text)
+                    # Ejecutar coroutine de generar_audio
+                    import asyncio
+                    audio_path = asyncio.run(generar_audio(text))
                     if audio_path:
                         # Enviar audio como mensaje de voz
                         audio_url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendVoice"
