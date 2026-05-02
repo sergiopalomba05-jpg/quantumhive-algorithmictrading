@@ -17,6 +17,17 @@ from dataclasses import dataclass, asdict
 from dotenv import load_dotenv
 import requests
 from anthropic import Anthropic
+
+# Configuración de logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# AGI UPGRADE v2.0 Modules - Agregar path antes de imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 # LLM Wrapper para alternativas gratuitas
 try:
     from agi_core.llm_wrapper import llm_wrapper, LLMMessage, get_llm_engine, is_free_engine
@@ -27,15 +38,7 @@ except ImportError as e:
     LLM_WRAPPER_AVAILABLE = False
     logger.warning(f"LLM Wrapper no disponible: {e}")
 
-# Configuración de logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
 # AGI UPGRADE v2.0 Modules
-sys.path.insert(0, str(Path(__file__).parent.parent))
 try:
     from agi_memory.intent_classifier import IntentClassifier as NewIntentClassifier
     from agi_memory.challenge_mode import ChallengeMode
