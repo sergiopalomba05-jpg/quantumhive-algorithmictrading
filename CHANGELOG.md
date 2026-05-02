@@ -2,6 +2,12 @@
 
 Todos los cambios notables del proyecto.
 ## [2026-05-02] - FEAT
+**Commit:** bc3cf27d
+**Módulo:** event_bus
+- Event Bus completo con nucleo/event_bus.py, eventos_quantumhive.py y main_autonomo.py con suscripciones de agentes core
+
+
+## [2026-05-02] - FEAT
 **Commit:** 66144924
 **Módulo:** agentes
 - Agente Recolector Inteligente centralizado con orquestación de recolectores, normalización, deduplicación y distribución a Colmena
