@@ -14,6 +14,14 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
+# Importar agente LLM Manager para cambio automático de motores
+try:
+    from automatizacion.agentes.agente_llm_manager import report_llm_success, report_llm_error, get_current_llm_engine
+    LLM_MANAGER_AVAILABLE = True
+except ImportError:
+    LLM_MANAGER_AVAILABLE = False
+    logger.warning("Agente LLM Manager no disponible - cambio automático de motores deshabilitado")
+
 # Configuración de motores IA
 LLM_ENGINE = os.getenv('LLM_ENGINE', 'openrouter').lower()  # 'anthropic', 'openrouter', 'groq', 'ollama'
 ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY', '')
@@ -151,12 +159,25 @@ class LLMWrapper:
         
         try:
             if self.engine == 'anthropic':
-                return self._anthropic_create(messages, **kwargs)
+                response = self._anthropic_create(messages, **kwargs)
             elif self.engine in ['openrouter', 'groq', 'ollama']:
-                return self._openai_compatible_create(messages, **kwargs)
+                response = self._openai_compatible_create(messages, **kwargs)
             else:
                 raise ValueError(f"Motor no soportado: {self.engine}")
+            
+            # Reportar éxito al agente LLM Manager
+            if LLM_MANAGER_AVAILABLE:
+                report_llm_success(self.engine)
+            
+            return response
         except Exception as e:
+            error_str = str(e)
+            is_rate_limit = 'rate limit' in error_str.lower() or '429' in error_str
+            
+            # Reportar error al agente LLM Manager
+            if LLM_MANAGER_AVAILABLE:
+                report_llm_error(self.engine, error_str, is_rate_limit=is_rate_limit)
+            
             logger.error(f"Error en messages_create: {e}")
             raise
     
