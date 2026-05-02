@@ -12,7 +12,7 @@ from typing import Dict, Optional, List
 from datetime import datetime
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from base64 import b64encode, b64decode
 from dotenv import load_dotenv
 
@@ -47,7 +47,7 @@ class AgenteSeguridad:
     
     def _crear_cipher_suite(self) -> Fernet:
         """Crea suite de encriptación Fernet desde la clave maestra."""
-        kdf = PBKDF2(
+        kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,
             salt=b'quantumhive-salt',
