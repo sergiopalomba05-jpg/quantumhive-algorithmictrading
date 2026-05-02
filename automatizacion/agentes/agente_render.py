@@ -38,26 +38,22 @@ except ImportError as e:
     logger.warning(f"Agente Seguridad no disponible: {e}")
 
 # Render API Configuration
-if SEGURIDAD_AVAILABLE:
-    # Usar agente de seguridad para obtener credenciales
-    RENDER_API_KEY = solicitar_credencial("RENDER_API_KEY", "agente_render", "Gestión de servicios Render")
-    RENDER_SERVICE_ID = solicitar_credencial("RENDER_SERVICE_ID", "agente_render", "Gestión de servicios Render")
+# Para automatización completa, usar directamente variables de entorno
+RENDER_API_KEY = os.getenv('RENDER_API_KEY', '')
+RENDER_SERVICE_ID = os.getenv('RENDER_SERVICE_ID', '')
+
+# Si no están en entorno, intentar con KeysVault o Agente Seguridad
+if not RENDER_API_KEY or not RENDER_SERVICE_ID:
+    if SEGURIDAD_AVAILABLE:
+        # Usar agente de seguridad para obtener credenciales
+        RENDER_API_KEY = RENDER_API_KEY or solicitar_credencial("RENDER_API_KEY", "agente_render", "Gestión de servicios Render")
+        RENDER_SERVICE_ID = RENDER_SERVICE_ID or solicitar_credencial("RENDER_SERVICE_ID", "agente_render", "Gestión de servicios Render")
+    
     if not RENDER_API_KEY or not RENDER_SERVICE_ID:
-        # Fallback a KeysVault si seguridad no tiene credenciales
         if KEYSVAULT_AVAILABLE:
             render_creds = keys_vault.obtener_render()
             RENDER_API_KEY = RENDER_API_KEY or render_creds.get('api_key', '')
             RENDER_SERVICE_ID = RENDER_SERVICE_ID or render_creds.get('service_id', '')
-        else:
-            RENDER_API_KEY = RENDER_API_KEY or os.getenv('RENDER_API_KEY', '')
-            RENDER_SERVICE_ID = RENDER_SERVICE_ID or os.getenv('RENDER_SERVICE_ID', '')
-elif KEYSVAULT_AVAILABLE:
-    render_creds = keys_vault.obtener_render()
-    RENDER_API_KEY = render_creds.get('api_key', '')
-    RENDER_SERVICE_ID = render_creds.get('service_id', '')
-else:
-    RENDER_API_KEY = os.getenv('RENDER_API_KEY', '')
-    RENDER_SERVICE_ID = os.getenv('RENDER_SERVICE_ID', '')
 
 RENDER_API_BASE = 'https://api.render.com/v1'
 
