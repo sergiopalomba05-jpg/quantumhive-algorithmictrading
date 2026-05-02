@@ -272,6 +272,130 @@ class AgenteRender:
             logger.error(f"Error reiniciando servicio: {e}")
             return False
     
+    def esperar_deploy_completo(self, timeout_segundos: int = 300) -> bool:
+        """Espera a que el deploy actual termine."""
+        import time
+        inicio = time.time()
+        
+        while time.time() - inicio < timeout_segundos:
+            deploy = self.obtener_estado_deploy()
+            if deploy:
+                estado = deploy.get('status', 'unknown')
+                if estado in ['succeeded', 'failed', 'canceled']:
+                    logger.info(f"Deploy finalizado con estado: {estado}")
+                    return estado == 'succeeded'
+                logger.info(f"Deploy en progreso: {estado}")
+            time.sleep(10)
+        
+        logger.warning("Timeout esperando deploy")
+        return False
+    
+    def ciclo_deploy_automatico(self, max_intentos: int = 5) -> bool:
+        """
+        Ciclo automático: deploy → verificar logs → corregir → redeploy
+        Repite hasta que no haya errores o se alcance max_intentos.
+        """
+        for intento in range(max_intentos):
+            logger.info(f"=== CICLO DEPLOY AUTOMÁTICO - Intento {intento + 1}/{max_intentos} ===")
+            
+            # 1. Hacer deploy
+            if not self.hacer_deploy_manual():
+                logger.error("No se pudo iniciar deploy")
+                continue
+            
+            # 2. Esperar a que termine
+            if not self.esperar_deploy_completo():
+                logger.error("Deploy falló o timeout")
+                continue
+            
+            # 3. Esperar unos segundos para que el servicio arranque
+            import time
+            time.sleep(30)
+            
+            # 4. Leer logs y buscar errores
+            errores = self.obtener_errores_logs()
+            
+            if not errores:
+                logger.info("✅ No se encontraron errores - Servicio funcionando correctamente")
+                return True
+            
+            logger.warning(f"❌ Errores encontrados: {len(errores)}")
+            for error in errores[:5]:  # Mostrar primeros 5 errores
+                logger.error(f"  - {error}")
+            
+            # 5. Analizar errores y corregir si es posible
+            if self._corregir_errores_automaticamente(errores):
+                logger.info("Errores corregidos automáticamente, reintentando...")
+                continue
+            else:
+                logger.error("No se pudieron corregir errores automáticamente")
+                break
+        
+        logger.error(f"Ciclo automático falló después de {max_intentos} intentos")
+        return False
+    
+    def _corregir_errores_automaticamente(self, errores: List[str]) -> bool:
+        """
+        Analiza errores y aplica correcciones automáticas cuando es posible.
+        Retorna True si aplicó correcciones, False si no pudo.
+        """
+        errores_str = ' '.join(errores)
+        
+        # Detectar error de modelo Groq descontinuado
+        if 'model_decommissioned' in errores_str and 'groq' in errores_str.lower():
+            logger.info("Detectado error de modelo Groq descontinuado - corrigiendo...")
+            return self._corregir_modelo_groq()
+        
+        # Detectar error de API key faltante
+        if 'api_key' in errores_str.lower() and 'not configured' in errores_str.lower():
+            logger.info("Detectado error de API key faltante - intentando agregar...")
+            return self.agregar_variables_groq()
+        
+        # Otros errores no corregibles automáticamente
+        return False
+    
+    def _corregir_modelo_groq(self) -> bool:
+        """Corrige el modelo de Groq cambiando al siguiente disponible."""
+        try:
+            from agi_core.llm_wrapper import FREE_MODELS
+            
+            modelos_groq = FREE_MODELS['groq']
+            logger.info(f"Modelos Groq disponibles: {modelos_groq}")
+            
+            # Intentar cada modelo hasta encontrar uno que funcione
+            for i, modelo in enumerate(modelos_groq):
+                logger.info(f"Probando modelo: {modelo}")
+                
+                # Actualizar el modelo en llm_wrapper.py
+                with open('automatizacion/agi_core/llm_wrapper.py', 'r') as f:
+                    contenido = f.read()
+                
+                # Reemplazar el primer modelo de la lista
+                import re
+                patron = r"'groq':\s*\[\s*'([^']+)'"
+                nuevo_contenido = re.sub(patron, f"'groq':\n        ['{modelo}',", contenido)
+                
+                with open('automatizacion/agi_core/llm_wrapper.py', 'w') as f:
+                    f.write(nuevo_contenido)
+                
+                logger.info(f"Modelo cambiado a: {modelo}")
+                
+                # Hacer commit y push
+                import subprocess
+                subprocess.run(['git', 'add', 'automatizacion/agi_core/llm_wrapper.py'], cwd='C:/Users/sergio/QUANTUMHIVE_ALGORITHMICTRADING')
+                subprocess.run(['git', 'commit', '-m', f'Corregir modelo Groq a {modelo}'], cwd='C:/Users/sergio/QUANTUMHIVE_ALGORITHMICTRADING')
+                subprocess.run(['git', 'push'], cwd='C:/Users/sergio/QUANTUMHIVE_ALGORITHMICTRADING')
+                
+                logger.info("Corrección commiteada y pusheada")
+                return True
+            
+            logger.error("No se encontró modelo Groq funcional")
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error corrigiendo modelo Groq: {e}")
+            return False
+    
     def obtener_estado_servicio(self) -> Optional[Dict]:
         """Obtiene el estado actual del servicio."""
         try:
