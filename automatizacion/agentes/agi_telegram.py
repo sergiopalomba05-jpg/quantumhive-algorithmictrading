@@ -38,6 +38,16 @@ except ImportError as e:
     LLM_WRAPPER_AVAILABLE = False
     logger.warning(f"LLM Wrapper no disponible: {e}")
 
+# Voice Processor para procesamiento de voz bidireccional
+try:
+    from agi_core.voice_processor import voice_processor
+    VOICE_PROCESSOR_AVAILABLE = True
+    logger.info("Voice Processor disponible - procesamiento de voz bidireccional soportado")
+except ImportError as e:
+    voice_processor = None
+    VOICE_PROCESSOR_AVAILABLE = False
+    logger.warning(f"Voice Processor no disponible: {e}")
+
 # AGI UPGRADE v2.0 Modules
 try:
     from agi_memory.intent_classifier import IntentClassifier as NewIntentClassifier
