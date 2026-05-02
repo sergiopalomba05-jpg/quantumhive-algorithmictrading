@@ -17,6 +17,15 @@ from dataclasses import dataclass, asdict
 from dotenv import load_dotenv
 import requests
 from anthropic import Anthropic
+# LLM Wrapper para alternativas gratuitas
+try:
+    from agi_core.llm_wrapper import llm_wrapper, LLMMessage, get_llm_engine, is_free_engine
+    LLM_WRAPPER_AVAILABLE = True
+    logger.info("LLM Wrapper disponible - alternativas gratuitas soportadas")
+except ImportError as e:
+    llm_wrapper = None
+    LLM_WRAPPER_AVAILABLE = False
+    logger.warning(f"LLM Wrapper no disponible: {e}")
 
 # Configuración de logging
 logging.basicConfig(
@@ -1045,17 +1054,22 @@ def construir_mensaje_sistema(db_conn, tipo_mensaje: str) -> str:
     return "\n".join(partes)
 
 
-# Claude API client
-if ANTHROPIC_API_KEY and len(ANTHROPIC_API_KEY) > 10:
-    try:
-        anthropic_client = Anthropic(api_key=ANTHROPIC_API_KEY)
-        logger.info("Cliente Anthropic inicializado correctamente")
-    except Exception as e:
-        logger.error(f"Error inicializando cliente Anthropic: {e}")
-        anthropic_client = None
+# LLM Client - Usa wrapper para alternativas gratuitas
+if LLM_WRAPPER_AVAILABLE and llm_wrapper:
+    anthropic_client = llm_wrapper
+    logger.info(f"✅ LLM Wrapper activo - Motor: {get_llm_engine()} - Gratis: {is_free_engine()}")
 else:
-    logger.warning("ANTHROPIC_API_KEY no está configurada o es inválida")
-    anthropic_client = None
+    # Fallback a Anthropic directo
+    if ANTHROPIC_API_KEY and len(ANTHROPIC_API_KEY) > 10:
+        try:
+            anthropic_client = Anthropic(api_key=ANTHROPIC_API_KEY)
+            logger.info("⚠️ Cliente Anthropic directo (sin wrapper) - COSTOSO")
+        except Exception as e:
+            logger.error(f"Error inicializando cliente Anthropic: {e}")
+            anthropic_client = None
+    else:
+        logger.warning("ANTHROPIC_API_KEY no está configurada y wrapper no disponible")
+        anthropic_client = None
 
 memoria = MemoriaSQLite()
 clasificador_intencion = ClasificadorIntencion()

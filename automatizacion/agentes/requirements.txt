@@ -9,3 +9,6 @@ python-dotenv
 supabase
 apscheduler==3.10.4
 pytz
+# Alternativas gratuitas de IA
+openai
+groq
