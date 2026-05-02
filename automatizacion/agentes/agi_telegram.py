@@ -1265,8 +1265,9 @@ def procesar_mensaje(message):
                     with open(temp_path, 'wb') as f:
                         f.write(audio_file.content)
                     
-                    # Transcribir audio
-                    transcripcion = transcribir_audio(temp_path)
+                    # Transcribir audio (ejecutar coroutine)
+                    import asyncio
+                    transcripcion = asyncio.run(transcribir_audio(temp_path))
                     text = transcripcion if transcripcion else "No pude transcribir el audio"
                     
                     # Eliminar archivo temporal
