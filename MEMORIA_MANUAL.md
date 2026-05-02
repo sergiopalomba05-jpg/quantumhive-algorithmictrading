@@ -41,12 +41,12 @@
 - **ARCHIVO**: automatizacion/agi_core/llm_wrapper.py
 - **IMPORTANCIA**: CRÍTICA - esto afecta toda la funcionalidad de AGI Telegram
 
-### PENDIENTE - CONDICIONES DE FLUJOS LABORALES (ayer - 1 de mayo 2026)
-- **ESTADO**: PENDIENTE - NO RECUPERADO
-- **CONTEXTO**: Ayer me pusiste memoria persistente sobre condiciones de flujos laborales
-- **PROBLEMA**: Mi memoria persistente NO funciona ("No MEMORIES were retrieved")
-- **REQUERIDO**: Necesito que me vuelvas a explicar las condiciones de flujos laborales
-- **IMPORTANCIA**: CRÍTICA - esto afecta cómo trabajo contigo
+### REGLA CRÍTICA - DEPLOY AUTOMÁTICO DESPUÉS DE CAMBIOS (hoy - 2 de mayo 2026)
+- **REGLA**: Después de cualquier cambio en el código, DEBE hacer deploy automático
+- **RESPONSABLE**: agente_render
+- **FUNCIÓN**: `agente_render.deploy_despues_de_cambio(mensaje_commit)`
+- **FLUJO**: Detecta cambios → Commit → Push → Deploy en Render → Espera deploy completo
+- **IMPORTANCIA**: CRÍTICA - esto asegura que todos los cambios se despliegan automáticamente
 
 ### Pendiente: Event Bus Semana 2
 - Estado: PENDIENTE
