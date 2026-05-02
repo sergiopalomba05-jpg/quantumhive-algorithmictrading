@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 # Configuración de motores IA
-LLM_ENGINE = os.getenv('LLM_ENGINE', 'anthropic').lower()  # 'anthropic', 'openrouter', 'groq', 'ollama'
+LLM_ENGINE = os.getenv('LLM_ENGINE', 'groq').lower()  # 'anthropic', 'openrouter', 'groq', 'ollama'
 ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY', '')
 OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY', '')
 GROQ_API_KEY = os.getenv('GROQ_API_KEY', '')

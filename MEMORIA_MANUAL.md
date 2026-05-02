@@ -17,15 +17,29 @@
 ## PENDIENTES DE SESIONES ANTERIORES
 
 ### Pendiente: Flujos de LLM (ayer - 1 de mayo 2026)
-- Estado: IDENTIFICADO
-- Fecha: 1 de mayo 2026 (ayer)
-- Contexto: agi_telegram.py tiene fallback a Anthropic directo con modelo incorrecto
-- Archivo: automatizacion/agentes/agi_telegram.py
-- Problema: Líneas 1187-1195 usan Anthropic directo con modelo "claude-sonnet-4-6" (no existe)
-- Solución requerida: Corregir modelo a "claude-3-sonnet-20240229" o eliminar fallback
-- Estado del wrapper: ✅ llm_wrapper.py está implementado y funcional
-- Integración: ✅ agi_telegram.py ya usa llm_wrapper cuando disponible (líneas 1071-1087)
-- Acción requerida: Corregir fallback en agi_telegram.py
+- **ESTADO**: RESUELTO
+- **Problema**: agi_telegram.py usaba modelo incorrecto en fallback Anthropic
+- **Solución**: Se corrigió el modelo de "claude-sonnet-4-6" a "claude-3-sonnet-20240229"
+
+### CAMBIO CRÍTICO - AGI TELEGRAM (ayer - 1 de mayo 2026)
+- **CAMBIO**: AGI Telegram ya NO usa Anthropic API
+- **NUEVA CONFIGURACIÓN**: Usa Llama via Groq (llm_wrapper)
+- **RAZÓN**: Ya no hay API key de Anthropic disponible
+- **ARCHIVO**: automatizacion/agentes/agi_telegram.py
+- **IMPORTANCIA**: CRÍTICA - esto afecta toda la funcionalidad de AGI Telegram
+
+### REGLA CRÍTICA - NO PEDIR QUE ENTRE A RENDER (ayer - 1 de mayo 2026)
+- **DISCUSIÓN LARGA**: Ayer tuvimos discusión sobre esto
+- **SOLUCIÓN**: Crearon agente de render para manejar esto
+- **REGLA**: NUNCA pedirle al usuario que entre a Render
+- **AGENTE CORRESPONSABLE**: agente_render
+- **RAZÓN**: El usuario NO debe entrar manualmente a Render
+
+### CAMBIO CRÍTICO - LLM WRAPPER DEFAULT (hoy - 2 de mayo 2026)
+- **CAMBIO**: llm_wrapper.py default engine cambiado de 'anthropic' a 'groq'
+- **RAZÓN**: Ya no hay API key de Anthropic disponible
+- **ARCHIVO**: automatizacion/agi_core/llm_wrapper.py
+- **IMPORTANCIA**: CRÍTICA - esto afecta toda la funcionalidad de AGI Telegram
 
 ### Pendiente: Event Bus Semana 2
 - Estado: PENDIENTE
