@@ -1219,6 +1219,49 @@ def procesar_mensaje(message):
         
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
+        # Procesar audio si está presente
+        if 'voice' in message:
+            logger.info("Mensaje de audio recibido")
+            try:
+                voice_file_id = message['voice']['file_id']
+                voice_url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getFile?file_id={voice_file_id}"
+                voice_response = requests.get(voice_url).json()
+                if voice_response.get('ok'):
+                    file_path = voice_response['result']['file_path']
+                    download_url = f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{file_path}"
+                    audio_file = requests.get(download_url)
+                    
+                    # Guardar archivo temporal
+                    temp_path = f"/tmp/voice_{voice_file_id}.ogg"
+                    with open(temp_path, 'wb') as f:
+                        f.write(audio_file.content)
+                    
+                    # Transcribir audio
+                    transcripcion = transcribir_audio(temp_path)
+                    text = transcripcion if transcripcion else "No pude transcribir el audio"
+                    
+                    # Eliminar archivo temporal
+                    os.remove(temp_path)
+                    
+                    logger.info(f"Audio transcrito: {text}")
+                else:
+                    text = "Error descargando audio"
+            except Exception as e:
+                logger.error(f"Error procesando audio: {e}")
+                text = "Error procesando audio"
+        
+        # Procesar video si está presente
+        if 'video' in message:
+            logger.info("Mensaje de video recibido")
+            # TODO: Implementar procesamiento de video
+            return "AGI: Recibí tu mensaje de video. Procesamiento de video pendiente de implementación."
+        
+        # Procesar imagen si está presente
+        if 'photo' in message:
+            logger.info("Mensaje de imagen recibido")
+            # TODO: Implementar procesamiento de imagen
+            return "AGI: Recibí tu imagen. Procesamiento de imagen pendiente de implementación."
+        
         # CLASIFICACIÓN DE INTENCIÓN (AGI UPGRADE v2.0)
         if new_intent_classifier:
             clasificacion = new_intent_classifier.clasificar(text)
