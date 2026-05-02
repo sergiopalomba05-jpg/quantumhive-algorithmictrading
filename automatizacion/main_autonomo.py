@@ -88,6 +88,74 @@ def registrar_suscriptores_core():
     # AGENTE 3: Recolector Inteligente (no requiere suscripciones, solo publica eventos)
     logger.info("ℹ️  Agente Recolector Inteligente no requiere suscripciones (solo publica)")
 
+    # AGENTE SEGURIDAD - Suscribir a eventos de seguridad
+    try:
+        from automatizacion.agentes.agente_seguridad import AgenteSeguridad
+        seguridad = AgenteSeguridad()
+        
+        def manejar_acceso_credential(evento):
+            """Handler para accesos a credenciales."""
+            payload = evento['payload']
+            # AgenteSeguridad maneja esto internamente
+            logger.info(f"Acceso a credential registrado: {payload.get('credential_id')}")
+        
+        bus.suscribir('credential_acceso', manejar_acceso_credential)
+        logger.info("✅ Agente Seguridad suscrito al Event Bus")
+    except Exception as e:
+        logger.error(f"❌ Error suscribiendo Agente Seguridad: {e}")
+
+    # AGENTE RENDER - Suscribir a eventos de deploy
+    try:
+        from automatizacion.agentes.agente_render import AgenteRender
+        render = AgenteRender()
+        
+        def manejar_deploy_solicitado(evento):
+            """Handler para deploy solicitado."""
+            payload = evento['payload']
+            logger.info(f"Deploy solicitado para: {payload.get('servicio')}")
+            # AgenteRender maneja el deploy
+        
+        bus.suscribir('deploy_solicitado', manejar_deploy_solicitado)
+        logger.info("✅ Agente Render suscrito al Event Bus")
+    except Exception as e:
+        logger.error(f"❌ Error suscribiendo Agente Render: {e}")
+
+    # AGENTE EXPERTO ERRORES - Suscribir a errores complejos
+    try:
+        from automatizacion.agentes.agente_experto_errores import AgenteExpertoErrores
+        experto = AgenteExpertoErrores()
+        
+        def manejar_error_complejo(evento):
+            """Handler para errores complejos que requieren investigación."""
+            payload = evento['payload']
+            logger.info(f"Error complejo para investigación: {payload.get('descripcion')}")
+        
+        bus.suscribir('error_complejo', manejar_error_complejo)
+        logger.info("✅ Agente Experto Errores suscrito al Event Bus")
+    except Exception as e:
+        logger.error(f"❌ Error suscribiendo Agente Experto Errores: {e}")
+
+    # AGENTE LIMPIADOR BASURA - Ejecutar vía scheduler (no requiere suscripción)
+    logger.info("ℹ️  Agente Limpiador Basura ejecuta vía scheduler")
+
+    # AGENTE INFORMES LOGS - Suscribir a eventos de logging
+    try:
+        from automatizacion.agentes.agente_informes_logs import AgenteInformesLogs
+        informes = AgenteInformesLogs()
+        
+        def manejar_log_generado(evento):
+            """Handler para logs generados."""
+            payload = evento['payload']
+            logger.info(f"Log generado para análisis: {payload.get('tipo')}")
+        
+        bus.suscribir('log_generado', manejar_log_generado)
+        logger.info("✅ Agente Informes Logs suscrito al Event Bus")
+    except Exception as e:
+        logger.error(f"❌ Error suscribiendo Agente Informes Logs: {e}")
+
+    # RECOLECTORES - Publican eventos, no requieren suscripción
+    logger.info("ℹ️  Recolectores (nubes, estrategias, recursos) publican eventos")
+
     return bus
 
 
