@@ -2,6 +2,12 @@
 
 Todos los cambios notables del proyecto.
 ## [2026-05-02] - FEAT
+**Commit:** 66144924
+**Módulo:** agentes
+- Agente Recolector Inteligente centralizado con orquestación de recolectores, normalización, deduplicación y distribución a Colmena
+
+
+## [2026-05-02] - FEAT
 **Commit:** a395d6e0
 **Módulo:** agentes
 - Agente Optimizador de Agentes con escaneo, detección de duplicados, análisis de gaps funcionales y generación de mapa de Colmena
