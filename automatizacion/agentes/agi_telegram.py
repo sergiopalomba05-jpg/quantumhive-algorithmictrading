@@ -1060,9 +1060,11 @@ def construir_mensaje_sistema(db_conn, tipo_mensaje: str) -> str:
 # LLM Client - Usa wrapper para alternativas gratuitas
 if LLM_WRAPPER_AVAILABLE and llm_wrapper:
     anthropic_client = llm_wrapper
+    USE_WRAPPER = True
     logger.info(f"✅ LLM Wrapper activo - Motor: {get_llm_engine()} - Gratis: {is_free_engine()}")
 else:
     # Fallback a Anthropic directo
+    USE_WRAPPER = False
     if ANTHROPIC_API_KEY and len(ANTHROPIC_API_KEY) > 10:
         try:
             anthropic_client = Anthropic(api_key=ANTHROPIC_API_KEY)
@@ -1153,16 +1155,34 @@ def procesar_mensaje_con_claude(message_text, tipo_mensaje: str = "general"):
             "content": message_text
         })
         
-        # 4. Llamar a Claude API con historial completo
-        response = anthropic_client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=1024,
-            system=system_prompt_dinamico,
-            messages=messages
-        )
-        
-        respuesta = response.content[0].text
-        logger.info(f"Respuesta de Claude: {respuesta[:100]}...")
+        # 4. Llamar a API según wrapper o Anthropic directo
+        if USE_WRAPPER:
+            # Usar wrapper (Groq, OpenRouter, etc.)
+            from agi_core.llm_wrapper import LLMMessage
+            
+            # Convertir mensajes a formato LLMMessage
+            llm_messages = []
+            
+            # Agregar system prompt
+            llm_messages.append(LLMMessage(role='system', content=system_prompt_dinamico))
+            
+            # Agregar historial
+            for msg in messages:
+                llm_messages.append(LLMMessage(role=msg['role'], content=msg['content']))
+            
+            # Llamar al wrapper
+            respuesta = anthropic_client.messages_create(llm_messages, max_tokens=1024)
+            logger.info(f"Respuesta del wrapper: {respuesta[:100]}...")
+        else:
+            # Usar Anthropic directo
+            response = anthropic_client.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=1024,
+                system=system_prompt_dinamico,
+                messages=messages
+            )
+            respuesta = response.content[0].text
+            logger.info(f"Respuesta de Claude: {respuesta[:100]}...")
         
         # 5. Guardar mensaje del usuario y respuesta en historial
         guardar_en_historial(memoria.db_path, "user", message_text)
