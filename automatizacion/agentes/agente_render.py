@@ -1,6 +1,7 @@
 """
 Agente Render — QuantumHive
 Automatiza tareas de deploy, configuración y monitoreo en Render.
+Usa KeysVault para gestión centralizada de credenciales.
 """
 
 import os
@@ -13,9 +14,24 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
+# Importar KeysVault
+try:
+    from agi_core.keys_vault import keys_vault
+    KEYSVAULT_AVAILABLE = True
+    logger.info("KeysVault disponible para gestión de credenciales")
+except ImportError as e:
+    KEYSVAULT_AVAILABLE = False
+    logger.warning(f"KeysVault no disponible: {e}")
+
 # Render API Configuration
-RENDER_API_KEY = os.getenv('RENDER_API_KEY', '')
-RENDER_SERVICE_ID = os.getenv('RENDER_SERVICE_ID', '')
+if KEYSVAULT_AVAILABLE:
+    render_creds = keys_vault.obtener_render()
+    RENDER_API_KEY = render_creds.get('api_key', '')
+    RENDER_SERVICE_ID = render_creds.get('service_id', '')
+else:
+    RENDER_API_KEY = os.getenv('RENDER_API_KEY', '')
+    RENDER_SERVICE_ID = os.getenv('RENDER_SERVICE_ID', '')
+
 RENDER_API_BASE = 'https://api.render.com/v1'
 
 # Headers para autenticación
@@ -101,10 +117,14 @@ class AgenteRender:
     
     def agregar_variables_groq(self) -> bool:
         """Agrega las variables de entorno necesarias para Groq."""
-        groq_api_key = os.getenv('GROQ_API_KEY', '')
+        if KEYSVAULT_AVAILABLE:
+            groq_creds = keys_vault.obtener_groq()
+            groq_api_key = groq_creds.get('api_key', '')
+        else:
+            groq_api_key = os.getenv('GROQ_API_KEY', '')
         
         if not groq_api_key:
-            logger.error("GROQ_API_KEY no configurada en .env local")
+            logger.error("GROQ_API_KEY no configurada")
             return False
         
         # Agregar LLM_ENGINE
