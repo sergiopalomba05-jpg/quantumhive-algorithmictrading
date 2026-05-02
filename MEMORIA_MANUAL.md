@@ -36,10 +36,18 @@
 - **RAZÓN**: El usuario NO debe entrar manualmente a Render
 
 ### CAMBIO CRÍTICO - LLM WRAPPER DEFAULT (hoy - 2 de mayo 2026)
-- **CAMBIO**: llm_wrapper.py default engine cambiado de 'anthropic' a 'groq'
+- **CAMBIO 1**: llm_wrapper.py default engine cambiado de 'anthropic' a 'groq'
 - **RAZÓN**: Ya no hay API key de Anthropic disponible
 - **ARCHIVO**: automatizacion/agi_core/llm_wrapper.py
 - **IMPORTANCIA**: CRÍTICA - esto afecta toda la funcionalidad de AGI Telegram
+
+### CAMBIO CRÍTICO - LLM WRAPPER DEFAULT A OPENROUTER (hoy - 2 de mayo 2026)
+- **CAMBIO 2**: llm_wrapper.py default engine cambiado de 'groq' a 'openrouter'
+- **RAZÓN**: Groq tiene límite muy bajo de tokens (100k/diarios), OpenRouter tiene más tokens gratis
+- **ARCHIVO**: automatizacion/agi_core/llm_wrapper.py
+- **VARIABLES ENTORNO**: OPENROUTER_API_KEY agregada a Render
+- **IMPORTANCIA**: CRÍTICA - esto afecta toda la funcionalidad de AGI Telegram
+- **PLAN FUTURO**: Cuando se monetice, cambiar a modelos de pago de alto nivel
 
 ### REGLA CRÍTICA - DEPLOY AUTOMÁTICO DESPUÉS DE CAMBIOS (hoy - 2 de mayo 2026)
 - **REGLA**: Después de cualquier cambio en el código, DEBE hacer deploy automático
