@@ -441,6 +441,99 @@ class AgenteRender:
         diagnosticos['estado_deploy'] = self.obtener_estado_deploy()
         
         return diagnosticos
+    
+    def detectar_cambios_git(self) -> bool:
+        """Detecta si hay cambios sin commitear en el repositorio."""
+        try:
+            import subprocess
+            
+            # Verificar si hay cambios sin commitear
+            result = subprocess.run(['git', 'status', '--porcelain'], 
+                                   cwd='C:/Users/sergio/QUANTUMHIVE_ALGORITHMICTRADING',
+                                   capture_output=True, text=True)
+            
+            cambios = result.stdout.strip()
+            hay_cambios = len(cambios) > 0
+            
+            logger.info(f"Cambios detectados: {hay_cambios}")
+            return hay_cambios
+            
+        except Exception as e:
+            logger.error(f"Error detectando cambios git: {e}")
+            return False
+    
+    def hacer_commit_y_push(self, mensaje: str) -> bool:
+        """Hace commit y push de los cambios actuales."""
+        try:
+            import subprocess
+            
+            # Agregar todos los cambios
+            subprocess.run(['git', 'add', '.'], 
+                         cwd='C:/Users/sergio/QUANTUMHIVE_ALGORITHMICTRADING',
+                         capture_output=True, text=True)
+            
+            # Hacer commit
+            result = subprocess.run(['git', 'commit', '-m', mensaje], 
+                                   cwd='C:/Users/sergio/QUANTUMHIVE_ALGORITHMICTRADING',
+                                   capture_output=True, text=True)
+            
+            if result.returncode != 0 and 'nothing to commit' not in result.stdout:
+                logger.error(f"Error haciendo commit: {result.stderr}")
+                return False
+            
+            # Hacer push
+            result = subprocess.run(['git', 'push'], 
+                                   cwd='C:/Users/sergio/QUANTUMHIVE_ALGORITHMICTRADING',
+                                   capture_output=True, text=True)
+            
+            if result.returncode != 0:
+                logger.error(f"Error haciendo push: {result.stderr}")
+                return False
+            
+            logger.info("Commit y push exitosos")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error haciendo commit y push: {e}")
+            return False
+    
+    def deploy_despues_de_cambio(self, mensaje_commit: str = "Automated deploy after changes") -> bool:
+        """
+        Función principal: detecta cambios, hace commit/push y deploy.
+        Debe llamarse después de cualquier cambio en el código.
+        """
+        try:
+            logger.info("=== INICIANDO DEPLOY AUTOMÁTICO DESPUÉS DE CAMBIOS ===")
+            
+            # 1. Detectar cambios
+            if not self.detectar_cambios_git():
+                logger.info("No hay cambios, no se requiere deploy")
+                return True
+            
+            # 2. Hacer commit y push
+            logger.info("Haciendo commit y push de cambios...")
+            if not self.hacer_commit_y_push(mensaje_commit):
+                logger.error("Error haciendo commit y push")
+                return False
+            
+            # 3. Hacer deploy en Render
+            logger.info("Iniciando deploy en Render...")
+            if not self.hacer_deploy_manual():
+                logger.error("Error iniciando deploy")
+                return False
+            
+            # 4. Esperar a que el deploy termine
+            logger.info("Esperando a que el deploy termine...")
+            if not self.esperar_deploy_completo():
+                logger.error("Deploy falló o timeout")
+                return False
+            
+            logger.info("✅ DEPLOY AUTOMÁTICO COMPLETADO EXITOSAMENTE")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error en deploy automático: {e}")
+            return False
 
 
 # Instancia global
