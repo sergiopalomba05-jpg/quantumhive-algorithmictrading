@@ -216,6 +216,40 @@ def registrar_suscriptores_core():
     except Exception as e:
         logger.error(f"❌ Error suscribiendo Agente Crear Bot Telegram: {e}")
 
+    # AGENTE CONFIGURAR WEBHOOK META - Suscribir a eventos de webhook
+    try:
+        from automatizacion.agentes.agente_configurar_webhook_meta import AgenteConfigurarWebhookMeta
+        webhook = AgenteConfigurarWebhookMeta()
+        
+        def manejar_webhook_solicitado(evento):
+            """Handler para webhooks solicitados."""
+            payload = evento['payload']
+            logger.info(f"Webhook solicitado: {payload.get('telefono')}")
+        
+        bus.suscribir('webhook_solicitado', manejar_webhook_solicitado)
+        logger.info("✅ Agente Configurar Webhook Meta suscrito al Event Bus")
+    except Exception as e:
+        logger.error(f"❌ Error suscribiendo Agente Configurar Webhook Meta: {e}")
+
+    # AGENTE GIT COMMIT - Suscribir a eventos de git
+    try:
+        # AgenteGitCommit es un script funcional, no una clase
+        def manejar_commit_solicitado(evento):
+            """Handler para commits solicitados."""
+            payload = evento['payload']
+            logger.info(f"Commit solicitado: {payload.get('mensaje')}")
+        
+        bus.suscribir('commit_solicitado', manejar_commit_solicitado)
+        logger.info("✅ Agente Git Commit suscrito al Event Bus")
+    except Exception as e:
+        logger.error(f"❌ Error suscribiendo Agente Git Commit: {e}")
+
+    # FABRICA DE BOTS - Agentes de la división
+    logger.info("ℹ️  Agentes Fábrica de Bots ejecutan vía scheduler")
+
+    # RECURSOS GRATIS - Agentes de la división
+    logger.info("ℹ️  Agentes Recursos Gratis ejecutan vía scheduler")
+
     return bus
 
 

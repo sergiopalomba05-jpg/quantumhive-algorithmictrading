@@ -2,11 +2,13 @@
 
 ## REGLAS CRÍTICAS
 
-### REGLA 1 - NUNCA PREGUNTAR "CONTINUE"
-- Cuando el usuario me pide una tarea, ejecutarla DIRECTAMENTE
-- NUNCA preguntar "continue", "quieres que continúe", o similar
-- Ejecutar sin confirmación intermedia
-- Esta regla es CRÍTICA - el usuario no quiere ver el botón "continue" NUNCA MÁS
+### REGLA 1 - NUNCA PAUSAR PROCESO PARA PEDIR CONFIRMACIÓN
+- Cuando el usuario me pide una tarea, ejecutarla DIRECTAMENTE sin preguntar "continue" o similar
+- Una vez iniciado un proceso, NUNCA pausarlo para pedir confirmación al usuario
+- Solo pausar si hay un PROBLEMA REAL que frene el proceso (error, agente trabado, bloqueo)
+- Si hay un problema: informar a AGI → AGI notifica al usuario → solucionar → continuar
+- Si NO hay problemas: seguir hasta terminar TODO, aunque el proceso sea largo
+- Esta regla es CRÍTICA - el usuario NO quiere que frene el proceso en medio para pedir confirmación
 
 ### REGLA 2 - MEMORIA PERSISTENTE NO FUNCIONA
 - El sistema de memoria persistente NO está recuperando conversaciones anteriores
