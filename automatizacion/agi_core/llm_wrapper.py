@@ -29,9 +29,9 @@ FREE_MODELS = {
         'google/gemma-7b-it:free',
     ],
     'groq': [
-        'llama3-70b-versatile',
-        'mixtral-8x7b-32768',
-        'gemma-7b-it',
+        'llama-3.3-70b-versatile',
+        'llama-3.1-8b-instant',
+        'qwen/qwen3-32b',
     ],
     'ollama': [
         'llama3:8b',
