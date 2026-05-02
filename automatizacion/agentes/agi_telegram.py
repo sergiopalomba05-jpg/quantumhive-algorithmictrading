@@ -56,6 +56,30 @@ except Exception as e:
     GITHUB_MEMORY_AVAILABLE = False
     logger.warning(f"GitHub Memory no disponible: {e}")
 
+# Event Bus
+try:
+    from event_bus import event_bus
+    from handlers_colmena import registrar_suscriptores, Eventos
+    registrar_suscriptores(event_bus)
+    event_bus.iniciar()
+    EVENT_BUS_AVAILABLE = True
+    logger.info("Event Bus iniciado y handlers registrados")
+except Exception as e:
+    event_bus = None
+    EVENT_BUS_AVAILABLE = False
+    logger.warning(f"Event Bus no disponible: {e}")
+
+# Scheduler
+try:
+    from scheduler import scheduler_qh
+    scheduler_qh.iniciar()
+    SCHEDULER_AVAILABLE = True
+    logger.info("Scheduler iniciado correctamente")
+except Exception as e:
+    scheduler_qh = None
+    SCHEDULER_AVAILABLE = False
+    logger.warning(f"Scheduler no disponible: {e}")
+
 app = Flask(__name__)
 
 # Cargar variables de entorno
@@ -532,7 +556,22 @@ class MemoriaSQLite:
                 score_viabilidad REAL
             )
         """)
-        
+
+        # 9. EVENTOS (Event Bus - Sistema Autónomo)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS eventos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                tipo TEXT NOT NULL,
+                origen TEXT NOT NULL,
+                payload TEXT,
+                estado TEXT DEFAULT 'pendiente',
+                procesado_en TIMESTAMP,
+                procesado_por TEXT,
+                intentos INTEGER DEFAULT 0
+            )
+        """)
+
         conn.commit()
         conn.close()
         logger.info("Base de datos SQLite inicializada con esquema completo")
@@ -1481,13 +1520,43 @@ def desactivar_challenge_mode():
     """
     if not challenge_mode:
         return jsonify({"error": "ChallengeMode no inicializado"}), 500
-    
+
     try:
         resultado = challenge_mode.desactivar()
         return jsonify(resultado), 200
     except Exception as e:
         logger.error(f"Error desactivando challenge mode: {e}")
         return jsonify({"error": str(e)}), 500
+
+
+@app.route('/sistema/estado', methods=['GET'])
+def estado_sistema_completo():
+    """Estado completo del sistema autónomo."""
+    return jsonify({
+        'event_bus': EVENT_BUS_AVAILABLE,
+        'scheduler': scheduler_qh.estado() if scheduler_qh else None,
+        'github_memory': GITHUB_MEMORY_AVAILABLE,
+        'agi_v2': AGI_V2_AVAILABLE,
+        'timestamp': datetime.now().isoformat()
+    }), 200
+
+
+@app.route('/sistema/evento', methods=['POST'])
+def publicar_evento_manual():
+    """Permite publicar eventos manualmente para testing."""
+    token = request.headers.get('X-Colmena-Token', '')
+    if token != os.getenv('SECRET_COLMENA', ''):
+        return jsonify({"error": "no autorizado"}), 401
+
+    data = request.json
+    if event_bus:
+        event_bus.publicar(
+            data.get('tipo', 'test'),
+            data.get('origen', 'manual'),
+            data.get('payload', {})
+        )
+        return jsonify({"status": "evento publicado"}), 200
+    return jsonify({"error": "event bus no disponible"}), 503
 
 
 if __name__ == '__main__':

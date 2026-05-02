@@ -7,3 +7,5 @@ gTTS
 anthropic
 python-dotenv
 supabase
+apscheduler==3.10.4
+pytz
