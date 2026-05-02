@@ -5,12 +5,17 @@ Usa KeysVault para gestión centralizada de credenciales.
 """
 
 import os
+import sys
+from pathlib import Path
 import requests
 import logging
 from typing import Dict, List, Optional
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Agregar path al directorio padre para importar agi_core
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 logger = logging.getLogger(__name__)
 
