@@ -50,6 +50,36 @@
 
 # CAPÍTULO 13: PROYECCIÓN FINANCIERA COMPLETA
 
+## 13.0 Estado Actual — Tracción Real (Mayo 2026)
+
+### Lo que existe y funciona hoy:
+
+**Trading:**
+- 4 bots rentables en producción (Python/backtesting)
+- Bot estrella: Atlas US30 H1 — WR 81%, PF 6.44, PnL $1,709
+- Atlas XAUUSD M5 — WR 53.2%, PF 1.53, PnL $3,192
+- Phoenix XAUUSD M15 — WR 50%, PF 1.22, PnL $2,989
+- Atlas US30 M1 — WR 49.4%, PF 1.35, PnL $1,234
+
+**Infraestructura:**
+- AGI Telegram operativo 24/7 en producción (Render)
+- 186+ agentes en arquitectura de Colmena
+- Event Bus, Scheduler, GitHub Memory operativos
+- Sistema de memoria multicapa (SQLite + Supabase + GitHub)
+- LLM Manager con rotación automática entre motores
+
+**Desarrollo:**
+- Repositorio GitHub privado con 200+ commits
+- 13 macrodivisiones estructuradas
+- Sistema de seguridad con KeysVault encriptado
+- Changelog automático implementado
+
+**Próximos 90 días:**
+- Primer bot en cuenta fondeada real (MT5)
+- Lanzamiento de señales de trading con suscriptores
+- PropFirm Shield versión beta
+- Dashboard ejecutivo web en producción
+
 ## 13.1 Supuestos y Criterios
 
 ### Supuestos Macroeconómicos
