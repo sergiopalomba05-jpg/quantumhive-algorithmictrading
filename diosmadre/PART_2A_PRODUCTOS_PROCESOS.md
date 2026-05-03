@@ -14,12 +14,12 @@
 8.1 Ecosistema de Productos QuantumHive
 8.2 Producto 1: Challenge de Fondeo
 8.3 Producto 2: Señales de Trading
-8.4 Producto 4: Infoproductos y Cursos
+8.4 Producto 3: Infoproductos y Cursos
 8.5 Producto 4: Sala Colmena (Gestión de Cuentas)
 8.6 Producto 5: PropFirm Shield (Software)
-8.7 Producto 7: Bot Factory Pro (Software)
-8.8 Producto 8: Academia QuantumHive
-8.9 Producto 9: App CEO y App Colmena
+8.7 Producto 6: Bot Factory Pro (Software)
+8.8 Producto 7: Academia QuantumHive
+8.9 Producto 8: App CEO y App Colmena
 
 ## CAPÍTULO 9: PROCESOS OPERATIVOS COMPLETOS
 9.1 Proceso de Onboarding de Usuario
@@ -129,7 +129,7 @@ Generar ingresos pasivos para usuarios que no quieren depositar capital en chall
 - **Profit mensual promedio:** 8-12%
 - **Tiempo de ejecución:** <5 segundos desde generación
 
-## 8.4 Producto 4: Infoproductos y Cursos
+## 8.4 Producto 3: Infoproductos y Cursos
 
 ### Descripción
 Cursos educativos sobre trading manual, algorítmico, IA, y crecimiento personal.
@@ -235,7 +235,7 @@ Permitir a traders operar múltiples cuentas en PropFirms sin ser detectados.
 - **Profit mensual promedio:** 15-25%
 - **Satisfacción:** 4.7/5 estrellas
 
-## 8.7 Producto 7: Bot Factory Pro (Software)
+## 8.7 Producto 6: Bot Factory Pro (Software)
 
 ### Descripción
 Fábrica de bots ONNX completa para trading algorítmico.
@@ -269,7 +269,7 @@ Democratizar el desarrollo de bots de trading.
 - **Profit mensual promedio:** 12-20%
 - **Satisfacción:** 4.6/5 estrellas
 
-## 8.8 Producto 8: Academia QuantumHive
+## 8.8 Producto 7: Academia QuantumHive
 
 ### Descripción
 Universidad propia de QuantumHive: tracks de trading manual, algorítmico, IA, y crecimiento personal.
@@ -309,7 +309,7 @@ Crear un pipeline de talento para QuantumHive.
 - **Satisfacción:** 4.5/5 estrellas
 - **Empleabilidad:** 70% de graduados empleados en 6 meses
 
-## 8.9 Producto 9: App CEO y App Colmena
+## 8.9 Producto 8: App CEO y App Colmena
 
 ### Descripción
 Aplicaciones móviles para CEO (Fase 1) y Colmena (Fase 2).
