@@ -988,6 +988,76 @@ KeysVault
 
 ---
 
+# ANEXO A — MAPA DE AGENTES POR MACRODIVISIÓN
+
+**Total de agentes:** 186+ distribuidos en 13 macrodivisiones
+
+### Agentes Operativos Confirmados (Nivel 4 — La Colmena)
+
+**MACRO 1 — Trading Core:**
+agente_monitor_drawdown, agente_compliance_propfirm,
+agente_gestor_cuentas, agente_rotacion_vps,
+agente_anti_deteccion, agente_dispersor_entradas,
+agente_selector_lotaje, agente_gestor_propfirm (x9),
+agente_fondeo_challenges (x3)
+
+**MACRO 2 — Operaciones Internas:**
+agente_limpiador_basura, agente_optimizador_procesos,
+agente_optimizador_agentes, agente_informes_logs,
+agente_gestor_gmail, agente_git_commit,
+agente_experto_errores, agente_render
+
+**MACRO 3 — Marketing, Ventas y Captación:**
+agente_marketing_bots, agente_crear_bot_telegram,
+agente_configurar_webhook_meta (x5 señales,
+x3 marketing, x3 infoproductos, x6 ventas, x5 multinacional)
+
+**MACRO 4 — Fábrica de Bots:**
+agente_analizador_rendimiento, agente_combinador_estrategias,
+agente_estructurador_estrategias, agente_filtro_combinaciones,
+agente_recolector_estrategias, agente_walk_forward_analysis,
+fabrica_automatizada (x5 UCI)
+
+**MACRO 5 — Innovación:** (en desarrollo)
+
+**MACRO 6 — Legal, Finanzas & Advisory:**
+agente_consejero_legal, agente_contratos,
+agente_monitor_regulatorio, agente_compliance_activo,
+agente_ip_guardian, agente_firmas_electronicas
+
+**MACRO 7 — Colmena & Comunidad:** (distribuidos)
+
+**MACRO 8 — Desarrollo de Apps:**
+agente_ai_town (x3 web)
+
+**MACRO 9 — Academia:** (en desarrollo)
+
+**MACRO 10 — Universidad de Agentes:** (en desarrollo)
+
+**MACRO 11 — Comunicaciones:** (distribuidos)
+
+**MACRO 12 — Infraestructura y Plataforma:**
+agente_seguridad, agente_investigacion_modelos,
+agente_recolector_nubes, agente_gestor_nubes,
+agente_investigador_gpus, agente_administrador_recursos,
+agente_recolector_recursos_varios, agente_reporteador,
+keep_alive_render, agente_recolector_inteligencia (15+)
+
+**MACRO 13 — Softwares QuantumHive:**
+PropFirm Shield: agente_anti_deteccion, agente_vps_manager,
+agente_rotacion_cuentas, agente_dispersor_entradas,
+agente_selector_lotaje, agente_monitor_drawdown_prop,
+agente_compliance_prop
+Bot Factory Pro: todos los de division_biblioteca_fabrica_bots
+FreeEngine: agente_recolector_nubes, agente_recolector_recursos_varios,
+agente_investigador_gpus, agente_monitor_tokens,
+agente_router_llm (20+)
+
+**Nota:** El listado completo y actualizado se mantiene en
+colmena_mapa.json generado por agente_optimizador_agentes.py
+
+---
+
 # FIN DE PARTE 1
 
 **Próximo Documento:** PARTE 2 — PRODUCTOS, PROCESOS Y MARKETING
