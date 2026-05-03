@@ -1,6 +1,30 @@
 # CHANGELOG
 
 Todos los cambios notables del proyecto.
+## [2026-05-03] - FIX
+**Commit:** 0a0e5045
+**Módulo:** diosmadre
+- Corregir numeración duplicada de productos en PART_2A
+
+
+## [2026-05-03] - FIX
+**Commit:** 0a0e5045
+**Módulo:** diosmadre
+- Agregar tracción actual al inicio del capítulo 13 de PART_3
+
+
+## [2026-05-03] - FIX
+**Commit:** 0a0e5045
+**Módulo:** diosmadre
+- Agregar anexo de agentes al final de PART_1
+
+
+## [2026-05-03] - FIX
+**Commit:** 0a0e5045
+**Módulo:** diosmadre
+- Agregar Software 3 FreeEngine en MACRO 13 de PART_1
+
+
 ## [2026-05-02] - FEAT
 **Commit:** bc3cf27d
 **Módulo:** event_bus
