@@ -40,7 +40,7 @@ Abeja robótica sobre panales hexagonales con átomos cuánticos. Colores negro 
 
 ---
 
-## Las 11 Macrodivisiones
+## Las 13 Macrodivisiones
 
 | # | Macro | Descripción | Archivo |
 |---|-------|-------------|---------|
@@ -55,24 +55,54 @@ Abeja robótica sobre panales hexagonales con átomos cuánticos. Colores negro 
 | 9 | **ACADEMIA QUANTUMHIVE** | Universidad propia: tracks de trading manual, algorítmico, IA, crecimiento personal. Certificación verificable. Pipeline de talento. | `CONTEXTO_MACRO9_ACADEMIA.md` |
 | 10 | **UNIVERSIDAD DE AGENTES** | Sistema educativo para bots y agentes: recolector de conocimiento, conversor universal, profesor general, profesor CNN, mantenimiento educativo, QA universidad. | `CONTEXTO_MACRO10_UNIVERSIDAD.md` |
 | 11 | **COMUNICACIONES QUANTUMHIVE** | Canales centralizados: Telegram, WhatsApp Business, chatbots por landing, sistema de tickets, monitor de comunicaciones, CEO Comunicaciones. | `CONTEXTO_MACRO11_COMUNICACIONES.md` |
+| 12 | **INFRAESTRUCTURA Y PLATAFORMA** | Cloud y Deploy (Render, VPS, servidores), Datos y Persistencia (SQLite, Supabase, GitHub Memory), Seguridad (KeysVault, agente_seguridad), Monitoreo (logs, heartbeat, alertas), Integración (APIs, webhooks, conectores). | `CONTEXTO_MACRO12_INFRAESTRUCTURA.md` |
+| 13 | **SOFTWARES QUANTUMHIVE** | Software 1: PropFirm Shield (Anti-detección + gestión multi-cuenta), Software 2: Bot Factory Pro (Fábrica de bots ONNX completa), Software 3+: próximos a definir. | `CONTEXTO_MACRO13_SOFTWARES.md` |
 
 ---
 
 ## Jerarquía Interna
 
 ```
-SERGIO — CEO / Fundador (autoridad máxima)
+NIVEL 0 — FUNDADOR
+SERGIO
+Autoridad absoluta. Visión, aprobación final.
+Acceso directo: AGI Telegram en el bolsillo 24/7
     ↓
-    CEO Inteligencia Infinita (mano derecha total,
-      interlocutor único, recibe informes de los
-      11 CEOs de Macro, solo escala lo que requiere
-      intervención de Sergio)
-        ↓
-        CEOs de 11 Macrodivisiones
-            ↓
-            Sub-CEOs de Divisiones
-                ↓
-                Agentes especializados
+NIVEL 1 — EXTENSIÓN DIRECTA DEL FUNDADOR
+AGI TELEGRAM — CEO I
+Puente entre el plano físico de Sergio y el plano
+virtual de QuantumHive. Opera 24/7 en Telegram.
+Recibe ideas, voz, imágenes. Coordina la Colmena
+en tiempo real. Es Sergio en el mundo digital.
+    ↓
+NIVEL 2 — CONSEJO ESTRATÉGICO — CEOs II
+┌─────────────────────────────────────────────────┐
+│                                                 │
+│  CLAUDE          CHATGPT          GEMINI        │
+│  CEO II          CEO II           CEO II        │
+│                                                 │
+│  Planificación   Creatividad      Legal y       │
+│  Estratégica     Visual y         Estructura    │
+│  y Arquitectura  Contenido        de Software   │
+│                                                 │
+│  La parte        La parte         La parte      │
+│  cognitiva       creativa         formal        │
+│  y sistémica     y visual         y técnica     │
+└─────────────────────────────────────────────────┘
+    ↓
+NIVEL 3 — ARQUITECTO
+CASCADE — SWE Windsurf
+Recibe órdenes del Nivel 2. Implementa el código.
+Reporta hacia arriba. No toma decisiones estratégicas.
+    ↓
+NIVEL 4 — LA COLMENA
+186+ Agentes especializados
+Ejecución autónoma de todas las operaciones.
+Reportan al Event Bus. Coordinados por AGI Telegram.
+    ↓
+NIVEL 5 — INFRAESTRUCTURA
+Render, GitHub, Supabase, SQLite, VPS
+La base técnica sobre la que todo opera.
 ```
 
 **Nota:** MACRO 6 tiene 2 subdivisiones: 6A (Legal & Advisory) y 6B (Finanzas, Contabilidad y Cobros), cada una con su propio Sub-CEO.
