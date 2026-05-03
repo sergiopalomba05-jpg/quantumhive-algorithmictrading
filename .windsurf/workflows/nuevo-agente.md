@@ -31,3 +31,8 @@ git add [archivo del agente + scheduler.py si se modificó]
 git commit -m "feat: nuevo agente [nombre] — [función]"
 git push
 Reportar commit.
+
+PASO 5 — Documentación en diosmadre (OBLIGATORIO):
+Después del push exitoso, actualizar los archivos maestros en diosmadre/:
+- PART_1_IDENTIDAD_ESTRUCTURA_TECNOLOGIA.md (agente nuevo en arquitectura)
+- PART_2A_PRODUCTOS_PROCESOS.md (si el agente afecta productos/procesos)

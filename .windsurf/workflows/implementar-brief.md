@@ -25,4 +25,12 @@ git push
 Reportar número de commit
 
 CRITERIO DE ÉXITO:
-Tarea completa = código funcional + testeado + pusheado + en changelog
+Tarea completa = código funcional + testeado + pusheado + en changelog + documentado en diosmadre/
+
+DOCUMENTACIÓN FINAL OBLIGATORIA:
+Después de completar el brief y confirmar el push exitoso,
+actualizar los archivos maestros en diosmadre/ según corresponda:
+- PART_1_IDENTIDAD_ESTRUCTURA_TECNOLOGIA.md (si hubo cambios técnicos)
+- PART_2A_PRODUCTOS_PROCESOS.md (si hubo cambios en productos/procesos)
+- PART_2B_VENTAS_MODELO_NEGOCIO.md (si hubo cambios en ventas/negocio)
+- PART_3_FINANZAS_IP_VISION.md (si hubo cambios financieros/IP)

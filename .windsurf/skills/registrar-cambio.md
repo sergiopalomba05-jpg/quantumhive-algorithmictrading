@@ -29,3 +29,11 @@ IMPORTANTE:
 Si el push falla → reportar el error exacto.
 No asumir que el push fue exitoso sin confirmación.
 Siempre reportar el hash del commit (ej: a7e13a1).
+
+DOCUMENTACIÓN ADICIONAL OBLIGATORIA:
+Después de cada commit exitoso, documentar el cambio en los
+archivos maestros de diosmadre/:
+- PART_1_IDENTIDAD_ESTRUCTURA_TECNOLOGIA.md (cambios técnicos/estructura)
+- PART_2A_PRODUCTOS_PROCESOS.md (cambios en productos/procesos)
+- PART_2B_VENTAS_MODELO_NEGOCIO.md (cambios en ventas/negocio)
+- PART_3_FINANZAS_IP_VISION.md (cambios financieros/IP)

@@ -72,3 +72,15 @@ El endpoint correcto para logs de Render API es diferente al
 estándar. Error conocido: 404 al usar endpoint incorrecto.
 Consultar agente_optimizador_procesos antes de implementar
 cualquier integración con Render API nueva.
+
+## REGLA 11 — DOCUMENTACIÓN EN ARCHIVOS MAESTROS (DIOSMADRE)
+OBLIGATORIO: Cada cambio o modificación realizada debe documentarse
+en los 4 archivos maestros ubicados en C:\Users\sergio\QUANTUMHIVE_ALGORITHMICTRADING\diosmadre\:
+- PART_1_IDENTIDAD_ESTRUCTURA_TECNOLOGIA.md (Identidad, estructura y tecnología)
+- PART_2A_PRODUCTOS_PROCESOS.md (Productos y procesos)
+- PART_2B_VENTAS_MODELO_NEGOCIO.md (Ventas y modelo de negocio)
+- PART_3_FINANZAS_IP_VISION.md (Finanzas, IP y visión)
+
+Cualquier modificación a código, arquitectura, productos, procesos,
+ventas o finanzas debe reflejarse en el archivo correspondiente.
+Sin esta documentación → el cambio está incompleto.

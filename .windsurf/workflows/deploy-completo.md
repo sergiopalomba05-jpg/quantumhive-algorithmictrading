@@ -31,3 +31,10 @@ Si hay errores → diagnosticar y corregir antes de reportar completado.
 
 PASO 6 — Confirmar funcionamiento:
 Reportar: commit, estado deploy, errores encontrados (si hay), solución aplicada.
+
+PASO 7 — Documentación en diosmadre (OBLIGATORIO):
+Después del deploy exitoso, actualizar los archivos maestros en diosmadre/:
+- PART_1_IDENTIDAD_ESTRUCTURA_TECNOLOGIA.md (si hubo cambios técnicos/infraestructura)
+- PART_2A_PRODUCTOS_PROCESOS.md (si hubo cambios en productos/procesos)
+- PART_2B_VENTAS_MODELO_NEGOCIO.md (si hubo cambios en ventas/negocio)
+- PART_3_FINANZAS_IP_VISION.md (si hubo cambios financieros/IP)

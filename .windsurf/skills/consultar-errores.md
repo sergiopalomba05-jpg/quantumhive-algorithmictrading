@@ -21,3 +21,7 @@ CUÁNDO USAR:
 - Antes de trabajar con agente_render.py
 - Antes de cualquier integración con API externa
 - Antes de modificar archivos de configuración
+
+IMPORTANTE: Después de cualquier corrección o implementación,
+documentar el cambio en los archivos maestros de diosmadre/
+(PART_1, PART_2A, PART_2B, PART_3) según corresponda.
