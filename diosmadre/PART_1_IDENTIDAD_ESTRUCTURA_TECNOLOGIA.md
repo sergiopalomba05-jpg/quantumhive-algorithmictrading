@@ -495,12 +495,17 @@ La base técnica sobre la que todo opera.
 **Agentes Totales:** 15+
 
 ### MACRO 13 — SOFTWARES QUANTUMHIVE
-**Descripción:** Software 1: PropFirm Shield (Anti-detección + gestión multi-cuenta), Software 2: Bot Factory Pro (Fábrica de bots ONNX completa), Software 3+: próximos a definir.
+**Descripción:** Software 1: PropFirm Shield (Anti-detección + gestión multi-cuenta), Software 2: Bot Factory Pro (Fábrica de bots ONNX completa), Software 3: FreeEngine (Motor autónomo de recursos gratuitos).
 
 **Divisiones:**
 - Software 1: PropFirm Shield
 - Software 2: Bot Factory Pro
-- Software 3+: Próximos a definir
+- Software 3: FreeEngine
+  Motor autónomo de recursos gratuitos. Recolecta tokens API,
+  GPUs, VPS, modelos de prueba y suscripciones gratuitas.
+  Monitorea consumo y rota automáticamente entre recursos
+  cuando uno se agota. El framework de QuantumHive corre
+  gratis de forma autónoma indefinidamente.
 
 **Agentes Totales:** 20+
 
