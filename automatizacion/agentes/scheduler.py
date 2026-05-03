@@ -125,6 +125,43 @@ def job_verificar_alertas():
         logger.error(f"Error verificando alertas: {e}")
 
 
+def job_ceo_dashboard():
+    """Cada hora: actualizar dashboard CEO."""
+    try:
+        from division_sala_inversion.agente_ceo_sala import AgenteCEOSala
+        agente = AgenteCEOSala()
+        dashboard = agente.obtener_dashboard_ceo()
+        logger.info(f"Dashboard CEO actualizado: {dashboard.get('resumen', {})}")
+        agente.cerrar()
+    except Exception as e:
+        logger.error(f"Error dashboard CEO: {e}")
+
+
+def job_control_calidad():
+    """Cada 6 horas: revisar pruebas pendientes de control de calidad."""
+    try:
+        from division_biblioteca_fabrica_bots.agente_control_calidad import AgenteControlCalidad
+        agente = AgenteControlCalidad()
+        pruebas_pendientes = agente.obtener_pruebas_bot(estado='EN_PROGRESO')
+        if pruebas_pendientes:
+            logger.info(f"Control calidad: {len(pruebas_pendientes)} pruebas en progreso")
+        agente.cerrar()
+    except Exception as e:
+        logger.error(f"Error control calidad: {e}")
+
+
+def job_base_conocimiento():
+    """Cada día a las 4:00: limpiar y optimizar base de conocimiento."""
+    try:
+        from division_uci.agente_base_conocimiento import AgenteBaseConocimiento
+        agente = AgenteBaseConocimiento()
+        stats = agente.obtener_estadisticas(dias=1)
+        logger.info(f"Base conocimiento: {stats}")
+        agente.cerrar()
+    except Exception as e:
+        logger.error(f"Error base conocimiento: {e}")
+
+
 def publicar_evento(tipo: str, origen: str, payload: dict = None):
     """Publica un evento en el Event Bus via SQLite."""
     try:
@@ -191,6 +228,30 @@ class QuantumHiveScheduler:
             trigger=IntervalTrigger(minutes=30),
             id='verificar_alertas',
             name='Verificación de alertas críticas'
+        )
+
+        # Dashboard CEO cada hora
+        self.scheduler.add_job(
+            func=job_ceo_dashboard,
+            trigger=IntervalTrigger(hours=1),
+            id='ceo_dashboard',
+            name='Dashboard CEO'
+        )
+
+        # Control calidad cada 6 horas
+        self.scheduler.add_job(
+            func=job_control_calidad,
+            trigger=IntervalTrigger(hours=6),
+            id='control_calidad',
+            name='Control de calidad'
+        )
+
+        # Base conocimiento cada día a las 4:00
+        self.scheduler.add_job(
+            func=job_base_conocimiento,
+            trigger=CronTrigger(hour=4, minute=0),
+            id='base_conocimiento',
+            name='Base de conocimiento'
         )
 
         logger.info(f"Jobs registrados: {len(self.scheduler.get_jobs())}")

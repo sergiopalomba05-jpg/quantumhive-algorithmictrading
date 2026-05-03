@@ -131,6 +131,97 @@ def manejar_error_critico(evento: dict):
 
 
 # ============================================================
+# HANDLERS DE SALA DE INVERSIÓN
+# ============================================================
+
+def manejar_solicitud_retiro(evento: dict):
+    """Se activa cuando se crea una solicitud de retiro."""
+    payload = evento.get('payload', {})
+    cliente = payload.get('cliente', 'desconocido')
+    monto = payload.get('monto', 0)
+    logger.info(f"Solicitud retiro: {cliente} - ${monto}")
+    _notificar_sergio(
+        f"💸 SOLICITUD DE RETIRO\n"
+        f"Cliente: {cliente}\n"
+        f"Monto: ${monto}\n"
+        f"Acción: revisar y aprobar/rechazar"
+    )
+
+
+def manejar_decision_ceo(evento: dict):
+    """Se activa cuando el CEO toma una decisión estratégica."""
+    payload = evento.get('payload', {})
+    tipo = payload.get('tipo', 'desconocido')
+    descripcion = payload.get('descripcion', '')
+    logger.info(f"Decisión CEO: {tipo} - {descripcion}")
+    _notificar_sergio(
+        f"🎯 DECISIÓN CEO\n"
+        f"Tipo: {tipo}\n"
+        f"Descripción: {descripcion}"
+    )
+
+
+# ============================================================
+# HANDLERS DE FÁBRICA DE BOTS
+# ============================================================
+
+def manejar_prueba_completada(evento: dict):
+    """Se activa cuando se completa una prueba de control de calidad."""
+    payload = evento.get('payload', {})
+    bot = payload.get('bot', 'desconocido')
+    resultado = payload.get('resultado', 'desconocido')
+    logger.info(f"Prueba completada: {bot} - {resultado}")
+    if resultado == 'APROBADO':
+        _notificar_sergio(
+            f"✅ PRUEBA APROBADA\n"
+            f"Bot: {bot}\n"
+            f"Resultado: {resultado}\n"
+            f"Acción: bot listo para producción"
+        )
+
+
+def manejar_venta_bot(evento: dict):
+    """Se activa cuando se vende un bot."""
+    payload = evento.get('payload', {})
+    bot = payload.get('bot', 'desconocido')
+    cliente = payload.get('cliente', 'desconocido')
+    monto = payload.get('monto', 0)
+    logger.info(f"Venta bot: {bot} a {cliente} - ${monto}")
+    _notificar_sergio(
+        f"💰 VENTA BOT\n"
+        f"Bot: {bot}\n"
+        f"Cliente: {cliente}\n"
+        f"Monto: ${monto}"
+    )
+
+
+# ============================================================
+# HANDLERS DE UCI (Conocimiento)
+# ============================================================
+
+def manejar_conocimiento_agregado(evento: dict):
+    """Se activa cuando se agrega conocimiento a la base."""
+    payload = evento.get('payload', {})
+    tipo = payload.get('tipo', 'desconocido')
+    fuente = payload.get('fuente', 'desconocida')
+    logger.info(f"Conocimiento agregado: {tipo} - Fuente: {fuente}")
+
+
+def manejar_trader_recolectado(evento: dict):
+    """Se activa cuando se recolecta un perfil de trader."""
+    payload = evento.get('payload', {})
+    nombre = payload.get('nombre', 'desconocido')
+    plataforma = payload.get('plataforma', 'desconocida')
+    logger.info(f"Trader recolectado: {nombre} - {plataforma}")
+    _notificar_sergio(
+        f"👤 TRADER RECOLECTADO\n"
+        f"Nombre: {nombre}\n"
+        f"Plataforma: {plataforma}\n"
+        f"Acción: analizar estrategias"
+    )
+
+
+# ============================================================
 # CATÁLOGO DE EVENTOS
 # ============================================================
 
@@ -142,6 +233,15 @@ class Eventos:
     AGENTE_PROBLEMA = "agente_problema"
     ERROR_CRITICO = "error_critico"
     SEÑAL_TRADING = "señal_trading"
+    # Nuevos eventos para agentes M1 D16
+    SOLICITUD_RETIRO = "solicitud_retiro"
+    DECISION_CEO = "decision_ceo"
+    # Nuevos eventos para agentes M4 D8
+    PRUEBA_COMPLETADA = "prueba_completada"
+    VENTA_BOT = "venta_bot"
+    # Nuevos eventos para agentes M4 D18
+    CONOCIMIENTO_AGREGADO = "conocimiento_agregado"
+    TRADER_RECOLECTADO = "trader_recolectado"
 
 
 def registrar_suscriptores(bus):
@@ -153,4 +253,13 @@ def registrar_suscriptores(bus):
     bus.suscribir(Eventos.PAGO_CONFIRMADO, manejar_pago_confirmado)
     bus.suscribir(Eventos.AGENTE_PROBLEMA, manejar_agente_problema)
     bus.suscribir(Eventos.ERROR_CRITICO, manejar_error_critico)
+    # Handlers M1 D16 - Sala de Inversión
+    bus.suscribir(Eventos.SOLICITUD_RETIRO, manejar_solicitud_retiro)
+    bus.suscribir(Eventos.DECISION_CEO, manejar_decision_ceo)
+    # Handlers M4 D8 - Fábrica de Bots
+    bus.suscribir(Eventos.PRUEBA_COMPLETADA, manejar_prueba_completada)
+    bus.suscribir(Eventos.VENTA_BOT, manejar_venta_bot)
+    # Handlers M4 D18 - UCI
+    bus.suscribir(Eventos.CONOCIMIENTO_AGREGADO, manejar_conocimiento_agregado)
+    bus.suscribir(Eventos.TRADER_RECOLECTADO, manejar_trader_recolectado)
     logger.info("Todos los handlers registrados en EventBus")
