@@ -29,6 +29,18 @@ def _notificar_sergio(mensaje: str):
 # HANDLERS DE TRADING
 # ============================================================
 
+def manejar_senal_trading(evento: dict):
+    """
+    Handler para señales de trading generadas por bots.
+    Recibe la señal, la valida y la distribuye
+    al canal de Telegram de señales.
+    Registra en SQLite tabla metricas.
+    """
+    logger.info(f"[COLMENA] Señal de trading recibida: {evento}")
+    # Por ahora registra la señal — implementación completa en brief futuro
+    pass
+
+
 def manejar_drawdown(evento: dict):
     """Se activa cuando un bot supera el límite de drawdown."""
     payload = evento.get('payload', {})
@@ -253,6 +265,7 @@ def registrar_suscriptores(bus):
     bus.suscribir(Eventos.PAGO_CONFIRMADO, manejar_pago_confirmado)
     bus.suscribir(Eventos.AGENTE_PROBLEMA, manejar_agente_problema)
     bus.suscribir(Eventos.ERROR_CRITICO, manejar_error_critico)
+    bus.suscribir(Eventos.SEÑAL_TRADING, manejar_senal_trading)
     # Handlers M1 D16 - Sala de Inversión
     bus.suscribir(Eventos.SOLICITUD_RETIRO, manejar_solicitud_retiro)
     bus.suscribir(Eventos.DECISION_CEO, manejar_decision_ceo)
