@@ -125,16 +125,16 @@ void OnTick()
 //+------------------------------------------------------------------+
 bool ActualizarIndicadores()
 {
-    // Copiar datos de Bollinger Bands
-    if(CopyBuffer(iBands(_Symbol, PERIOD_M15, BB_Period, 0, BB_Dev, PRICE_CLOSE), 0, 0, 1, BB_Upper) < 0) return false;
-    if(CopyBuffer(iBands(_Symbol, PERIOD_M15, BB_Period, 0, BB_Dev, PRICE_CLOSE), 1, 0, 1, BB_Middle) < 0) return false;
-    if(CopyBuffer(iBands(_Symbol, PERIOD_M15, BB_Period, 0, BB_Dev, PRICE_CLOSE), 2, 0, 1, BB_Lower) < 0) return false;
+    // Copiar datos de Bollinger Bands (copiar 2 elementos para poder acceder a índice 1)
+    if(CopyBuffer(iBands(_Symbol, PERIOD_M15, BB_Period, 0, BB_Dev, PRICE_CLOSE), 0, 0, 2, BB_Upper) < 0) return false;
+    if(CopyBuffer(iBands(_Symbol, PERIOD_M15, BB_Period, 0, BB_Dev, PRICE_CLOSE), 1, 0, 2, BB_Middle) < 0) return false;
+    if(CopyBuffer(iBands(_Symbol, PERIOD_M15, BB_Period, 0, BB_Dev, PRICE_CLOSE), 2, 0, 2, BB_Lower) < 0) return false;
     
     // Copiar datos de RSI
-    if(CopyBuffer(iRSI(_Symbol, PERIOD_M15, RSI_Period, PRICE_CLOSE), 0, 0, 1, RSI) < 0) return false;
+    if(CopyBuffer(iRSI(_Symbol, PERIOD_M15, RSI_Period, PRICE_CLOSE), 0, 0, 2, RSI) < 0) return false;
     
     // Copiar datos de ATR
-    if(CopyBuffer(iATR(_Symbol, PERIOD_M15, ATR_Period), 0, 0, 1, ATR) < 0) return false;
+    if(CopyBuffer(iATR(_Symbol, PERIOD_M15, ATR_Period), 0, 0, 2, ATR) < 0) return false;
     
     // Calcular volumen promedio
     long tick_volume_array[];
