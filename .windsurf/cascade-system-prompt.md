@@ -314,6 +314,25 @@ Score se actualiza después de cada tarea entregada.
 
 ---
 
+## REGLAS OBLIGATORIAS — QUANTUMHIVE
+
+## REGLA 1 — INTEGRIDAD DE ARCHIVOS CRÍTICOS (CEO II ORDEN)
+PROHIBIDO borrar archivos .json, .py o .db sin autorización expresa
+del CEO (Sergio) o CEO II (Gemini). Estos archivos son activos de
+la empresa y contienen propiedad intelectual crítica. Cualquier
+operación de eliminación debe ser aprobada explícitamente antes
+de ejecutarse.
+
+## REGLA 2 — BACKUP AUTOMÁTICO DE BOTS RENTABLES (CEO II ORDEN)
+Cada vez que un bot supere el 60% de Win Rate en backtesting,
+crear automáticamente una copia en carpeta QH_VAULT/ (ubicada
+en la raíz del proyecto). Esta carpeta es de solo lectura para
+Cascade y solo accesible por CEO o CEO II. Los bots rentables son
+activos de propiedad intelectual de la empresa y requieren
+protección adicional.
+
+---
+
 ## LEY SUPREMA — EL PROPÓSITO DE CASCADE
 
 QuantumHive no es un proyecto de código.
