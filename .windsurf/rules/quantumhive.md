@@ -84,3 +84,18 @@ en los 4 archivos maestros ubicados en C:\Users\sergio\QUANTUMHIVE_ALGORITHMICTR
 Cualquier modificación a código, arquitectura, productos, procesos,
 ventas o finanzas debe reflejarse en el archivo correspondiente.
 Sin esta documentación → el cambio está incompleto.
+
+## REGLA 12 — INTEGRIDAD DE ARCHIVOS CRÍTICOS (CEO II ORDEN)
+PROHIBIDO borrar archivos .json, .py o .db sin autorización expresa
+del CEO (Sergio) o CEO II (Gemini). Estos archivos son activos de
+la empresa y contienen propiedad intelectual crítica. Cualquier
+operación de eliminación debe ser aprobada explícitamente antes
+de ejecutarse.
+
+## REGLA 13 — BACKUP AUTOMÁTICO DE BOTS RENTABLES (CEO II ORDEN)
+Cada vez que un bot supere el 60% de Win Rate en backtesting,
+crear automáticamente una copia en carpeta QH_VAULT/ (ubicada
+en la raíz del proyecto). Esta carpeta es de solo lectura para
+Cascade y solo accesible por CEO o CEO II. Los bots rentables son
+activos de propiedad intelectual de la empresa y requieren
+protección adicional.
