@@ -88,6 +88,7 @@ MQL5/Files/*.log
 # Jupyter Notebooks
 .ipynb_checkpoints/
 *.ipynb
+!/automatizacion/agentes/macro4/entrenador_nube.ipynb
 
 # PyCharm
 .idea/
