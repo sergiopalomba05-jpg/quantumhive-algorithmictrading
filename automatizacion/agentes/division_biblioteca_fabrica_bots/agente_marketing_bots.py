@@ -24,7 +24,8 @@ logger = logging.getLogger(__name__)
 
 class AgenteMarketingBots:
     def __init__(self, output_dir: str = None):
-        self.output_dir = Path(output_dir) if output_dir else Path(__file__).parent.parent.parent.parent / "biblioteca_fabrica" / "bots_rentables"
+        # UBICACIÓN SEGURA: bots_terminados/ para evitar pérdida de archivos
+        self.output_dir = Path(output_dir) if output_dir else Path(__file__).parent.parent.parent.parent / "bots_terminados" / "bots_rentables"
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
         # Nombres especiales para bots rentables

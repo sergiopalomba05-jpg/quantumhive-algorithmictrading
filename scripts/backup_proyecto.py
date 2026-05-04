@@ -30,6 +30,7 @@ class BackupProyecto:
             logger.info(f"[BACKUP] Iniciando copia a backup local...")
             
             # Excluir directorios grandes/caché
+            # IMPORTANTE: NO excluir bots_terminados/ ni biblioteca_fabrica/ (bots rentables)
             exclude_dirs = [
                 "__pycache__",
                 "node_modules",
@@ -69,6 +70,7 @@ class BackupProyecto:
             logger.info(f"[BACKUP] Creando backup diario: {backup_path}")
             
             # Excluir directorios grandes
+            # IMPORTANTE: NO excluir bots_terminados/ ni biblioteca_fabrica/ (bots rentables)
             exclude_dirs = [
                 "__pycache__",
                 "node_modules",
