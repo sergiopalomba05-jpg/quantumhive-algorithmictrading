@@ -7,7 +7,7 @@
 //+------------------------------------------------------------------+
 #property copyright "QuantumHive"
 #property link      "https://quantumhive.ai"
-#property version   "1.0.0"
+#property version   "1.00"
 #property strict
 
 //--- Input Parameters
@@ -28,7 +28,7 @@ double ATR[];
 double Volume_MA[];
 double BB_Width[];
 int ops_hoy = 0;
-datetime ultima_fecha = 0;
+int ultima_dia = 0;
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                     |
@@ -73,10 +73,12 @@ void OnDeinit(const int reason)
 void OnTick()
 {
     // Resetear contador de operaciones al día
-    if(TimeDay(TimeCurrent()) != TimeDay(ultima_fecha))
+    MqlDateTime dt;
+    TimeCurrent(dt);
+    if(dt.day != ultima_dia)
     {
         ops_hoy = 0;
-        ultima_fecha = TimeCurrent();
+        ultima_dia = dt.day;
     }
     
     // Verificar máximo de operaciones
@@ -115,11 +117,11 @@ bool ActualizarIndicadores()
     if(CopyBuffer(iATR(_Symbol, PERIOD_M15, ATR_Period), 0, 0, 1, ATR) < 0) return false;
     
     // Calcular volumen promedio
-    double volumes[];
-    ArraySetAsSeries(volumes, true);
-    if(CopyTickVolume(_Symbol, PERIOD_M15, 0, 20, volumes) < 0) return false;
+    long tick_volume_array[];
+    ArraySetAsSeries(tick_volume_array, true);
+    if(CopyTickVolume(_Symbol, PERIOD_M15, 0, 20, tick_volume_array) < 0) return false;
     double vol_ma = 0;
-    for(int i = 0; i < 20; i++) vol_ma += volumes[i];
+    for(int i = 0; i < 20; i++) vol_ma += (double)tick_volume_array[i];
     Volume_MA[0] = vol_ma / 20;
     
     // Calcular ancho de BB
@@ -329,7 +331,10 @@ void TrailingStop()
                     request.position = PositionGetInteger(POSITION_TICKET);
                     request.sl = nuevo_sl;
                     
-                    OrderSend(request, result);
+                    if(!OrderSend(request, result))
+                    {
+                        Print("Error actualizando Trailing Stop: ", GetLastError());
+                    }
                 }
             }
         }
