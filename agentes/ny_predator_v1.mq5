@@ -29,6 +29,7 @@ double Volume_MA[];
 double BB_Width[];
 int ops_hoy = 0;
 int ultima_dia = 0;
+long onnx_handle = INVALID_HANDLE;
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                     |
@@ -55,7 +56,19 @@ int OnInit()
         return INIT_FAILED;
     }
     
+    // Cargar modelo ONNX
+    string onnx_path = "MQL5\\Files\\ny_predator_v1.onnx";
+    onnx_handle = OnnxCreate(onnx_path, ONNX_DEFAULT);
+    
+    if(onnx_handle == INVALID_HANDLE)
+    {
+        Print("Error cargando modelo ONNX: ", GetLastError());
+        Print("Ruta del archivo: ", onnx_path);
+        return INIT_FAILED;
+    }
+    
     Print("NY PREDATOR v1 inicializado correctamente");
+    Print("Modelo ONNX cargado exitosamente");
     return INIT_SUCCEEDED;
 }
 
@@ -64,6 +77,13 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
+    // Liberar modelo ONNX
+    if(onnx_handle != INVALID_HANDLE)
+    {
+        OnnxRelease(onnx_handle);
+        Print("Modelo ONNX liberado");
+    }
+    
     Print("NY PREDATOR v1 desinicializado");
 }
 
