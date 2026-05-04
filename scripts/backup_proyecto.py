@@ -10,15 +10,22 @@ from datetime import datetime
 from pathlib import Path
 import logging
 
+# Importar funciones de seguridad
+import sys
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from automatizacion.utils.seguridad_archivos import eliminar_seguro, obtener_basurero_temporal
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 class BackupProyecto:
     def __init__(self):
-        self.proyecto_origen = Path("C:/Users/sergio/QUANTUMHIVE_ALGORITHMICTRADING")
-        # Cambiado a carpeta local en C: (OneDrive no sincroniza correctamente)
+        # RUTAS PORTABLES - Detectan automáticamente la raíz del proyecto
+        script_dir = Path(__file__).resolve().parent
+        self.proyecto_origen = script_dir.parent  # Raíz del proyecto
         self.backup_destino = Path("C:/QUANTUMHIVE_ALGORITHMICTRADING_BACKUP")
-        self.backup_diario = Path("C:/QUANTUMHIVE_ALGORITHMICTRADING_BACKUP/diario")
+        self.backup_diario = self.backup_destino / "diario"
+        self.basurero = obtener_basurero_temporal(self.proyecto_origen)
         
         # Crear directorios de destino
         self.backup_destino.mkdir(parents=True, exist_ok=True)
@@ -45,7 +52,7 @@ class BackupProyecto:
             
             # Copiar proyecto
             if self.backup_destino.exists():
-                shutil.rmtree(self.backup_destino)
+                eliminar_seguro(self.backup_destino, self.basurero, forzar=True)
             
             shutil.copytree(
                 self.proyecto_origen,
@@ -85,7 +92,7 @@ class BackupProyecto:
             
             # Copiar proyecto
             if backup_path.exists():
-                shutil.rmtree(backup_path)
+                eliminar_seguro(backup_path, self.basurero, forzar=True)
             
             shutil.copytree(
                 self.proyecto_origen,
@@ -111,8 +118,8 @@ class BackupProyecto:
             
             while len(backups) > dias_mantener:
                 backup_antiguo = backups.pop(0)
-                shutil.rmtree(backup_antiguo)
-                logger.info(f"[BACKUP] Eliminado backup antiguo: {backup_antiguo}")
+                eliminar_seguro(backup_antiguo, self.basurero, forzar=True)
+                logger.info(f"[BACKUP] Movido a basurero backup antiguo: {backup_antiguo}")
                 
         except Exception as e:
             logger.error(f"[BACKUP] Error limpiando backups: {e}")

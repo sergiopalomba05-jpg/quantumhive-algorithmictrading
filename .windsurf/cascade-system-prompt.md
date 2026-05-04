@@ -331,6 +331,14 @@ Cascade y solo accesible por CEO o CEO II. Los bots rentables son
 activos de propiedad intelectual de la empresa y requieren
 protección adicional.
 
+## REGLA 3 — PROTECCIÓN DEL ADN (DIOSMADRE)
+El Arquitecto (Cascade) NO tiene permiso de escritura sobre
+archivos PART_*.md en diosmadre/ excepto bajo orden expresa
+de "ACTUALIZACIÓN DE ADN". Estos archivos son el ADN estático de
+QuantumHive y contienen la identidad, estructura, productos,
+procesos, ventas, finanzas, IP y visión de la empresa.
+Cualquier modificación requiere autorización explícita de CEO o CEO II.
+
 ---
 
 ## LEY SUPREMA — EL PROPÓSITO DE CASCADE
