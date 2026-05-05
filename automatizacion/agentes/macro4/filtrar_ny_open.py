@@ -140,11 +140,31 @@ class FiltroNYOpen:
         volume_ma_period = 20
         df['volume_ma'] = df['volume'].rolling(window=volume_ma_period).mean()
         
+        # Relleno de seguridad: reemplazar 0 por 1 para evitar división por cero
+        df['volume_ma'] = df['volume_ma'].replace(0, 1)
+        
         # TARGET (REGLA T-1): target = close.shift(-1)
         df['target'] = df['close'].shift(-1)
         
         logger.info("[FILTRO] Indicadores técnicos calculados")
         logger.info(f"[FILTRO] Columnas calculadas: bb_upper, bb_middle, bb_lower, bb_width, rsi, atr, volume_ma, target")
+        
+        return df
+    
+    def limpiar_nan_inf(self, df):
+        """Elimina valores NaN e infinitos del dataframe."""
+        logger.info("[FILTRO] Limpiando valores NaN e infinitos...")
+        
+        # Reemplazar infinitos por NaN
+        df = df.replace([np.inf, -np.inf], np.nan)
+        
+        # Eliminar filas con NaN
+        filas_antes = len(df)
+        df = df.dropna()
+        filas_despues = len(df)
+        
+        logger.info(f"[FILTRO] Filas eliminadas por NaN/inf: {filas_antes - filas_despues}")
+        logger.info(f"[FILTRO] Filas después de limpieza: {filas_despues}")
         
         return df
     
@@ -176,6 +196,19 @@ class FiltroNYOpen:
             raise ValueError(f"Faltan columnas requeridas: {missing_columns}")
         
         logger.info("[FILTRO] Todas las columnas requeridas están presentes")
+        
+        # Verificación pre-vuello: contar valores nulos
+        null_counts = df.isnull().sum()
+        logger.info("[FILTRO] Verificación pre-vuello - Conteo de valores nulos:")
+        for col, count in null_counts.items():
+            if count > 0:
+                logger.warning(f"[FILTRO]   {col}: {count} valores nulos")
+        
+        if null_counts.sum() > 0:
+            logger.error(f"[FILTRO] ERROR: El dataframe tiene {null_counts.sum()} valores nulos. No se puede guardar.")
+            raise ValueError(f"El dataframe tiene valores nulos: {null_counts.to_dict()}")
+        
+        logger.info("[FILTRO] Verificación pre-vuello: ✅ Todas las columnas tienen 0 valores nulos")
         
         # Seleccionar solo columnas relevantes (excluir columnas temporales)
         cols = ['datetime', 'open', 'high', 'low', 'close', 'tickvol', 'volume', 'spread',
@@ -228,10 +261,9 @@ class FiltroNYOpen:
         logger.info("[FILTRO] Calculando indicadores técnicos...")
         df_with_indicators = self.calcular_indicadores(df_filtered)
         
-        # Paso 6: Eliminar filas con NaN (por rolling windows)
-        logger.info("[FILTRO] Eliminando filas con NaN (por rolling windows)...")
-        df_clean = df_with_indicators.dropna()
-        logger.info(f"[FILTRO] Filas después de eliminar NaN: {len(df_clean)}")
+        # Paso 6: Limpiar NaN e infinitos (CRÍTICO)
+        logger.info("[FILTRO] Limpiando NaN e infinitos...")
+        df_clean = self.limpiar_nan_inf(df_with_indicators)
         
         # Paso 7: Aplicar integridad temporal
         logger.info("[FILTRO] Aplicando integridad temporal (shift(1))...")
