@@ -1,6 +1,7 @@
 """
 Filtrado Horario para NY Predator v1 - NY Open (09:30-11:30 EST)
 Detecta offset horario del broker y filtra velas de apertura de NY
+Calcula indicadores técnicos para entrenamiento
 """
 
 import pandas as pd
@@ -100,6 +101,53 @@ class FiltroNYOpen:
         
         return df_filtered
     
+    def calcular_indicadores(self, df):
+        """Calcula indicadores técnicos para entrenamiento."""
+        logger.info("[FILTRO] Calculando indicadores técnicos...")
+        
+        # Asegurar que las columnas numéricas estén en formato correcto
+        df['close'] = pd.to_numeric(df['close'], errors='coerce')
+        df['high'] = pd.to_numeric(df['high'], errors='coerce')
+        df['low'] = pd.to_numeric(df['low'], errors='coerce')
+        df['volume'] = pd.to_numeric(df['volume'], errors='coerce')
+        
+        # Bandas de Bollinger (Periodo 30, Desviación 3.0)
+        bb_period = 30
+        bb_std = 3.0
+        df['bb_middle'] = df['close'].rolling(window=bb_period).mean()
+        df['bb_std'] = df['close'].rolling(window=bb_period).std()
+        df['bb_upper'] = df['bb_middle'] + (df['bb_std'] * bb_std)
+        df['bb_lower'] = df['bb_middle'] - (df['bb_std'] * bb_std)
+        df['bb_width'] = (df['bb_upper'] - df['bb_lower']) / df['bb_middle']
+        
+        # RSI (Periodo 7)
+        rsi_period = 7
+        delta = df['close'].diff()
+        gain = (delta.where(delta > 0, 0)).rolling(window=rsi_period).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=rsi_period).mean()
+        rs = gain / loss
+        df['rsi'] = 100 - (100 / (1 + rs))
+        
+        # ATR (Periodo 14)
+        atr_period = 14
+        high_low = df['high'] - df['low']
+        high_close = np.abs(df['high'] - df['close'].shift())
+        low_close = np.abs(df['low'] - df['close'].shift())
+        tr = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
+        df['atr'] = tr.rolling(window=atr_period).mean()
+        
+        # Volumen MA (Periodo 20)
+        volume_ma_period = 20
+        df['volume_ma'] = df['volume'].rolling(window=volume_ma_period).mean()
+        
+        # TARGET (REGLA T-1): target = close.shift(-1)
+        df['target'] = df['close'].shift(-1)
+        
+        logger.info("[FILTRO] Indicadores técnicos calculados")
+        logger.info(f"[FILTRO] Columnas calculadas: bb_upper, bb_middle, bb_lower, bb_width, rsi, atr, volume_ma, target")
+        
+        return df
+    
     def aplicar_integridad_temporal(self, df):
         """Aplica shift(1) para que la IA no vea el futuro."""
         df_shifted = df.copy()
@@ -117,25 +165,31 @@ class FiltroNYOpen:
         return df_shifted
     
     def guardar_datos(self, df):
-        """Guarda los datos filtrados."""
-        # Seleccionar columnas relevantes
-        if '<OPEN>' in df.columns:
-            # Formato MT5 original
-            cols = ['datetime', '<OPEN>', '<HIGH>', '<LOW>', '<CLOSE>', '<TICKVOL>', '<VOL>', '<SPREAD>']
-            df_export = df[cols].copy()
-            df_export.columns = ['datetime', 'open', 'high', 'low', 'close', 'tickvol', 'volume', 'spread']
-        else:
-            # Formato ya procesado
-            cols = ['datetime', 'open', 'high', 'low', 'close', 'tickvol', 'volume', 'spread']
-            df_export = df[cols].copy()
+        """Guarda los datos filtrados con indicadores técnicos."""
+        # Validar columnas requeridas
+        required_columns = ['open', 'high', 'low', 'close', 'volume', 'bb_upper', 'bb_lower', 
+                          'bb_middle', 'bb_width', 'rsi', 'atr', 'volume_ma', 'target']
+        
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        if missing_columns:
+            logger.error(f"[FILTRO] Faltan columnas requeridas: {missing_columns}")
+            raise ValueError(f"Faltan columnas requeridas: {missing_columns}")
+        
+        logger.info("[FILTRO] Todas las columnas requeridas están presentes")
+        
+        # Seleccionar solo columnas relevantes (excluir columnas temporales)
+        cols = ['datetime', 'open', 'high', 'low', 'close', 'tickvol', 'volume', 'spread',
+               'bb_upper', 'bb_middle', 'bb_lower', 'bb_width', 'rsi', 'atr', 'volume_ma', 'target']
+        df_export = df[cols].copy()
         
         # Guardar sin índice
         df_export.to_csv(self.output_file, index=False)
         
         logger.info(f"[FILTRO] Datos guardados en: {self.output_file}")
+        logger.info(f"[FILTRO] Columnas guardadas: {df_export.columns.tolist()}")
     
     def ejecutar_filtrado(self):
-        """Ejecuta el ciclo completo de filtrado."""
+        """Ejecuta el ciclo completo de filtrado y cálculo de indicadores."""
         logger.info("="*80)
         logger.info("[FILTRO] INICIANDO FILTRADO HORARIO - NY PREDATOR v1")
         logger.info(f"[FILTRO] Fecha: {datetime.now().isoformat()}")
@@ -147,19 +201,43 @@ class FiltroNYOpen:
         logger.info(f"[FILTRO] Dataset cargado: {len(df)} filas")
         logger.info(f"[FILTRO] Columnas: {df.columns.tolist()}")
         
-        # Paso 2: Detectar offset horario
+        # Paso 2: Renombrar columnas MT5 a formato estándar
+        logger.info("[FILTRO] Renombrando columnas MT5...")
+        column_mapping = {
+            '<DATE>': 'date',
+            '<TIME>': 'time',
+            '<OPEN>': 'open',
+            '<HIGH>': 'high',
+            '<LOW>': 'low',
+            '<CLOSE>': 'close',
+            '<TICKVOL>': 'tickvol',
+            '<VOL>': 'volume',
+            '<SPREAD>': 'spread'
+        }
+        df = df.rename(columns=column_mapping)
+        
+        # Paso 3: Detectar offset horario
         logger.info("[FILTRO] Detectando offset horario del broker...")
         df, offset_hours = self.detectar_offset_broker(df)
         
-        # Paso 3: Filtrar velas de NY Open
+        # Paso 4: Filtrar velas de NY Open
         logger.info("[FILTRO] Filtrando velas de NY Open (09:30-11:30 EST)...")
         df_filtered = self.filtrar_ny_open(df, offset_hours)
         
-        # Paso 4: Aplicar integridad temporal
-        logger.info("[FILTRO] Aplicando integridad temporal (shift(1))...")
-        df_final = self.aplicar_integridad_temporal(df_filtered)
+        # Paso 5: Calcular indicadores técnicos
+        logger.info("[FILTRO] Calculando indicadores técnicos...")
+        df_with_indicators = self.calcular_indicadores(df_filtered)
         
-        # Paso 5: Guardar datos
+        # Paso 6: Eliminar filas con NaN (por rolling windows)
+        logger.info("[FILTRO] Eliminando filas con NaN (por rolling windows)...")
+        df_clean = df_with_indicators.dropna()
+        logger.info(f"[FILTRO] Filas después de eliminar NaN: {len(df_clean)}")
+        
+        # Paso 7: Aplicar integridad temporal
+        logger.info("[FILTRO] Aplicando integridad temporal (shift(1))...")
+        df_final = self.aplicar_integridad_temporal(df_clean)
+        
+        # Paso 8: Guardar datos
         logger.info("[FILTRO] Guardando datos filtrados...")
         self.guardar_datos(df_final)
         
@@ -176,3 +254,6 @@ if __name__ == "__main__":
     print("\n[RESUMEN]")
     print(f"Velas filtradas: {len(df_filtrado)}")
     print(f"Rango de fechas: {df_filtrado['datetime'].min()} a {df_filtrado['datetime'].max()}")
+    print(f"\nColumnas del dataset: {df_filtrado.columns.tolist()}")
+    print("\n[PRIMERAS 5 FILAS DEL DATASET]")
+    print(df_filtrado.head())
