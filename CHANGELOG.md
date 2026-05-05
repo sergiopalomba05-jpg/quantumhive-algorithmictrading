@@ -1,6 +1,30 @@
 # CHANGELOG
 
 Todos los cambios notables del proyecto.
+## [2026-05-03] - SOLUCIÓN URGENTE: MOVER BOTS_RENTABLES A BOTS_TERMINADOS/ PARA PREVENIR PÉRDIDA DE ARCHIVOS CRÍTICOS
+**Commit:** 4242efb1
+**Módulo:** general
+- ['automatizacion/agentes/division_biblioteca_fabrica_bots/agente_marketing_bots.py', 'scripts/backup_proyecto.py']
+
+
+## [2026-05-03] - AGREGAR SECCIÓN DE WINDSURF CUSTOMIZATIONS EN CASCADE-SYSTEM-PROMPT.MD CON REGLAS, SKILLS Y WORKFLOWS
+**Commit:** 9729d5eb
+**Módulo:** general
+- ['.windsurf/cascade-system-prompt.md']
+
+
+## [2026-05-03] - AGREGAR REGLA OBLIGATORIA DE DOCUMENTACIÓN EN ARCHIVOS MAESTROS DIOSMADRE A RULES, SKILLS Y WORKFLOWS
+**Commit:** e08da3b0
+**Módulo:** general
+- ['.windsurf/rules/quantumhive.md', '.windsurf/skills/consultar-errores.md', '.windsurf/skills/registrar-cambio.md', '.windsurf/workflows/implementar-brief.md', '.windsurf/workflows/deploy-completo.md', '.windsurf/workflows/nuevo-agente.md']
+
+
+## [2026-05-03] - CORRECCIÓN ESTRUCTURA .WINDSURF + AGENTS.MD + HANDLER SEÑAL_TRADING
+**Commit:** 57349c9a
+**Módulo:** general
+- ['AGENTS.md', '.windsurf/rules/quantumhive.md', '.windsurf/skills/consultar-errores.md', '.windsurf/skills/registrar-cambio.md', '.windsurf/workflows/implementar-brief.md', '.windsurf/workflows/deploy-completo.md', '.windsurf/workflows/nuevo-agente.md', 'automatizacion/agentes/handlers_colmena.py']
+
+
 
 ## [2026-05-03] - FEAT
 **MÃ³dulo:** agentes
