@@ -1,6 +1,6 @@
 """
 LLM Wrapper — QuantumHive AGI
-Wrapper universal para motores IA (Claude, OpenRouter, Groq, Ollama)
+Wrapper universal para motores IA (Groq, OpenRouter, Ollama)
 Permite cambiar de motor IA sin modificar la estructura AGI ni el system prompt.
 """
 
@@ -23,8 +23,7 @@ except ImportError:
     logger.warning("Agente LLM Manager no disponible - cambio automático de motores deshabilitado")
 
 # Configuración de motores IA
-LLM_ENGINE = os.getenv('LLM_ENGINE', 'openrouter').lower()  # 'anthropic', 'openrouter', 'groq', 'ollama'
-ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY', '')
+LLM_ENGINE = os.getenv('LLM_ENGINE', 'groq').lower()  # 'groq', 'openrouter', 'ollama'
 OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY', '')
 GROQ_API_KEY = os.getenv('GROQ_API_KEY', '')
 OLLAMA_BASE_URL = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
@@ -65,41 +64,41 @@ class LLMWrapper:
         self._inicializar_cliente()
         
     def _inicializar_cliente(self):
-        """Inicializa el cliente según el motor seleccionado."""
+        """Inicializa el cliente según el motor seleccionado: Groq (Principal) → OpenRouter (Backup) → Error Real."""
         try:
-            if self.engine == 'anthropic':
-                self._inicializar_anthropic()
+            if self.engine == 'groq':
+                self._inicializar_groq()
             elif self.engine == 'openrouter':
                 self._inicializar_openrouter()
-            elif self.engine == 'groq':
-                self._inicializar_groq()
             elif self.engine == 'ollama':
                 self._inicializar_ollama()
             else:
-                logger.warning(f"Motor IA desconocido: {self.engine}. Usando Anthropic como fallback.")
-                self._inicializar_anthropic()
+                logger.warning(f"Motor IA desconocido: {self.engine}. Usando Groq como principal.")
+                self._inicializar_groq()
         except Exception as e:
             logger.error(f"Error inicializando motor IA {self.engine}: {e}")
-            logger.info("Intentando fallback a Anthropic...")
-            self._inicializar_anthropic()
+            logger.info("Intentando fallback a OpenRouter...")
+            self._inicializar_openrouter()
     
-    def _inicializar_anthropic(self):
-        """Inicializa cliente Anthropic (Claude)."""
+    def _inicializar_groq(self):
+        """Inicializa cliente Groq (motor principal - muy rápido, modelos gratuitos)."""
         try:
-            from anthropic import Anthropic
-            if ANTHROPIC_API_KEY and len(ANTHROPIC_API_KEY) > 10:
-                self.client = Anthropic(api_key=ANTHROPIC_API_KEY)
-                self.engine = 'anthropic'
-                logger.info("✅ Motor IA: Anthropic (Claude) - COSTOSO")
+            from groq import Groq
+            if GROQ_API_KEY and len(GROQ_API_KEY) > 10:
+                self.client = Groq(api_key=GROQ_API_KEY)
+                self.engine = 'groq'
+                self.model = FREE_MODELS['groq'][0]  # Primer modelo gratuito
+                logger.info(f"✅ Motor IA: Groq ({self.model}) - GRATUITO - PRINCIPAL")
             else:
-                raise ValueError("ANTHROPIC_API_KEY no configurada")
+                raise ValueError("GROQ_API_KEY no configurada")
         except Exception as e:
-            logger.warning(f"Anthropic no disponible: {e}")
-            # Intentar OpenRouter como fallback gratuito
+            logger.warning(f"Groq no disponible: {e}")
+            # Fallback a OpenRouter
+            logger.info("Intentando fallback a OpenRouter...")
             self._inicializar_openrouter()
     
     def _inicializar_openrouter(self):
-        """Inicializa cliente OpenRouter (modelos gratuitos)."""
+        """Inicializa cliente OpenRouter (motor backup - modelos gratuitos)."""
         try:
             from openai import OpenAI
             if OPENROUTER_API_KEY and len(OPENROUTER_API_KEY) > 10:
@@ -109,29 +108,12 @@ class LLMWrapper:
                 )
                 self.engine = 'openrouter'
                 self.model = FREE_MODELS['openrouter'][0]  # Primer modelo gratuito
-                logger.info(f"✅ Motor IA: OpenRouter ({self.model}) - GRATUITO")
+                logger.info(f"✅ Motor IA: OpenRouter ({self.model}) - GRATUITO - BACKUP")
             else:
                 raise ValueError("OPENROUTER_API_KEY no configurada")
         except Exception as e:
-            logger.warning(f"OpenRouter no disponible: {e}")
-            # Intentar Groq como fallback
-            self._inicializar_groq()
-    
-    def _inicializar_groq(self):
-        """Inicializa cliente Groq (muy rápido, modelos gratuitos)."""
-        try:
-            from groq import Groq
-            if GROQ_API_KEY and len(GROQ_API_KEY) > 10:
-                self.client = Groq(api_key=GROQ_API_KEY)
-                self.engine = 'groq'
-                self.model = FREE_MODELS['groq'][0]  # Primer modelo gratuito
-                logger.info(f"✅ Motor IA: Groq ({self.model}) - GRATUITO")
-            else:
-                raise ValueError("GROQ_API_KEY no configurada")
-        except Exception as e:
-            logger.warning(f"Groq no disponible: {e}")
-            # Intentar Ollama como fallback local
-            self._inicializar_ollama()
+            logger.error(f"OpenRouter no disponible: {e}")
+            raise RuntimeError("No se pudo inicializar ningún motor LLM (Groq y OpenRouter fallaron)")
     
     def _inicializar_ollama(self):
         """Inicializa cliente Ollama (local, totalmente gratuito)."""
@@ -146,21 +128,17 @@ class LLMWrapper:
             logger.info(f"✅ Motor IA: Ollama ({self.model}) - LOCAL GRATUITO")
         except Exception as e:
             logger.error(f"Ollama no disponible: {e}")
-            logger.error("❌ No se pudo inicializar ningún motor IA")
-            self.client = None
+            raise RuntimeError("Ollama no disponible - no se pudo inicializar motor LLM")
     
     def messages_create(self, messages: List[LLMMessage], **kwargs) -> str:
         """
-        Envía mensajes al motor IA y retorna la respuesta.
-        Compatible con la API de Anthropic.
+        Envía mensajes al motor IA (Groq/OpenRouter/Ollama) y retorna la respuesta.
         """
         if not self.client:
             raise RuntimeError("No hay cliente IA disponible")
         
         try:
-            if self.engine == 'anthropic':
-                response = self._anthropic_create(messages, **kwargs)
-            elif self.engine in ['openrouter', 'groq', 'ollama']:
+            if self.engine in ['openrouter', 'groq', 'ollama']:
                 response = self._openai_compatible_create(messages, **kwargs)
             else:
                 raise ValueError(f"Motor no soportado: {self.engine}")
@@ -180,30 +158,6 @@ class LLMWrapper:
             
             logger.error(f"Error en messages_create: {e}")
             raise
-    
-    def _anthropic_create(self, messages: List[LLMMessage], **kwargs) -> str:
-        """Usa API de Anthropic (Claude)."""
-        # Convertir LLMMessage a formato Anthropic
-        anthropic_messages = []
-        system_message = None
-        
-        for msg in messages:
-            if msg.role == 'system':
-                system_message = msg.content
-            else:
-                anthropic_messages.append({
-                    'role': msg.role,
-                    'content': msg.content
-                })
-        
-        response = self.client.messages.create(
-            model=kwargs.get('model', 'claude-3-sonnet-20240229'),
-            max_tokens=kwargs.get('max_tokens', 4096),
-            system=system_message,
-            messages=anthropic_messages
-        )
-        
-        return response.content[0].text
     
     def _openai_compatible_create(self, messages: List[LLMMessage], **kwargs) -> str:
         """Usa API compatible con OpenAI (OpenRouter, Groq, Ollama)."""

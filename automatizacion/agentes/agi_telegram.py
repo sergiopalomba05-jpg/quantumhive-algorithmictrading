@@ -1093,24 +1093,14 @@ def construir_mensaje_sistema(db_conn, tipo_mensaje: str) -> str:
     return "\n".join(partes)
 
 
-# LLM Client - Usa wrapper para alternativas gratuitas
+# LLM Client - Usa wrapper para motores Groq/OpenRouter
 if LLM_WRAPPER_AVAILABLE and llm_wrapper:
     anthropic_client = llm_wrapper
     USE_WRAPPER = True
     logger.info(f"✅ LLM Wrapper activo - Motor: {get_llm_engine()} - Gratis: {is_free_engine()}")
 else:
-    # Fallback a Anthropic directo
-    USE_WRAPPER = False
-    if ANTHROPIC_API_KEY and len(ANTHROPIC_API_KEY) > 10:
-        try:
-            anthropic_client = Anthropic(api_key=ANTHROPIC_API_KEY)
-            logger.info("⚠️ Cliente Anthropic directo (sin wrapper) - COSTOSO")
-        except Exception as e:
-            logger.error(f"Error inicializando cliente Anthropic: {e}")
-            anthropic_client = None
-    else:
-        logger.warning("ANTHROPIC_API_KEY no está configurada y wrapper no disponible")
-        anthropic_client = None
+    logger.error("❌ LLM Wrapper no disponible - AGI no puede funcionar sin wrapper")
+    raise RuntimeError("LLM Wrapper es obligatorio para AGI. Verificar instalación de agi_core/llm_wrapper.py")
 
 memoria = MemoriaSQLite()
 clasificador_intencion = ClasificadorIntencion()
@@ -1163,18 +1153,17 @@ else:
 
 def procesar_mensaje_con_claude(message_text, tipo_mensaje: str = "general"):
     """
-    Procesa mensaje usando Claude API con historial completo de conversación.
+    Procesa mensaje usando LLM Wrapper (Groq/OpenRouter) con historial completo de conversación.
     """
     try:
         if not anthropic_client:
-            logger.warning("Claude API no configurada, usando respuesta simulada")
-            return f"AGI: Recibí tu mensaje: {message_text}"
+            raise RuntimeError("LLM Wrapper no disponible. AGI no puede funcionar sin motor LLM.")
         
-        # 0. Actualizar perfil de Sergio en GitHub ANTES de Claude (síncrono)
+        # 0. Actualizar perfil de Sergio en GitHub ANTES de procesar (síncrono)
         if github_memory:
             github_memory.actualizar_perfil_sergio(message_text, tipo_mensaje)
         
-        logger.info("Enviando mensaje a Claude API con historial...")
+        logger.info("Enviando mensaje a LLM Wrapper con historial...")
         
         # 1. Construir system prompt con contexto dinámico
         conn = sqlite3.connect(memoria.db_path)
@@ -1191,34 +1180,22 @@ def procesar_mensaje_con_claude(message_text, tipo_mensaje: str = "general"):
             "content": message_text
         })
         
-        # 4. Llamar a API según wrapper o Anthropic directo
-        if USE_WRAPPER:
-            # Usar wrapper (Groq, OpenRouter, etc.)
-            from agi_core.llm_wrapper import LLMMessage
-            
-            # Convertir mensajes a formato LLMMessage
-            llm_messages = []
-            
-            # Agregar system prompt
-            llm_messages.append(LLMMessage(role='system', content=system_prompt_dinamico))
-            
-            # Agregar historial
-            for msg in messages:
-                llm_messages.append(LLMMessage(role=msg['role'], content=msg['content']))
-            
-            # Llamar al wrapper
-            respuesta = anthropic_client.messages_create(llm_messages, max_tokens=1024)
-            logger.info(f"Respuesta del wrapper: {respuesta[:100]}...")
-        else:
-            # Usar Anthropic directo (fallback)
-            response = anthropic_client.messages.create(
-                model="claude-3-sonnet-20240229",
-                max_tokens=1024,
-                system=system_prompt_dinamico,
-                messages=messages
-            )
-            respuesta = response.content[0].text
-            logger.info(f"Respuesta de Claude: {respuesta[:100]}...")
+        # 4. Usar wrapper (Groq → OpenRouter → Error Real)
+        from agi_core.llm_wrapper import LLMMessage
+        
+        # Convertir mensajes a formato LLMMessage
+        llm_messages = []
+        
+        # Agregar system prompt
+        llm_messages.append(LLMMessage(role='system', content=system_prompt_dinamico))
+        
+        # Agregar historial
+        for msg in messages:
+            llm_messages.append(LLMMessage(role=msg['role'], content=msg['content']))
+        
+        # Llamar al wrapper
+        respuesta = anthropic_client.messages_create(llm_messages, max_tokens=1024)
+        logger.info(f"Respuesta del wrapper: {respuesta[:100]}...")
         
         # 5. Guardar mensaje del usuario y respuesta en historial
         guardar_en_historial(memoria.db_path, "user", message_text)
@@ -1227,8 +1204,8 @@ def procesar_mensaje_con_claude(message_text, tipo_mensaje: str = "general"):
         return respuesta
         
     except Exception as e:
-        logger.error(f"Error con Claude API: {e}")
-        return f"AGI: Recibí tu mensaje: {message_text}"
+        logger.error(f"Error procesando mensaje con LLM Wrapper: {e}")
+        raise RuntimeError(f"AGI no puede responder: {e}")
 
 def procesar_mensaje(message):
     """Procesa mensaje de Telegram y genera respuesta de AGI."""
