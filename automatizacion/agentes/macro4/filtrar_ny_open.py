@@ -109,6 +109,7 @@ class FiltroNYOpen:
         df['close'] = pd.to_numeric(df['close'], errors='coerce')
         df['high'] = pd.to_numeric(df['high'], errors='coerce')
         df['low'] = pd.to_numeric(df['low'], errors='coerce')
+        df['tickvol'] = pd.to_numeric(df['tickvol'], errors='coerce')
         df['volume'] = pd.to_numeric(df['volume'], errors='coerce')
         
         # Bandas de Bollinger (Periodo 30, Desviación 3.0)
@@ -136,18 +137,32 @@ class FiltroNYOpen:
         tr = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
         df['atr'] = tr.rolling(window=atr_period).mean()
         
-        # Volumen MA (Periodo 20)
+        # Volumen MA (Periodo 20) - Basado en tickvol
         volume_ma_period = 20
-        df['volume_ma'] = df['volume'].rolling(window=volume_ma_period).mean()
+        df['volume_ma'] = df['tickvol'].rolling(window=volume_ma_period).mean()
         
-        # Relleno de seguridad: reemplazar 0 por 1 para evitar división por cero
-        df['volume_ma'] = df['volume_ma'].replace(0, 1)
+        # Verificación de variabilidad de volume_ma
+        volume_ma_std = df['volume_ma'].std()
+        volume_ma_unique = df['volume_ma'].nunique()
+        logger.info(f"[FILTRO] Variabilidad de volume_ma - std: {volume_ma_std}, valores únicos: {volume_ma_unique}")
+        
+        if volume_ma_std == 0 or volume_ma_unique == 1:
+            logger.warning("[FILTRO] volume_ma es CONSTANTE. Eliminando columnas de volumen del dataset.")
+            # Eliminar columnas de volumen
+            df = df.drop(columns=['volume_ma', 'tickvol'])
+        else:
+            # Relleno de seguridad: reemplazar 0 por 1 para evitar división por cero
+            df['volume_ma'] = df['volume_ma'].replace(0, 1)
         
         # TARGET (REGLA T-1): target = close.shift(-1)
         df['target'] = df['close'].shift(-1)
         
         logger.info("[FILTRO] Indicadores técnicos calculados")
-        logger.info(f"[FILTRO] Columnas calculadas: bb_upper, bb_middle, bb_lower, bb_width, rsi, atr, volume_ma, target")
+        logger.info(f"[FILTRO] Columnas calculadas: bb_upper, bb_middle, bb_lower, bb_width, rsi, atr, target")
+        if 'volume_ma' in df.columns:
+            logger.info(f"[FILTRO] Columnas de volumen: tickvol, volume_ma")
+        else:
+            logger.info(f"[FILTRO] Columnas de volumen: ELIMINADAS (volume_ma constante)")
         
         return df
     
@@ -186,9 +201,15 @@ class FiltroNYOpen:
     
     def guardar_datos(self, df):
         """Guarda los datos filtrados con indicadores técnicos."""
-        # Validar columnas requeridas
-        required_columns = ['open', 'high', 'low', 'close', 'volume', 'bb_upper', 'bb_lower', 
-                          'bb_middle', 'bb_width', 'rsi', 'atr', 'volume_ma', 'target']
+        # Validar columnas requeridas (volume_ma es opcional)
+        required_columns = ['open', 'high', 'low', 'close', 'bb_upper', 'bb_lower', 
+                          'bb_middle', 'bb_width', 'rsi', 'atr', 'target']
+        
+        # Agregar columnas opcionales si existen
+        if 'tickvol' in df.columns:
+            required_columns.append('tickvol')
+        if 'volume_ma' in df.columns:
+            required_columns.append('volume_ma')
         
         missing_columns = [col for col in required_columns if col not in df.columns]
         if missing_columns:
@@ -210,9 +231,16 @@ class FiltroNYOpen:
         
         logger.info("[FILTRO] Verificación pre-vuello: ✅ Todas las columnas tienen 0 valores nulos")
         
-        # Seleccionar solo columnas relevantes (excluir columnas temporales)
-        cols = ['datetime', 'open', 'high', 'low', 'close', 'tickvol', 'volume', 'spread',
-               'bb_upper', 'bb_middle', 'bb_lower', 'bb_width', 'rsi', 'atr', 'volume_ma', 'target']
+        # Seleccionar solo columnas relevantes (excluir columnas temporales y volume)
+        cols = ['datetime', 'open', 'high', 'low', 'close', 'spread',
+               'bb_upper', 'bb_middle', 'bb_lower', 'bb_width', 'rsi', 'atr', 'target']
+        
+        # Agregar columnas de volumen si existen
+        if 'tickvol' in df.columns:
+            cols.insert(5, 'tickvol')
+        if 'volume_ma' in df.columns:
+            cols.append('volume_ma')
+        
         df_export = df[cols].copy()
         
         # Guardar sin índice
