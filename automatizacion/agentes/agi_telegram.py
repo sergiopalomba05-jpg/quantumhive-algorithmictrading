@@ -123,18 +123,14 @@ logger.info(f"ANTHROPIC_API_KEY longitud: {len(ANTHROPIC_API_KEY)}")
 
 async def transcribir_audio(file_path: str) -> str:
     """
-    Transcribe audio usando Whisper API de OpenAI.
+    Transcribe audio usando Whisper (librería local).
     """
     try:
-        import openai
+        import whisper
         
-        with open(file_path, "rb") as audio_file:
-            transcripcion = openai.audio.transcriptions.create(
-                model="whisper-1",
-                file=audio_file,
-                language="es"
-            )
-        return transcripcion.text
+        model = whisper.load_model("base")
+        resultado = model.transcribe(file_path, language="es")
+        return resultado["text"]
     except Exception as e:
         logger.error(f"Error transcribiendo audio: {e}")
         return ""

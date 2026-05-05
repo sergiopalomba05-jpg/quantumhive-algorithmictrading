@@ -31,7 +31,7 @@ OLLAMA_BASE_URL = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
 # Modelos gratuitos recomendados
 FREE_MODELS = {
     'openrouter': [
-        'meta-llama/llama-3-8b-instruct:free',
+        'meta-llama/llama-3.1-8b-instruct:free',
         'mistralai/mistral-7b-instruct:free',
         'google/gemma-7b-it:free',
     ],
@@ -64,7 +64,7 @@ class LLMWrapper:
         self._inicializar_cliente()
         
     def _inicializar_cliente(self):
-        """Inicializa el cliente según el motor seleccionado: Groq (Principal) → OpenRouter (Backup) → Error Real."""
+        """Inicializa el cliente según el motor seleccionado: Groq (Principal) → Error Real."""
         try:
             if self.engine == 'groq':
                 self._inicializar_groq()
@@ -77,8 +77,7 @@ class LLMWrapper:
                 self._inicializar_groq()
         except Exception as e:
             logger.error(f"Error inicializando motor IA {self.engine}: {e}")
-            logger.info("Intentando fallback a OpenRouter...")
-            self._inicializar_openrouter()
+            raise RuntimeError(f"No se pudo inicializar motor LLM {self.engine}")
     
     def _inicializar_groq(self):
         """Inicializa cliente Groq (motor principal - muy rápido, modelos gratuitos)."""
@@ -92,10 +91,8 @@ class LLMWrapper:
             else:
                 raise ValueError("GROQ_API_KEY no configurada")
         except Exception as e:
-            logger.warning(f"Groq no disponible: {e}")
-            # Fallback a OpenRouter
-            logger.info("Intentando fallback a OpenRouter...")
-            self._inicializar_openrouter()
+            logger.error(f"Groq no disponible: {e}")
+            raise RuntimeError("Groq no disponible - no se pudo inicializar motor LLM")
     
     def _inicializar_openrouter(self):
         """Inicializa cliente OpenRouter (motor backup - modelos gratuitos)."""
