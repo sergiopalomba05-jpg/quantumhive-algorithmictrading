@@ -58,8 +58,10 @@ class LLMMessage:
 class LLMWrapper:
     """Wrapper universal para motores IA."""
     
-    def __init__(self, engine: str = LLM_ENGINE):
-        self.engine = engine
+    def __init__(self, engine: str = None):
+        # Forzar lectura directa de Render
+        self.engine = os.getenv('LLM_ENGINE', 'groq').lower() if engine is None else engine.lower()
+        print(f"DEBUG: Engine detectado desde Render: {self.engine}")
         self.client = None
         self._inicializar_cliente()
         

@@ -8,7 +8,14 @@ import logging
 import tempfile
 from typing import Optional
 from gtts import gTTS
-import whisper
+try:
+    import whisper
+except ImportError:
+    try:
+        from openai import OpenAI
+        OPENAI_WHISPER = True
+    except ImportError:
+        OPENAI_WHISPER = False
 
 logger = logging.getLogger(__name__)
 
@@ -25,17 +32,27 @@ class VoiceProcessor:
         """
         self.modelo_whisper = modelo_whisper
         self.whisper_model = None
+        self.use_openai_whisper = False
         self._cargar_whisper()
         logger.info(f"VoiceProcessor inicializado con modelo {modelo_whisper}")
     
     def _cargar_whisper(self):
         """Carga el modelo de Whisper."""
         try:
+            # Intentar usar whisper local primero
             self.whisper_model = whisper.load_model(self.modelo_whisper)
-            logger.info(f"Modelo Whisper {self.modelo_whisper} cargado")
+            logger.info(f"Modelo Whisper {self.modelo_whisper} cargado (local)")
         except Exception as e:
-            logger.error(f"Error cargando modelo Whisper: {e}")
-            self.whisper_model = None
+            logger.warning(f"Whisper local no disponible: {e}")
+            # Fallback a OpenAI Whisper API
+            try:
+                from openai import OpenAI
+                self.openai_client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+                self.use_openai_whisper = True
+                logger.info(f"Usando OpenAI Whisper API como fallback")
+            except Exception as e2:
+                logger.error(f"Error cargando Whisper (local y OpenAI): {e}, {e2}")
+                self.whisper_model = None
     
     def transcribir_audio(self, ruta_audio: str, idioma: str = "es") -> Optional[str]:
         """
@@ -48,6 +65,21 @@ class VoiceProcessor:
         Returns:
             Texto transcrito o None si hay error
         """
+        if self.use_openai_whisper:
+            try:
+                with open(ruta_audio, "rb") as audio_file:
+                    transcripcion = self.openai_client.audio.transcriptions.create(
+                        model="whisper-1",
+                        file=audio_file,
+                        language=idioma
+                    )
+                texto = transcripcion.text
+                logger.info(f"Audio transcrito con OpenAI Whisper: {len(texto)} caracteres")
+                return texto
+            except Exception as e:
+                logger.error(f"Error transcribiendo audio con OpenAI: {e}")
+                return None
+        
         if not self.whisper_model:
             logger.error("Modelo Whisper no disponible")
             return None
