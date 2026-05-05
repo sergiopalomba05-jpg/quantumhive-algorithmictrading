@@ -89,7 +89,6 @@ MQL5/Files/*.log
 .ipynb_checkpoints/
 *.ipynb
 !/entrenamientos_onnx/*.ipynb
-!/automatizacion/agentes/macro4/*.ipynb
 
 # PyCharm
 .idea/
