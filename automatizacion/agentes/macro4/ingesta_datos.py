@@ -30,11 +30,16 @@ logger = logging.getLogger(__name__)
 class IngestaDatos:
     """Procesa datos maestros para entrenamiento de NY Predator."""
     
-    def __init__(self):
+    def __init__(self, output_dir=None):
         # Rutas relativas usando pathlib
         self.root = Path(__file__).resolve().parent.parent.parent.parent
         self.input_file = self.root / "datasets" / "historicos" / "US30_M15_MASTER.csv"
-        self.output_file = self.root / "datasets" / "historicos" / "US30_M15_PROCESSED.csv"
+        
+        # Usar directorio de salida personalizado si se proporciona, por defecto entrenamientos_onnx/data
+        if output_dir:
+            self.output_file = Path(output_dir) / "US30_M15_PROCESSED.csv"
+        else:
+            self.output_file = self.root / "entrenamientos_onnx" / "data" / "US30_M15_PROCESSED.csv"
         
         # Crear directorios si no existen
         self.input_file.parent.mkdir(parents=True, exist_ok=True)
