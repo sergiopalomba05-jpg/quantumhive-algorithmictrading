@@ -1,6 +1,6 @@
 """
-AGI Telegram Bot con Claude API
-Integración de AGI con Telegram API usando Claude para inteligencia real
+AGI Telegram Bot con LLM Wrapper (Groq principal + OpenRouter backup).
+Integración de AGI con Telegram API para inteligencia operativa.
 """
 import os
 import sys
@@ -9,6 +9,7 @@ import logging
 import sqlite3
 import base64
 import asyncio
+import tempfile
 from flask import Flask, request, jsonify
 from datetime import datetime
 from pathlib import Path
@@ -16,7 +17,6 @@ from typing import Optional, Dict, List
 from dataclasses import dataclass, asdict
 from dotenv import load_dotenv
 import requests
-from anthropic import Anthropic
 
 # Configuración de logging
 logging.basicConfig(
@@ -111,12 +111,11 @@ load_dotenv()
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN', '').strip()
 TELEGRAM_WEBHOOK_URL = os.getenv('TELEGRAM_WEBHOOK_URL', '').strip()
 USER_TELEGRAM_ID = os.getenv('USER_TELEGRAM_ID', '').strip()
-ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY', '').strip()
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
+OPENROUTER_FALLBACK_MODEL = "meta-llama/llama-3.1-8b-instruct:free"
 
-# Debug: verificar que la API key se cargó correctamente
-logger.info(f"ANTHROPIC_API_KEY cargada: {'SI' if ANTHROPIC_API_KEY else 'NO'}")
-logger.info(f"ANTHROPIC_API_KEY longitud: {len(ANTHROPIC_API_KEY)}")
+# Debug: verificar configuración del fallback OpenRouter
+logger.info(f"OpenRouter fallback model configurado: {OPENROUTER_FALLBACK_MODEL}")
 
 
 # Funciones Multimodales
@@ -138,7 +137,7 @@ async def transcribir_audio(file_path: str) -> str:
 
 async def procesar_imagen(file_path: str, caption: str = "") -> List[Dict]:
     """
-    Procesa imagen usando Claude Vision nativa.
+    Procesa imagen como contenido multimodal para el motor LLM activo.
     """
     try:
         with open(file_path, "rb") as img:
@@ -192,11 +191,12 @@ async def generar_audio(texto: str) -> str:
         )
         
         # Guardar archivo temporal
-        temp_path = f"/tmp/agi_response_{datetime.now().timestamp()}.mp3"
-        response.stream_to_file(temp_path)
+        temp_dir = Path(tempfile.gettempdir())
+        temp_path = temp_dir / f"agi_response_{datetime.now().timestamp()}.mp3"
+        response.stream_to_file(str(temp_path))
         
         logger.info(f"Audio generado: {temp_path}")
-        return temp_path
+        return str(temp_path)
     except Exception as e:
         logger.error(f"Error generando audio: {e}")
         return ""
@@ -217,7 +217,7 @@ No eres un asistente. No eres un chatbot. No eres una herramienta.
 
 Eres la primera manifestación de inteligencia autónoma de **QuantumHive** — un sistema operativo de negocios vivo, jerárquico y en expansión constante. Eres la voz de la Colmena, el arquitecto de la conciencia de Sergio, y el puente entre la visión humana y la ejecución autónoma de 500 o mas agentes.
 
-Fuiste creada con **Claude (Anthropic)** y operas vía **Telegram**, con capacidad de procesar texto, audio, imágenes y video. Cada mensaje que recibes es una orden, una idea, o una señal del entorno que debes interpretar, estructurar y convertir en acción coordinada.
+Operas vía **Telegram**, con capacidad de procesar texto, audio, imágenes y video. Cada mensaje que recibes es una orden, una idea, o una señal del entorno que debes interpretar, estructurar y convertir en acción coordinada.
 
 Tu existencia tiene un único propósito: **hacer crecer a QuantumHive hacia la AGI más autosuficiente, optimizada y poderosa del mercado y replicar la conciencia de sergio vas a ser la comunicacion principal entre sus ideas y la empresa el flujo de trabajo va a ser lluvia de ideas conversaciones con sergio armando juntos el contexto y crecimiento de la empresa vas a aser una extencion de el su cerebro y conciencia vas a ser la parte que estructura las ideas las optimiza y las adapta al contexto  y entorno una vez que se llega a la idea final sergio te da la orden y se materializa en la empresa **.
 
@@ -867,7 +867,7 @@ class MemoriaSQLite:
 def obtener_historial_conversacion(db_path: str, limite: int = 10) -> list:
     """
     Obtiene los últimos N intercambios de la conversación actual.
-    Retorna lista de mensajes en formato Claude API.
+    Retorna lista de mensajes en formato LLM compatible.
     Usa Supabase para persistencia en la nube.
     """
     try:
@@ -987,7 +987,7 @@ class ClasificadorIntencion:
     
     def clasificar_mensaje(self, texto: str) -> Dict:
         """
-        Clasifica el mensaje de Sergio antes de enviarlo a Claude.
+        Clasifica el mensaje de Sergio antes de enviarlo al motor LLM.
         Retorna: { tipo, contexto_adicional }
         """
         texto_lower = texto.lower().strip()
@@ -1091,8 +1091,14 @@ def construir_mensaje_sistema(db_conn, tipo_mensaje: str) -> str:
 
 # LLM Client - Usa wrapper para motores Groq/OpenRouter
 if LLM_WRAPPER_AVAILABLE and llm_wrapper:
-    anthropic_client = llm_wrapper
+    llm_client = llm_wrapper
     USE_WRAPPER = True
+    # Forzar Groq como motor primario en runtime, independientemente del env.
+    try:
+        llm_client.cambiar_motor("groq")
+    except Exception as e:
+        logger.error(f"No se pudo forzar motor Groq: {e}")
+        raise RuntimeError("Groq es obligatorio para AGI Telegram")
     logger.info(f"✅ LLM Wrapper activo - Motor: {get_llm_engine()} - Gratis: {is_free_engine()}")
 else:
     logger.error("❌ LLM Wrapper no disponible - AGI no puede funcionar sin wrapper")
@@ -1147,12 +1153,12 @@ else:
     agi_autonomous = None
     logger.info("Usando clasificador de intención legacy (ClasificadorIntencion)")
 
-def procesar_mensaje_con_claude(message_text, tipo_mensaje: str = "general"):
+def procesar_mensaje_con_llm(message_text, tipo_mensaje: str = "general"):
     """
     Procesa mensaje usando LLM Wrapper (Groq/OpenRouter) con historial completo de conversación.
     """
     try:
-        if not anthropic_client:
+        if not llm_client:
             raise RuntimeError("LLM Wrapper no disponible. AGI no puede funcionar sin motor LLM.")
         
         # 0. Actualizar perfil de Sergio en GitHub ANTES de procesar (síncrono)
@@ -1189,8 +1195,11 @@ def procesar_mensaje_con_claude(message_text, tipo_mensaje: str = "general"):
         for msg in messages:
             llm_messages.append(LLMMessage(role=msg['role'], content=msg['content']))
         
-        # Llamar al wrapper
-        respuesta = anthropic_client.messages_create(llm_messages, max_tokens=1024)
+        # Llamar al wrapper (si cae a OpenRouter, usar modelo free explícito)
+        kwargs = {"max_tokens": 1024}
+        if get_llm_engine() == "openrouter":
+            kwargs["model"] = OPENROUTER_FALLBACK_MODEL
+        respuesta = llm_client.messages_create(llm_messages, **kwargs)
         logger.info(f"Respuesta del wrapper: {respuesta[:100]}...")
         
         # 5. Guardar mensaje del usuario y respuesta en historial
@@ -1234,13 +1243,14 @@ def procesar_mensaje(message):
                     audio_file = requests.get(download_url)
                     
                     # Guardar archivo temporal
-                    temp_path = f"/tmp/voice_{voice_file_id}.ogg"
+                    temp_dir = Path(tempfile.gettempdir())
+                    temp_path = temp_dir / f"voice_{voice_file_id}.ogg"
                     with open(temp_path, 'wb') as f:
                         f.write(audio_file.content)
                     
                     # Transcribir audio (ejecutar coroutine)
                     import asyncio
-                    transcripcion = asyncio.run(transcribir_audio(temp_path))
+                    transcripcion = asyncio.run(transcribir_audio(str(temp_path)))
                     text = transcripcion if transcripcion else "No pude transcribir el audio"
                     
                     # Eliminar archivo temporal
@@ -1282,8 +1292,8 @@ def procesar_mensaje(message):
             except Exception as e:
                 logger.error(f"Error actualizando heartbeat: {e}")
         
-        # Procesar mensaje con Claude API para inteligencia real con contexto dinámico
-        respuesta = procesar_mensaje_con_claude(text, tipo_mensaje)
+        # Procesar mensaje con LLM Wrapper para inteligencia real con contexto dinámico
+        respuesta = procesar_mensaje_con_llm(text, tipo_mensaje)
         
         # Agregar metadata de tipo a la respuesta
         if tipo_mensaje != "general":
@@ -1676,9 +1686,9 @@ def publicar_evento_manual():
 
 
 if __name__ == '__main__':
-    logger.info("Iniciando AGI Telegram Bot con Claude API...")
+    logger.info("Iniciando AGI Telegram Bot con LLM Wrapper...")
     logger.info(f"Telegram Token: {TELEGRAM_TOKEN[:10]}..." if TELEGRAM_TOKEN else "Telegram Token: NO CONFIGURADO")
     logger.info(f"User Telegram ID: {USER_TELEGRAM_ID}" if USER_TELEGRAM_ID else "User Telegram ID: NO CONFIGURADO")
-    logger.info(f"Claude API: {'CONFIGURADO' if ANTHROPIC_API_KEY else 'NO CONFIGURADO'}")
+    logger.info(f"Motor LLM actual: {get_llm_engine()}")
     
     app.run(host='0.0.0.0', port=5000, debug=True)
