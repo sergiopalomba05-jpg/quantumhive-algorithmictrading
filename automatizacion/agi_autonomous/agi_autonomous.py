@@ -5,6 +5,7 @@ Sistema autónomo principal que coordina todos los módulos.
 
 import logging
 from typing import Dict
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -27,11 +28,18 @@ class AGIAutonomous:
         self.active = False
     
     def get_status(self) -> Dict:
-        """Obtiene el estado del sistema autónomo."""
+        """Obtiene el estado del sistema autónomo con métricas reales."""
+        agentes_dir = Path(__file__).resolve().parents[1] / "agentes"
+        agentes_reales = len([p for p in agentes_dir.glob("*.py") if p.is_file() and p.name != "__init__.py"])
         return {
             "active": self.active,
-            "status": "running" if self.active else "stopped"
+            "status": "running" if self.active else "stopped",
+            "agentes_creados_reales": agentes_reales,
         }
+
+    def obtener_estado(self) -> Dict:
+        """Alias para compatibilidad con llamadas legacy."""
+        return self.get_status()
     
     def process_autonomous_action(self, action: Dict) -> Dict:
         """Procesa una acción autónoma."""

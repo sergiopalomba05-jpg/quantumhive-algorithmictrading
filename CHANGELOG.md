@@ -2,6 +2,12 @@
 
 Todos los cambios notables del proyecto.
 ## [2026-05-08] - FIX
+**Commit:** d9aa0f71
+**Módulo:** agi_telegram
+- suero de la verdad: prompt anti-alucinacion, estado real de agentes y voice openai
+
+
+## [2026-05-08] - FIX
 **Commit:** e754553f
 **Módulo:** agi_telegram
 - rearquitectura CEO I, bus de realidad y whisper fallback
