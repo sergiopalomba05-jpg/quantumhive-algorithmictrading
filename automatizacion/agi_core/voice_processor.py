@@ -8,14 +8,14 @@ import logging
 import tempfile
 from typing import Optional
 from gtts import gTTS
+from openai import OpenAI
+
+WHISPER_LOCAL_AVAILABLE = False
 try:
     import whisper
+    WHISPER_LOCAL_AVAILABLE = hasattr(whisper, "load_model")
 except ImportError:
-    try:
-        from openai import OpenAI
-        OPENAI_WHISPER = True
-    except ImportError:
-        OPENAI_WHISPER = False
+    whisper = None
 
 logger = logging.getLogger(__name__)
 
@@ -39,14 +39,16 @@ class VoiceProcessor:
     def _cargar_whisper(self):
         """Carga el modelo de Whisper."""
         try:
-            # Intentar usar whisper local primero
-            self.whisper_model = whisper.load_model(self.modelo_whisper)
-            logger.info(f"Modelo Whisper {self.modelo_whisper} cargado (local)")
+            # Intentar usar openai-whisper local primero.
+            if WHISPER_LOCAL_AVAILABLE:
+                self.whisper_model = whisper.load_model(self.modelo_whisper)
+                logger.info(f"Modelo Whisper {self.modelo_whisper} cargado (local)")
+                return
+            raise RuntimeError("whisper local no disponible o sin load_model")
         except Exception as e:
             logger.warning(f"Whisper local no disponible: {e}")
             # Fallback a OpenAI Whisper API
             try:
-                from openai import OpenAI
                 self.openai_client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
                 self.use_openai_whisper = True
                 logger.info(f"Usando OpenAI Whisper API como fallback")

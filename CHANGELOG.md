@@ -1,6 +1,12 @@
 # CHANGELOG
 
 Todos los cambios notables del proyecto.
+## [2026-05-08] - FIX
+**Commit:** e754553f
+**Módulo:** agi_telegram
+- rearquitectura CEO I, bus de realidad y whisper fallback
+
+
 ## [2026-05-03] - SOLUCIÓN URGENTE: MOVER BOTS_RENTABLES A BOTS_TERMINADOS/ PARA PREVENIR PÉRDIDA DE ARCHIVOS CRÍTICOS
 **Commit:** 4242efb1
 **Módulo:** general
