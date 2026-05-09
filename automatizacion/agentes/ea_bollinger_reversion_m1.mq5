@@ -16,21 +16,21 @@ input int    ATR_Period = 7;           // Período ATR
 input int    RSI_Period = 14;          // Período RSI (filtro momentum)
 input int    EMA_Period = 50;          // Período EMA (filtro tendencia)
 input int    ADX_Period = 14;          // Período ADX (fuerza de tendencia)
-input int    ADX_Max = 30;             // Máximo ADX para operar reversión (tendencia débil) - aumentado de 25 a 30
+input int    ADX_Max = 40;             // Máximo ADX para operar reversión (tendencia débil) - aumentado de 30 a 40
 input int    MACD_Fast = 12;           // Período rápido MACD
 input int    MACD_Slow = 26;           // Período lento MACD
 input int    MACD_Signal = 9;          // Período señal MACD
-input int    RSI_Overbought = 75;      // Nivel sobrecompra RSI - aumentado de 70 a 75
-input int    RSI_Oversold = 25;        // Nivel sobrevenda RSI - reducido de 30 a 25
+input int    RSI_Overbought = 80;      // Nivel sobrecompra RSI - aumentado de 75 a 80
+input int    RSI_Oversold = 20;        // Nivel sobrevenda RSI - reducido de 25 a 20
 input double LotSize = 0.01;           // Tamaño del lote
 input int    MagicNumber = 654321;     // Número mágico (diferente al EA trend)
 input int    Slippage = 3;              // Deslizamiento máximo
 input double StopLoss_ATR_Mult = 4.0;  // Multiplicador ATR para Stop Loss
-input double TakeProfit_ATR_Mult = 8.0; // Multiplicador ATR para Take Profit (operación con trailing) - aumentado de 5.0 a 8.0
+input double TakeProfit_ATR_Mult = 12.0; // Multiplicador ATR para Take Profit (operación con trailing) - aumentado de 8.0 a 12.0
 input double TakeProfit_Quick_ATR = 2.0; // Multiplicador ATR para Take Profit rápido (ratio 1:2)
 input bool   UseTrailingStop = true;   // Usar trailing stop
-input double Trailing_Start_ATR = 2.0; // Distancia desde entrada para activar trailing (en ATR) - aumentado de 1.5 a 2.0
-input double Trailing_Step_ATR = 1.0;  // Paso del trailing stop (en ATR) - aumentado de 0.5 a 1.0 (más amplio)
+input double Trailing_Start_ATR = 2.5; // Distancia desde entrada para activar trailing (en ATR) - aumentado de 2.0 a 2.5
+input double Trailing_Step_ATR = 1.5;  // Paso del trailing stop (en ATR) - aumentado de 1.0 a 1.5 (más amplio)
 
 //--- Variables globales
 CTrade trade;
