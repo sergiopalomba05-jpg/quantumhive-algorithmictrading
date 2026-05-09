@@ -13,6 +13,10 @@
 input int    BB_Period = 40;           // Período Bandas Bollinger
 input double BB_Deviation = 4.0;       // Desviación Bandas Bollinger
 input int    ATR_Period = 7;           // Período ATR
+input int    RSI_Period = 14;          // Período RSI (filtro momentum)
+input int    EMA_Period = 50;          // Período EMA (filtro tendencia)
+input int    RSI_Overbought = 70;      // Nivel sobrecompra RSI
+input int    RSI_Oversold = 30;        // Nivel sobrevenda RSI
 input double LotSize = 0.01;           // Tamaño del lote
 input int    MagicNumber = 654321;     // Número mágico (diferente al EA trend)
 input int    Slippage = 3;              // Deslizamiento máximo
@@ -23,10 +27,16 @@ input double TakeProfit_ATR_Mult = 3.0; // Multiplicador ATR para Take Profit (i
 CTrade trade;
 int BB_Handle;
 int ATR_Handle;
+int RSI_Handle;
+int EMA_Handle;
 double BB_Buffer[];
 double ATR_Buffer[];
+double RSI_Buffer[];
+double EMA_Buffer[];
 double BB_Upper, BB_Lower, BB_Middle;
 double ATR_Value;
+double RSI_Value;
+double EMA_Value;
 ulong current_ticket = 0;
 
 //+------------------------------------------------------------------+
@@ -37,8 +47,10 @@ int OnInit()
    // Inicializar indicadores
    BB_Handle = iBands(_Symbol, PERIOD_M1, BB_Period, 0, BB_Deviation, PRICE_CLOSE);
    ATR_Handle = iATR(_Symbol, PERIOD_M1, ATR_Period);
+   RSI_Handle = iRSI(_Symbol, PERIOD_M1, RSI_Period, PRICE_CLOSE);
+   EMA_Handle = iMA(_Symbol, PERIOD_M1, EMA_Period, 0, MODE_EMA, PRICE_CLOSE);
    
-   if(BB_Handle == INVALID_HANDLE || ATR_Handle == INVALID_HANDLE)
+   if(BB_Handle == INVALID_HANDLE || ATR_Handle == INVALID_HANDLE || RSI_Handle == INVALID_HANDLE || EMA_Handle == INVALID_HANDLE)
    {
       Print("Error al crear indicadores");
       return(INIT_FAILED);
@@ -47,6 +59,8 @@ int OnInit()
    // Configurar buffers
    ArraySetAsSeries(BB_Buffer, true);
    ArraySetAsSeries(ATR_Buffer, true);
+   ArraySetAsSeries(RSI_Buffer, true);
+   ArraySetAsSeries(EMA_Buffer, true);
    
    // Configurar trade
    trade.SetExpertMagicNumber(MagicNumber);
@@ -55,6 +69,8 @@ int OnInit()
    Print("EA Bollinger Reversión M1 iniciado");
    Print("BB: ", BB_Period, " períodos, desviación: ", BB_Deviation);
    Print("ATR: ", ATR_Period, " períodos");
+   Print("RSI: ", RSI_Period, " períodos (filtro momentum)");
+   Print("EMA: ", EMA_Period, " períodos (filtro tendencia)");
    Print("MagicNumber: ", MagicNumber);
    
    return(INIT_SUCCEEDED);
@@ -70,6 +86,10 @@ void OnDeinit(const int reason)
       IndicatorRelease(BB_Handle);
    if(ATR_Handle != INVALID_HANDLE)
       IndicatorRelease(ATR_Handle);
+   if(RSI_Handle != INVALID_HANDLE)
+      IndicatorRelease(RSI_Handle);
+   if(EMA_Handle != INVALID_HANDLE)
+      IndicatorRelease(EMA_Handle);
    
    Print("EA Bollinger Reversión M1 detenido");
 }
@@ -129,6 +149,18 @@ void CalculateIndicators()
       return;
    
    ATR_Value = ATR_Buffer[1];
+   
+   // Copiar datos de RSI
+   if(CopyBuffer(RSI_Handle, 0, 0, 3, RSI_Buffer) < 3)
+      return;
+   
+   RSI_Value = RSI_Buffer[1];
+   
+   // Copiar datos de EMA
+   if(CopyBuffer(EMA_Handle, 0, 0, 3, EMA_Buffer) < 3)
+      return;
+   
+   EMA_Value = EMA_Buffer[1];
 }
 
 //+------------------------------------------------------------------+
@@ -143,18 +175,40 @@ void CheckReversionSignals()
    // Señal de reversión alcista: precio toca banda inferior
    if(low <= BB_Lower)
    {
-      double sl = close - (ATR_Value * StopLoss_ATR_Mult);
-      double tp = close + (ATR_Value * TakeProfit_ATR_Mult); // TP basado en ATR
-      current_ticket = OpenOrder(ORDER_TYPE_BUY, LotSize, sl, tp, "BB Reversion Buy");
-      Print("Reversión BUY: Precio tocó banda inferior - Ticket: ", current_ticket);
+      // FILTROS: No operar BUY si hay tendencia alcista fuerte
+      bool rsi_filter = (RSI_Value < RSI_Overbought); // RSI no en sobrecompra
+      bool ema_filter = (close < EMA_Value); // Precio por debajo de EMA (no tendencia alcista)
+      
+      if(rsi_filter && ema_filter)
+      {
+         double sl = close - (ATR_Value * StopLoss_ATR_Mult);
+         double tp = close + (ATR_Value * TakeProfit_ATR_Mult);
+         current_ticket = OpenOrder(ORDER_TYPE_BUY, LotSize, sl, tp, "BB Reversion Buy");
+         Print("Reversión BUY: Precio tocó banda inferior - RSI: ", RSI_Value, " - EMA: ", EMA_Value, " - Ticket: ", current_ticket);
+      }
+      else
+      {
+         Print("BUY filtrado - RSI: ", RSI_Value, " (max ", RSI_Overbought, ") - Precio vs EMA: ", close, " vs ", EMA_Value);
+      }
    }
    // Señal de reversión bajista: precio toca banda superior
    else if(high >= BB_Upper)
    {
-      double sl = close + (ATR_Value * StopLoss_ATR_Mult);
-      double tp = close - (ATR_Value * TakeProfit_ATR_Mult); // TP basado en ATR
-      current_ticket = OpenOrder(ORDER_TYPE_SELL, LotSize, sl, tp, "BB Reversion Sell");
-      Print("Reversión SELL: Precio tocó banda superior - Ticket: ", current_ticket);
+      // FILTROS: No operar SELL si hay tendencia bajista fuerte
+      bool rsi_filter = (RSI_Value > RSI_Oversold); // RSI no en sobrevenda
+      bool ema_filter = (close > EMA_Value); // Precio por encima de EMA (no tendencia bajista)
+      
+      if(rsi_filter && ema_filter)
+      {
+         double sl = close + (ATR_Value * StopLoss_ATR_Mult);
+         double tp = close - (ATR_Value * TakeProfit_ATR_Mult);
+         current_ticket = OpenOrder(ORDER_TYPE_SELL, LotSize, sl, tp, "BB Reversion Sell");
+         Print("Reversión SELL: Precio tocó banda superior - RSI: ", RSI_Value, " - EMA: ", EMA_Value, " - Ticket: ", current_ticket);
+      }
+      else
+      {
+         Print("SELL filtrado - RSI: ", RSI_Value, " (min ", RSI_Oversold, ") - Precio vs EMA: ", close, " vs ", EMA_Value);
+      }
    }
 }
 
