@@ -17,7 +17,7 @@ input double LotSize = 0.01;           // Tamaño del lote
 input int    MagicNumber = 654321;     // Número mágico (diferente al EA trend)
 input int    Slippage = 3;              // Deslizamiento máximo
 input double StopLoss_ATR_Mult = 2.0;  // Multiplicador ATR para Stop Loss
-input double TakeProfit_ATR_Mult = 1.5; // Multiplicador ATR para Take Profit (más corto)
+input double TakeProfit_ATR_Mult = 3.0; // Multiplicador ATR para Take Profit (igual al EA trend)
 
 //--- Variables globales
 CTrade trade;
@@ -99,11 +99,7 @@ void OnTick()
    {
       CheckReversionSignals();
    }
-   else
-   {
-      // Si hay operación abierta, verificar salida en banda media
-      CheckExitSignal();
-   }
+   // Las operaciones corren hasta TP o SL (sin salida prematura)
 }
 
 //+------------------------------------------------------------------+
@@ -148,7 +144,7 @@ void CheckReversionSignals()
    if(low <= BB_Lower)
    {
       double sl = close - (ATR_Value * StopLoss_ATR_Mult);
-      double tp = BB_Middle; // Salida en banda media
+      double tp = close + (ATR_Value * TakeProfit_ATR_Mult); // TP basado en ATR
       current_ticket = OpenOrder(ORDER_TYPE_BUY, LotSize, sl, tp, "BB Reversion Buy");
       Print("Reversión BUY: Precio tocó banda inferior - Ticket: ", current_ticket);
    }
@@ -156,7 +152,7 @@ void CheckReversionSignals()
    else if(high >= BB_Upper)
    {
       double sl = close + (ATR_Value * StopLoss_ATR_Mult);
-      double tp = BB_Middle; // Salida en banda media
+      double tp = close - (ATR_Value * TakeProfit_ATR_Mult); // TP basado en ATR
       current_ticket = OpenOrder(ORDER_TYPE_SELL, LotSize, sl, tp, "BB Reversion Sell");
       Print("Reversión SELL: Precio tocó banda superior - Ticket: ", current_ticket);
    }
