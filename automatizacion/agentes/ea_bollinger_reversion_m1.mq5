@@ -15,6 +15,11 @@ input double BB_Deviation = 4.0;       // Desviación Bandas Bollinger
 input int    ATR_Period = 7;           // Período ATR
 input int    RSI_Period = 14;          // Período RSI (filtro momentum)
 input int    EMA_Period = 50;          // Período EMA (filtro tendencia)
+input int    ADX_Period = 14;          // Período ADX (fuerza de tendencia)
+input int    ADX_Max = 25;             // Máximo ADX para operar reversión (tendencia débil)
+input int    MACD_Fast = 12;           // Período rápido MACD
+input int    MACD_Slow = 26;           // Período lento MACD
+input int    MACD_Signal = 9;          // Período señal MACD
 input int    RSI_Overbought = 70;      // Nivel sobrecompra RSI
 input int    RSI_Oversold = 30;        // Nivel sobrevenda RSI
 input double LotSize = 0.01;           // Tamaño del lote
@@ -33,14 +38,22 @@ int BB_Handle;
 int ATR_Handle;
 int RSI_Handle;
 int EMA_Handle;
+int ADX_Handle;
+int MACD_Handle;
 double BB_Buffer[];
 double ATR_Buffer[];
 double RSI_Buffer[];
 double EMA_Buffer[];
+double ADX_Buffer[];
+double MACD_Main_Buffer[];
+double MACD_Signal_Buffer[];
 double BB_Upper, BB_Lower, BB_Middle;
 double ATR_Value;
 double RSI_Value;
 double EMA_Value;
+double ADX_Value;
+double MACD_Main;
+double MACD_Signal;
 ulong ticket_quick = 0;     // Ticket para operación rápida (ratio 1:2)
 ulong ticket_trailing = 0;  // Ticket para operación con trailing
 
@@ -54,8 +67,10 @@ int OnInit()
    ATR_Handle = iATR(_Symbol, PERIOD_M1, ATR_Period);
    RSI_Handle = iRSI(_Symbol, PERIOD_M1, RSI_Period, PRICE_CLOSE);
    EMA_Handle = iMA(_Symbol, PERIOD_M1, EMA_Period, 0, MODE_EMA, PRICE_CLOSE);
+   ADX_Handle = iADX(_Symbol, PERIOD_M1, ADX_Period);
+   MACD_Handle = iMACD(_Symbol, PERIOD_M1, MACD_Fast, MACD_Slow, MACD_Signal, PRICE_CLOSE);
    
-   if(BB_Handle == INVALID_HANDLE || ATR_Handle == INVALID_HANDLE || RSI_Handle == INVALID_HANDLE || EMA_Handle == INVALID_HANDLE)
+   if(BB_Handle == INVALID_HANDLE || ATR_Handle == INVALID_HANDLE || RSI_Handle == INVALID_HANDLE || EMA_Handle == INVALID_HANDLE || ADX_Handle == INVALID_HANDLE || MACD_Handle == INVALID_HANDLE)
    {
       Print("Error al crear indicadores");
       return(INIT_FAILED);
@@ -66,6 +81,9 @@ int OnInit()
    ArraySetAsSeries(ATR_Buffer, true);
    ArraySetAsSeries(RSI_Buffer, true);
    ArraySetAsSeries(EMA_Buffer, true);
+   ArraySetAsSeries(ADX_Buffer, true);
+   ArraySetAsSeries(MACD_Main_Buffer, true);
+   ArraySetAsSeries(MACD_Signal_Buffer, true);
    
    // Configurar trade
    trade.SetExpertMagicNumber(MagicNumber);
@@ -76,6 +94,8 @@ int OnInit()
    Print("ATR: ", ATR_Period, " períodos");
    Print("RSI: ", RSI_Period, " períodos (filtro momentum)");
    Print("EMA: ", EMA_Period, " períodos (filtro tendencia)");
+   Print("ADX: ", ADX_Period, " períodos, máximo: ", ADX_Max, " (fuerza tendencia)");
+   Print("MACD: ", MACD_Fast, "/", MACD_Slow, "/", MACD_Signal, " (dirección momentum)");
    Print("MagicNumber: ", MagicNumber);
    
    return(INIT_SUCCEEDED);
@@ -95,6 +115,10 @@ void OnDeinit(const int reason)
       IndicatorRelease(RSI_Handle);
    if(EMA_Handle != INVALID_HANDLE)
       IndicatorRelease(EMA_Handle);
+   if(ADX_Handle != INVALID_HANDLE)
+      IndicatorRelease(ADX_Handle);
+   if(MACD_Handle != INVALID_HANDLE)
+      IndicatorRelease(MACD_Handle);
    
    Print("EA Bollinger Reversión M1 detenido");
 }
@@ -177,6 +201,21 @@ void CalculateIndicators()
       return;
    
    EMA_Value = EMA_Buffer[1];
+   
+   // Copiar datos de ADX
+   if(CopyBuffer(ADX_Handle, 0, 0, 3, ADX_Buffer) < 3)
+      return;
+   
+   ADX_Value = ADX_Buffer[1];
+   
+   // Copiar datos de MACD
+   if(CopyBuffer(MACD_Handle, 0, 0, 3, MACD_Main_Buffer) < 3)
+      return;
+   if(CopyBuffer(MACD_Handle, 1, 0, 3, MACD_Signal_Buffer) < 3)
+      return;
+   
+   MACD_Main = MACD_Main_Buffer[1];
+   MACD_Signal = MACD_Signal_Buffer[1];
 }
 
 //+------------------------------------------------------------------+
@@ -194,14 +233,16 @@ void CheckReversionSignals()
       // FILTROS: No operar BUY si hay tendencia alcista fuerte
       bool rsi_filter = (RSI_Value < RSI_Overbought); // RSI no en sobrecompra
       bool ema_filter = (close < EMA_Value); // Precio por debajo de EMA (no tendencia alcista)
+      bool adx_filter = (ADX_Value < ADX_Max); // Tendencia débil (ADX < 25)
+      bool macd_filter = (MACD_Main > MACD_Signal); // Momentum alcista
       
-      if(rsi_filter && ema_filter)
+      if(rsi_filter && ema_filter && adx_filter && macd_filter)
       {
          // Operación 1: Rápida (ratio 1:2)
          double sl1 = close - (ATR_Value * StopLoss_ATR_Mult);
          double tp1 = close + (ATR_Value * TakeProfit_Quick_ATR);
          ticket_quick = OpenOrder(ORDER_TYPE_BUY, LotSize, sl1, tp1, "BB Reversion Quick Buy");
-         Print("Reversión BUY Rápida: TP 1:2 - Ticket: ", ticket_quick);
+         Print("Reversión BUY Rápida: TP 1:2 - RSI: ", RSI_Value, " EMA: ", EMA_Value, " ADX: ", ADX_Value, " MACD: ", MACD_Main, " - Ticket: ", ticket_quick);
          
          // Operación 2: Con trailing stop
          if(ticket_quick != 0)
@@ -214,7 +255,7 @@ void CheckReversionSignals()
       }
       else
       {
-         Print("BUY filtrado - RSI: ", RSI_Value, " (max ", RSI_Overbought, ") - Precio vs EMA: ", close, " vs ", EMA_Value);
+         Print("BUY filtrado - RSI: ", RSI_Value, " (max ", RSI_Overbought, ") - EMA: ", close, " vs ", EMA_Value, " - ADX: ", ADX_Value, " (max ", ADX_Max, ") - MACD: ", MACD_Main, " vs ", MACD_Signal);
       }
    }
    // Señal de reversión bajista: precio toca banda superior
@@ -223,14 +264,16 @@ void CheckReversionSignals()
       // FILTROS: No operar SELL si hay tendencia bajista fuerte
       bool rsi_filter = (RSI_Value > RSI_Oversold); // RSI no en sobrevenda
       bool ema_filter = (close > EMA_Value); // Precio por encima de EMA (no tendencia bajista)
+      bool adx_filter = (ADX_Value < ADX_Max); // Tendencia débil (ADX < 25)
+      bool macd_filter = (MACD_Main < MACD_Signal); // Momentum bajista
       
-      if(rsi_filter && ema_filter)
+      if(rsi_filter && ema_filter && adx_filter && macd_filter)
       {
          // Operación 1: Rápida (ratio 1:2)
          double sl1 = close + (ATR_Value * StopLoss_ATR_Mult);
          double tp1 = close - (ATR_Value * TakeProfit_Quick_ATR);
          ticket_quick = OpenOrder(ORDER_TYPE_SELL, LotSize, sl1, tp1, "BB Reversion Quick Sell");
-         Print("Reversión SELL Rápida: TP 1:2 - Ticket: ", ticket_quick);
+         Print("Reversión SELL Rápida: TP 1:2 - RSI: ", RSI_Value, " EMA: ", EMA_Value, " ADX: ", ADX_Value, " MACD: ", MACD_Main, " - Ticket: ", ticket_quick);
          
          // Operación 2: Con trailing stop
          if(ticket_quick != 0)
@@ -243,7 +286,7 @@ void CheckReversionSignals()
       }
       else
       {
-         Print("SELL filtrado - RSI: ", RSI_Value, " (min ", RSI_Oversold, ") - Precio vs EMA: ", close, " vs ", EMA_Value);
+         Print("SELL filtrado - RSI: ", RSI_Value, " (min ", RSI_Oversold, ") - EMA: ", close, " vs ", EMA_Value, " - ADX: ", ADX_Value, " (max ", ADX_Max, ") - MACD: ", MACD_Main, " vs ", MACD_Signal);
       }
    }
 }
