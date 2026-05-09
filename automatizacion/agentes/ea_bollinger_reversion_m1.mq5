@@ -10,6 +10,7 @@
 #include <Trade\Trade.mqh>
 
 //--- Parámetros de entrada
+input ENUM_TIMEFRAMES TimeFrame = PERIOD_M1;  // Timeframe del EA (M1, M5, M15, etc.)
 input int    BB_Period = 40;           // Período Bandas Bollinger
 input double BB_Deviation = 4.0;       // Desviación Bandas Bollinger
 input int    ATR_Period = 7;           // Período ATR
@@ -19,6 +20,8 @@ input int    RSI_Overbought = 70;      // Nivel sobrecompra RSI
 input int    RSI_Oversold = 30;        // Nivel sobrevenda RSI
 input double BB_Expansion_Max = 1.5;   // Máximo de expansión permitida (multiplicador del ancho promedio)
 input double Candle_Max_Size_ATR = 2.0; // Tamaño máximo de vela para entrar (multiplicador del ATR) - filtro de fuerza
+input double Trend_Angle_Min = 45.0;    // Ángulo mínimo para detectar tendencia (grados) - 0 = solo reversión
+input bool   UseTrendMode = true;       // Usar modo tendencia cuando bandas inclinadas
 input double LotSize = 0.01;           // Tamaño del lote
 input int    MagicNumber = 654321;     // Número mágico (diferente al EA trend)
 input int    Slippage = 3;              // Deslizamiento máximo
@@ -45,6 +48,7 @@ double EMA_Value;
 double RSI_Value;
 double BB_Width_Current;
 double BB_Width_Average;
+double BB_Slope; // Pendiente de la banda media
 ulong ticket_quick = 0;     // Ticket para operación rápida (ratio 1:2)
 ulong ticket_trailing = 0;  // Ticket para operación con trailing
 
@@ -54,10 +58,10 @@ ulong ticket_trailing = 0;  // Ticket para operación con trailing
 int OnInit()
 {
    // Inicializar indicadores
-   BB_Handle = iBands(_Symbol, PERIOD_M1, BB_Period, 0, BB_Deviation, PRICE_CLOSE);
-   ATR_Handle = iATR(_Symbol, PERIOD_M1, ATR_Period);
-   EMA_Handle = iMA(_Symbol, PERIOD_M1, EMA_Period, 0, MODE_EMA, PRICE_CLOSE);
-   RSI_Handle = iRSI(_Symbol, PERIOD_M1, RSI_Period, PRICE_CLOSE);
+   BB_Handle = iBands(_Symbol, TimeFrame, BB_Period, 0, BB_Deviation, PRICE_CLOSE);
+   ATR_Handle = iATR(_Symbol, TimeFrame, ATR_Period);
+   EMA_Handle = iMA(_Symbol, TimeFrame, EMA_Period, 0, MODE_EMA, PRICE_CLOSE);
+   RSI_Handle = iRSI(_Symbol, TimeFrame, RSI_Period, PRICE_CLOSE);
    
    if(BB_Handle == INVALID_HANDLE || ATR_Handle == INVALID_HANDLE || EMA_Handle == INVALID_HANDLE || RSI_Handle == INVALID_HANDLE)
    {
@@ -75,13 +79,15 @@ int OnInit()
    trade.SetExpertMagicNumber(MagicNumber);
    trade.SetDeviationInPoints(Slippage);
    
-   Print("EA Bollinger Reversión M1 iniciado");
+   Print("EA Bollinger Reversión iniciado");
+   Print("Timeframe: ", EnumToString(TimeFrame));
    Print("BB: ", BB_Period, " períodos, desviación: ", BB_Deviation);
    Print("ATR: ", ATR_Period, " períodos");
    Print("EMA: ", EMA_Period, " períodos (filtro tendencia)");
    Print("RSI: ", RSI_Period, " períodos (filtro momentum)");
    Print("Filtro expansión BB máximo: ", BB_Expansion_Max, "x ancho promedio");
    Print("Filtro fuerza vela máximo: ", Candle_Max_Size_ATR, "x ATR");
+   Print("Modo tendencia: ", UseTrendMode, " - Ángulo mínimo: ", Trend_Angle_Min, " grados");
    Print("MagicNumber: ", MagicNumber);
    
    return(INIT_SUCCEEDED);
@@ -102,7 +108,7 @@ void OnDeinit(const int reason)
    if(RSI_Handle != INVALID_HANDLE)
       IndicatorRelease(RSI_Handle);
    
-   Print("EA Bollinger Reversión M1 detenido");
+   Print("EA Bollinger Reversión detenido");
 }
 
 //+------------------------------------------------------------------+
@@ -112,7 +118,7 @@ void OnTick()
 {
    // Verificar si estamos en una nueva barra
    static datetime lastBarTime = 0;
-   datetime currentBarTime = iTime(_Symbol, PERIOD_M1, 0);
+   datetime currentBarTime = iTime(_Symbol, TimeFrame, 0);
    
    if(currentBarTime == lastBarTime)
       return;
@@ -166,6 +172,10 @@ void CalculateIndicators()
    BB_Upper = bb_upper[1];
    BB_Lower = bb_lower[1];
    
+   // Calcular pendiente de la banda media (ángulo de tendencia)
+   double bb_middle_prev = bb_middle[BB_Period];
+   BB_Slope = (BB_Middle - bb_middle_prev) / BB_Period;
+   
    // Calcular ancho actual de las bandas
    BB_Width_Current = BB_Upper - BB_Lower;
    
@@ -197,80 +207,159 @@ void CalculateIndicators()
 }
 
 //+------------------------------------------------------------------+
+//| Calcular ángulo de la pendiente en grados                         |
+//+------------------------------------------------------------------+
+double CalculateSlopeAngle(double slope)
+{
+   // Convertir pendiente a ángulo en grados
+   double angle = MathArctan(slope) * 180.0 / M_PI;
+   return MathAbs(angle);
+}
+
+//+------------------------------------------------------------------+
+//| Verificar si hay tendencia (bandas inclinadas)                     |
+//+------------------------------------------------------------------+
+bool IsTrending()
+{
+   double angle = CalculateSlopeAngle(BB_Slope);
+   return (angle >= Trend_Angle_Min);
+}
+
+//+------------------------------------------------------------------+
+//| Verificar dirección de la tendencia                                |
+//+------------------------------------------------------------------+
+int GetTrendDirection()
+{
+   if(BB_Slope > 0)
+      return 1; // Tendencia alcista
+   else if(BB_Slope < 0)
+      return -1; // Tendencia bajista
+   else
+      return 0; // Sin tendencia
+}
+
+//+------------------------------------------------------------------+
 //| Verificar señales de reversión                                     |
 //+------------------------------------------------------------------+
 void CheckReversionSignals()
 {
-   double close = iClose(_Symbol, PERIOD_M1, 1);
-   double high = iHigh(_Symbol, PERIOD_M1, 1);
-   double low = iLow(_Symbol, PERIOD_M1, 1);
+   double close = iClose(_Symbol, TimeFrame, 1);
+   double high = iHigh(_Symbol, TimeFrame, 1);
+   double low = iLow(_Symbol, TimeFrame, 1);
    
-   // Señal de reversión alcista: precio toca banda inferior
-   if(low <= BB_Lower)
+   // Verificar si hay tendencia
+   bool trending = IsTrending();
+   int trend_direction = GetTrendDirection();
+   
+   // FILTROS COMUNES
+   bool bb_expansion_filter = (BB_Width_Current <= (BB_Width_Average * BB_Expansion_Max));
+   bool ema_filter_buy = (close < EMA_Value); // Precio por debajo de EMA (no tendencia alcista)
+   bool ema_filter_sell = (close > EMA_Value); // Precio por encima de EMA (no tendencia bajista)
+   bool rsi_filter_buy = (RSI_Value < RSI_Overbought); // RSI no en sobrecompra
+   bool rsi_filter_sell = (RSI_Value > RSI_Oversold); // RSI no en sobrevenda
+   
+   // Calcular tamaño de la vela
+   double candle_size = high - low;
+   bool candle_force_filter = (candle_size <= (ATR_Value * Candle_Max_Size_ATR)); // Vela no muy grande
+   
+   // MODO TENDENCIA: Bandas inclinadas
+   if(UseTrendMode && trending)
    {
-      // FILTROS: No operar BUY si hay tendencia alcista fuerte, momentum alcista extremo o fuerza excesiva en la vela
-      bool bb_expansion_filter = (BB_Width_Current <= (BB_Width_Average * BB_Expansion_Max));
-      bool ema_filter = (close < EMA_Value); // Precio por debajo de EMA (no tendencia alcista)
-      bool rsi_filter = (RSI_Value < RSI_Overbought); // RSI no en sobrecompra
-      
-      // Calcular tamaño de la vela
-      double candle_size = high - low;
-      bool candle_force_filter = (candle_size <= (ATR_Value * Candle_Max_Size_ATR)); // Vela no muy grande
-      
-      if(bb_expansion_filter && ema_filter && rsi_filter && candle_force_filter)
+      // Señal de tendencia alcista: precio toca banda media y tendencia es alcista
+      if(trend_direction == 1 && close <= BB_Middle && close >= BB_Lower)
       {
-         // Operación 1: Rápida (ratio 1:2)
-         double sl1 = close - (ATR_Value * StopLoss_ATR_Mult);
-         double tp1 = close + (ATR_Value * TakeProfit_Quick_ATR);
-         ticket_quick = OpenOrder(ORDER_TYPE_BUY, LotSize, sl1, tp1, "BB Reversion Quick Buy");
-         Print("Reversión BUY Rápida: TP 1:2 - EMA: ", EMA_Value, " RSI: ", RSI_Value, " Vela: ", candle_size, " Ancho BB: ", BB_Width_Current, " - Ticket: ", ticket_quick);
-         
-         // Operación 2: Con trailing stop
-         if(ticket_quick != 0)
+         if(bb_expansion_filter && candle_force_filter)
          {
-            double sl2 = close - (ATR_Value * StopLoss_ATR_Mult);
-            double tp2 = close + (ATR_Value * TakeProfit_ATR_Mult);
-            ticket_trailing = OpenOrder(ORDER_TYPE_BUY, LotSize, sl2, tp2, "BB Reversion Trailing Buy");
-            Print("Reversión BUY Trailing: TP largo - Ticket: ", ticket_trailing);
+            // Operación 1: Rápida (ratio 1:2)
+            double sl1 = close - (ATR_Value * StopLoss_ATR_Mult);
+            double tp1 = close + (ATR_Value * TakeProfit_Quick_ATR);
+            ticket_quick = OpenOrder(ORDER_TYPE_BUY, LotSize, sl1, tp1, "BB Trend Quick Buy");
+            Print("Tendencia BUY Rápida: TP 1:2 - Ángulo: ", CalculateSlopeAngle(BB_Slope), " Vela: ", candle_size, " - Ticket: ", ticket_quick);
+            
+            // Operación 2: Con trailing stop
+            if(ticket_quick != 0)
+            {
+               double sl2 = close - (ATR_Value * StopLoss_ATR_Mult);
+               double tp2 = close + (ATR_Value * TakeProfit_ATR_Mult);
+               ticket_trailing = OpenOrder(ORDER_TYPE_BUY, LotSize, sl2, tp2, "BB Trend Trailing Buy");
+               Print("Tendencia BUY Trailing: TP largo - Ticket: ", ticket_trailing);
+            }
          }
       }
-      else
+      // Señal de tendencia bajista: precio toca banda media y tendencia es bajista
+      else if(trend_direction == -1 && close >= BB_Middle && close <= BB_Upper)
       {
-         Print("BUY filtrado - EMA: ", close, " vs ", EMA_Value, " - RSI: ", RSI_Value, " (max ", RSI_Overbought, ") - Vela: ", candle_size, " (máximo: ", ATR_Value * Candle_Max_Size_ATR, ") - BB: ", BB_Width_Current, " (máximo: ", BB_Width_Average * BB_Expansion_Max, ")");
+         if(bb_expansion_filter && candle_force_filter)
+         {
+            // Operación 1: Rápida (ratio 1:2)
+            double sl1 = close + (ATR_Value * StopLoss_ATR_Mult);
+            double tp1 = close - (ATR_Value * TakeProfit_Quick_ATR);
+            ticket_quick = OpenOrder(ORDER_TYPE_SELL, LotSize, sl1, tp1, "BB Trend Quick Sell");
+            Print("Tendencia SELL Rápida: TP 1:2 - Ángulo: ", CalculateSlopeAngle(BB_Slope), " Vela: ", candle_size, " - Ticket: ", ticket_quick);
+            
+            // Operación 2: Con trailing stop
+            if(ticket_quick != 0)
+            {
+               double sl2 = close + (ATR_Value * StopLoss_ATR_Mult);
+               double tp2 = close - (ATR_Value * TakeProfit_ATR_Mult);
+               ticket_trailing = OpenOrder(ORDER_TYPE_SELL, LotSize, sl2, tp2, "BB Trend Trailing Sell");
+               Print("Tendencia SELL Trailing: TP largo - Ticket: ", ticket_trailing);
+            }
+         }
       }
    }
-   // Señal de reversión bajista: precio toca banda superior
-   else if(high >= BB_Upper)
+   // MODO REVERSIÓN: Bandas planas
+   else
    {
-      // FILTROS: No operar SELL si hay tendencia bajista fuerte, momentum bajista extremo o fuerza excesiva en la vela
-      bool bb_expansion_filter = (BB_Width_Current <= (BB_Width_Average * BB_Expansion_Max));
-      bool ema_filter = (close > EMA_Value); // Precio por encima de EMA (no tendencia bajista)
-      bool rsi_filter = (RSI_Value > RSI_Oversold); // RSI no en sobrevenda
-      
-      // Calcular tamaño de la vela
-      double candle_size = high - low;
-      bool candle_force_filter = (candle_size <= (ATR_Value * Candle_Max_Size_ATR)); // Vela no muy grande
-      
-      if(bb_expansion_filter && ema_filter && rsi_filter && candle_force_filter)
+      // Señal de reversión alcista: precio toca banda inferior
+      if(low <= BB_Lower)
       {
-         // Operación 1: Rápida (ratio 1:2)
-         double sl1 = close + (ATR_Value * StopLoss_ATR_Mult);
-         double tp1 = close - (ATR_Value * TakeProfit_Quick_ATR);
-         ticket_quick = OpenOrder(ORDER_TYPE_SELL, LotSize, sl1, tp1, "BB Reversion Quick Sell");
-         Print("Reversión SELL Rápida: TP 1:2 - EMA: ", EMA_Value, " RSI: ", RSI_Value, " Vela: ", candle_size, " Ancho BB: ", BB_Width_Current, " - Ticket: ", ticket_quick);
-         
-         // Operación 2: Con trailing stop
-         if(ticket_quick != 0)
+         if(bb_expansion_filter && ema_filter_buy && rsi_filter_buy && candle_force_filter)
          {
-            double sl2 = close + (ATR_Value * StopLoss_ATR_Mult);
-            double tp2 = close - (ATR_Value * TakeProfit_ATR_Mult);
-            ticket_trailing = OpenOrder(ORDER_TYPE_SELL, LotSize, sl2, tp2, "BB Reversion Trailing Sell");
-            Print("Reversión SELL Trailing: TP largo - Ticket: ", ticket_trailing);
+            // Operación 1: Rápida (ratio 1:2)
+            double sl1 = close - (ATR_Value * StopLoss_ATR_Mult);
+            double tp1 = close + (ATR_Value * TakeProfit_Quick_ATR);
+            ticket_quick = OpenOrder(ORDER_TYPE_BUY, LotSize, sl1, tp1, "BB Reversion Quick Buy");
+            Print("Reversión BUY Rápida: TP 1:2 - EMA: ", EMA_Value, " RSI: ", RSI_Value, " Vela: ", candle_size, " Ancho BB: ", BB_Width_Current, " - Ticket: ", ticket_quick);
+            
+            // Operación 2: Con trailing stop
+            if(ticket_quick != 0)
+            {
+               double sl2 = close - (ATR_Value * StopLoss_ATR_Mult);
+               double tp2 = close + (ATR_Value * TakeProfit_ATR_Mult);
+               ticket_trailing = OpenOrder(ORDER_TYPE_BUY, LotSize, sl2, tp2, "BB Reversion Trailing Buy");
+               Print("Reversión BUY Trailing: TP largo - Ticket: ", ticket_trailing);
+            }
+         }
+         else
+         {
+            Print("BUY filtrado - EMA: ", close, " vs ", EMA_Value, " - RSI: ", RSI_Value, " (max ", RSI_Overbought, ") - Vela: ", candle_size, " (máximo: ", ATR_Value * Candle_Max_Size_ATR, ") - BB: ", BB_Width_Current, " (máximo: ", BB_Width_Average * BB_Expansion_Max, ")");
          }
       }
-      else
+      // Señal de reversión bajista: precio toca banda superior
+      else if(high >= BB_Upper)
       {
-         Print("SELL filtrado - EMA: ", close, " vs ", EMA_Value, " - RSI: ", RSI_Value, " (min ", RSI_Oversold, ") - Vela: ", candle_size, " (máximo: ", ATR_Value * Candle_Max_Size_ATR, ") - BB: ", BB_Width_Current, " (máximo: ", BB_Width_Average * BB_Expansion_Max, ")");
+         if(bb_expansion_filter && ema_filter_sell && rsi_filter_sell && candle_force_filter)
+         {
+            // Operación 1: Rápida (ratio 1:2)
+            double sl1 = close + (ATR_Value * StopLoss_ATR_Mult);
+            double tp1 = close - (ATR_Value * TakeProfit_Quick_ATR);
+            ticket_quick = OpenOrder(ORDER_TYPE_SELL, LotSize, sl1, tp1, "BB Reversion Quick Sell");
+            Print("Reversión SELL Rápida: TP 1:2 - EMA: ", EMA_Value, " RSI: ", RSI_Value, " Vela: ", candle_size, " Ancho BB: ", BB_Width_Current, " - Ticket: ", ticket_quick);
+            
+            // Operación 2: Con trailing stop
+            if(ticket_quick != 0)
+            {
+               double sl2 = close + (ATR_Value * StopLoss_ATR_Mult);
+               double tp2 = close - (ATR_Value * TakeProfit_ATR_Mult);
+               ticket_trailing = OpenOrder(ORDER_TYPE_SELL, LotSize, sl2, tp2, "BB Reversion Trailing Sell");
+               Print("Reversión SELL Trailing: TP largo - Ticket: ", ticket_trailing);
+            }
+         }
+         else
+         {
+            Print("SELL filtrado - EMA: ", close, " vs ", EMA_Value, " - RSI: ", RSI_Value, " (min ", RSI_Oversold, ") - Vela: ", candle_size, " (máximo: ", ATR_Value * Candle_Max_Size_ATR, ") - BB: ", BB_Width_Current, " (máximo: ", BB_Width_Average * BB_Expansion_Max, ")");
+         }
       }
    }
 }
@@ -286,7 +375,7 @@ void CheckQuickExit()
       return;
    }
    
-   double close = iClose(_Symbol, PERIOD_M1, 0);
+   double close = iClose(_Symbol, TimeFrame, 0);
    double openPrice = PositionGetDouble(POSITION_PRICE_OPEN);
    double tp = PositionGetDouble(POSITION_TP);
    ENUM_POSITION_TYPE posType = (ENUM_POSITION_TYPE)PositionGetInteger(POSITION_TYPE);
@@ -299,6 +388,19 @@ void CheckQuickExit()
          ClosePosition(ticket_quick);
          Print("Operación BUY Rápida cerrada por TP 1:2 - Ticket: ", ticket_quick);
          ticket_quick = 0;
+         
+         // Mover SL de operación trailing a break even
+         if(ticket_trailing != 0 && PositionSelectByTicket(ticket_trailing))
+         {
+            double openPrice = PositionGetDouble(POSITION_PRICE_OPEN);
+            double currentSL = PositionGetDouble(POSITION_SL);
+            
+            if(currentSL < openPrice)
+            {
+               if(trade.PositionModify(ticket_trailing, openPrice, PositionGetDouble(POSITION_TP)))
+                  Print("Break even aplicado a BUY Trailing - Ticket: ", ticket_trailing);
+            }
+         }
       }
    }
    else if(posType == POSITION_TYPE_SELL)
@@ -308,6 +410,19 @@ void CheckQuickExit()
          ClosePosition(ticket_quick);
          Print("Operación SELL Rápida cerrada por TP 1:2 - Ticket: ", ticket_quick);
          ticket_quick = 0;
+         
+         // Mover SL de operación trailing a break even
+         if(ticket_trailing != 0 && PositionSelectByTicket(ticket_trailing))
+         {
+            double openPrice = PositionGetDouble(POSITION_PRICE_OPEN);
+            double currentSL = PositionGetDouble(POSITION_SL);
+            
+            if(currentSL > openPrice || currentSL == 0)
+            {
+               if(trade.PositionModify(ticket_trailing, openPrice, PositionGetDouble(POSITION_TP)))
+                  Print("Break even aplicado a SELL Trailing - Ticket: ", ticket_trailing);
+            }
+         }
       }
    }
 }
@@ -369,7 +484,7 @@ void CheckOperations()
          if(PositionGetString(POSITION_SYMBOL) == _Symbol && PositionGetInteger(POSITION_MAGIC) == MagicNumber)
          {
             string comment = PositionGetString(POSITION_COMMENT);
-            if(StringFind(comment, "Quick") != -1)
+            if(StringFind(comment, "Quick") != -1 || StringFind(comment, "Trend") != -1)
             {
                ticket_quick = PositionGetInteger(POSITION_TICKET);
                quick_exists = true;
