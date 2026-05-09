@@ -21,7 +21,8 @@ input double LotSize = 0.01;           // Tamaño del lote
 input int    MagicNumber = 654321;     // Número mágico (diferente al EA trend)
 input int    Slippage = 3;              // Deslizamiento máximo
 input double StopLoss_ATR_Mult = 4.0;  // Multiplicador ATR para Stop Loss
-input double TakeProfit_ATR_Mult = 3.0; // Multiplicador ATR para Take Profit (igual al EA trend)
+input double TakeProfit_ATR_Mult = 5.0; // Multiplicador ATR para Take Profit (operación con trailing)
+input double TakeProfit_Quick_ATR = 2.0; // Multiplicador ATR para Take Profit rápido (ratio 1:2)
 input bool   UseTrailingStop = true;   // Usar trailing stop
 input double Trailing_Start_ATR = 1.5; // Distancia desde entrada para activar trailing (en ATR)
 input double Trailing_Step_ATR = 0.5;  // Paso del trailing stop (en ATR)
@@ -40,7 +41,8 @@ double BB_Upper, BB_Lower, BB_Middle;
 double ATR_Value;
 double RSI_Value;
 double EMA_Value;
-ulong current_ticket = 0;
+ulong ticket_quick = 0;     // Ticket para operación rápida (ratio 1:2)
+ulong ticket_trailing = 0;  // Ticket para operación con trailing
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                     |
@@ -117,17 +119,21 @@ void OnTick()
    // Verificar operaciones existentes
    CheckOperations();
    
-   // Si no hay operación abierta, buscar señales de reversión
-   if(current_ticket == 0)
+   // Si no hay operaciones abiertas, buscar señales de reversión
+   if(ticket_quick == 0 && ticket_trailing == 0)
    {
       CheckReversionSignals();
    }
    else
    {
-      // Si hay operación abierta, aplicar trailing stop
-      if(UseTrailingStop)
+      // Si hay operaciones abiertas, gestionarlas
+      if(ticket_quick != 0)
       {
-         ManageTrailingStop();
+         CheckQuickExit(); // Verificar si operación rápida alcanzó TP 1:2
+      }
+      if(ticket_trailing != 0 && UseTrailingStop)
+      {
+         ManageTrailingStop(); // Aplicar trailing a operación con trailing
       }
    }
 }
@@ -191,10 +197,20 @@ void CheckReversionSignals()
       
       if(rsi_filter && ema_filter)
       {
-         double sl = close - (ATR_Value * StopLoss_ATR_Mult);
-         double tp = close + (ATR_Value * TakeProfit_ATR_Mult);
-         current_ticket = OpenOrder(ORDER_TYPE_BUY, LotSize, sl, tp, "BB Reversion Buy");
-         Print("Reversión BUY: Precio tocó banda inferior - RSI: ", RSI_Value, " - EMA: ", EMA_Value, " - Ticket: ", current_ticket);
+         // Operación 1: Rápida (ratio 1:2)
+         double sl1 = close - (ATR_Value * StopLoss_ATR_Mult);
+         double tp1 = close + (ATR_Value * TakeProfit_Quick_ATR);
+         ticket_quick = OpenOrder(ORDER_TYPE_BUY, LotSize, sl1, tp1, "BB Reversion Quick Buy");
+         Print("Reversión BUY Rápida: TP 1:2 - Ticket: ", ticket_quick);
+         
+         // Operación 2: Con trailing stop
+         if(ticket_quick != 0)
+         {
+            double sl2 = close - (ATR_Value * StopLoss_ATR_Mult);
+            double tp2 = close + (ATR_Value * TakeProfit_ATR_Mult);
+            ticket_trailing = OpenOrder(ORDER_TYPE_BUY, LotSize, sl2, tp2, "BB Reversion Trailing Buy");
+            Print("Reversión BUY Trailing: TP largo - Ticket: ", ticket_trailing);
+         }
       }
       else
       {
@@ -210,10 +226,20 @@ void CheckReversionSignals()
       
       if(rsi_filter && ema_filter)
       {
-         double sl = close + (ATR_Value * StopLoss_ATR_Mult);
-         double tp = close - (ATR_Value * TakeProfit_ATR_Mult);
-         current_ticket = OpenOrder(ORDER_TYPE_SELL, LotSize, sl, tp, "BB Reversion Sell");
-         Print("Reversión SELL: Precio tocó banda superior - RSI: ", RSI_Value, " - EMA: ", EMA_Value, " - Ticket: ", current_ticket);
+         // Operación 1: Rápida (ratio 1:2)
+         double sl1 = close + (ATR_Value * StopLoss_ATR_Mult);
+         double tp1 = close - (ATR_Value * TakeProfit_Quick_ATR);
+         ticket_quick = OpenOrder(ORDER_TYPE_SELL, LotSize, sl1, tp1, "BB Reversion Quick Sell");
+         Print("Reversión SELL Rápida: TP 1:2 - Ticket: ", ticket_quick);
+         
+         // Operación 2: Con trailing stop
+         if(ticket_quick != 0)
+         {
+            double sl2 = close + (ATR_Value * StopLoss_ATR_Mult);
+            double tp2 = close - (ATR_Value * TakeProfit_ATR_Mult);
+            ticket_trailing = OpenOrder(ORDER_TYPE_SELL, LotSize, sl2, tp2, "BB Reversion Trailing Sell");
+            Print("Reversión SELL Trailing: TP largo - Ticket: ", ticket_trailing);
+         }
       }
       else
       {
@@ -223,37 +249,38 @@ void CheckReversionSignals()
 }
 
 //+------------------------------------------------------------------+
-//| Verificar señal de salida (banda media)                            |
+//| Verificar salida rápida (ratio 1:2)                                 |
 //+------------------------------------------------------------------+
-void CheckExitSignal()
+void CheckQuickExit()
 {
-   if(!PositionSelectByTicket(current_ticket))
+   if(!PositionSelectByTicket(ticket_quick))
    {
-      current_ticket = 0;
+      ticket_quick = 0;
       return;
    }
    
    double close = iClose(_Symbol, PERIOD_M1, 0);
+   double openPrice = PositionGetDouble(POSITION_PRICE_OPEN);
+   double tp = PositionGetDouble(POSITION_TP);
    ENUM_POSITION_TYPE posType = (ENUM_POSITION_TYPE)PositionGetInteger(POSITION_TYPE);
    
+   // Verificar si alcanzó el TP (ratio 1:2)
    if(posType == POSITION_TYPE_BUY)
    {
-      // Salir cuando el precio cruza la banda media hacia abajo
-      if(close <= BB_Middle)
+      if(close >= tp)
       {
-         ClosePosition(current_ticket);
-         Print("Salida BUY: Precio cruzó banda media - Ticket: ", current_ticket);
-         current_ticket = 0;
+         ClosePosition(ticket_quick);
+         Print("Operación BUY Rápida cerrada por TP 1:2 - Ticket: ", ticket_quick);
+         ticket_quick = 0;
       }
    }
    else if(posType == POSITION_TYPE_SELL)
    {
-      // Salir cuando el precio cruza la banda media hacia arriba
-      if(close >= BB_Middle)
+      if(close <= tp)
       {
-         ClosePosition(current_ticket);
-         Print("Salida SELL: Precio cruzó banda media - Ticket: ", current_ticket);
-         current_ticket = 0;
+         ClosePosition(ticket_quick);
+         Print("Operación SELL Rápida cerrada por TP 1:2 - Ticket: ", ticket_quick);
+         ticket_quick = 0;
       }
    }
 }
@@ -305,7 +332,8 @@ bool ClosePosition(ulong ticket)
 //+------------------------------------------------------------------+
 void CheckOperations()
 {
-   bool position_exists = false;
+   bool quick_exists = false;
+   bool trailing_exists = false;
    
    for(int i = PositionsTotal() - 1; i >= 0; i--)
    {
@@ -314,18 +342,25 @@ void CheckOperations()
          if(PositionGetString(POSITION_SYMBOL) == _Symbol && PositionGetInteger(POSITION_MAGIC) == MagicNumber)
          {
             string comment = PositionGetString(POSITION_COMMENT);
-            if(StringFind(comment, "BB Reversion") != -1)
+            if(StringFind(comment, "Quick") != -1)
             {
-               current_ticket = PositionGetInteger(POSITION_TICKET);
-               position_exists = true;
-               break;
+               ticket_quick = PositionGetInteger(POSITION_TICKET);
+               quick_exists = true;
+            }
+            else if(StringFind(comment, "Trailing") != -1)
+            {
+               ticket_trailing = PositionGetInteger(POSITION_TICKET);
+               trailing_exists = true;
             }
          }
       }
    }
    
-   if(!position_exists)
-      current_ticket = 0;
+   if(!quick_exists)
+      ticket_quick = 0;
+   
+   if(!trailing_exists)
+      ticket_trailing = 0;
 }
 
 //+------------------------------------------------------------------+
@@ -333,7 +368,7 @@ void CheckOperations()
 //+------------------------------------------------------------------+
 void ManageTrailingStop()
 {
-   if(!PositionSelectByTicket(current_ticket))
+   if(!PositionSelectByTicket(ticket_trailing))
       return;
    
    double openPrice = PositionGetDouble(POSITION_PRICE_OPEN);
@@ -373,7 +408,7 @@ void ManageTrailingStop()
             // TP también persigue el precio
             newTP = currentPrice + (TakeProfit_ATR_Mult * ATR_Value);
             
-            if(trade.PositionModify(current_ticket, newSL, newTP))
+            if(trade.PositionModify(ticket_trailing, newSL, newTP))
             {
                Print("Trailing BUY: SL actualizado a ", newSL, " - TP actualizado a ", newTP);
             }
@@ -390,7 +425,7 @@ void ManageTrailingStop()
             // TP también persigue el precio
             newTP = currentPrice - (TakeProfit_ATR_Mult * ATR_Value);
             
-            if(trade.PositionModify(current_ticket, newSL, newTP))
+            if(trade.PositionModify(ticket_trailing, newSL, newTP))
             {
                Print("Trailing SELL: SL actualizado a ", newSL, " - TP actualizado a ", newTP);
             }
