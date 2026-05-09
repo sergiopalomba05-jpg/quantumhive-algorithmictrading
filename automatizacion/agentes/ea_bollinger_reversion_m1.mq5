@@ -20,8 +20,11 @@ input int    RSI_Oversold = 30;        // Nivel sobrevenda RSI
 input double LotSize = 0.01;           // Tamaño del lote
 input int    MagicNumber = 654321;     // Número mágico (diferente al EA trend)
 input int    Slippage = 3;              // Deslizamiento máximo
-input double StopLoss_ATR_Mult = 2.0;  // Multiplicador ATR para Stop Loss
+input double StopLoss_ATR_Mult = 4.0;  // Multiplicador ATR para Stop Loss
 input double TakeProfit_ATR_Mult = 3.0; // Multiplicador ATR para Take Profit (igual al EA trend)
+input bool   UseTrailingStop = true;   // Usar trailing stop
+input double Trailing_Start_ATR = 1.5; // Distancia desde entrada para activar trailing (en ATR)
+input double Trailing_Step_ATR = 0.5;  // Paso del trailing stop (en ATR)
 
 //--- Variables globales
 CTrade trade;
@@ -119,7 +122,14 @@ void OnTick()
    {
       CheckReversionSignals();
    }
-   // Las operaciones corren hasta TP o SL (sin salida prematura)
+   else
+   {
+      // Si hay operación abierta, aplicar trailing stop
+      if(UseTrailingStop)
+      {
+         ManageTrailingStop();
+      }
+   }
 }
 
 //+------------------------------------------------------------------+
@@ -316,5 +326,76 @@ void CheckOperations()
    
    if(!position_exists)
       current_ticket = 0;
+}
+
+//+------------------------------------------------------------------+
+//| Gestionar Trailing Stop                                            |
+//+------------------------------------------------------------------+
+void ManageTrailingStop()
+{
+   if(!PositionSelectByTicket(current_ticket))
+      return;
+   
+   double openPrice = PositionGetDouble(POSITION_PRICE_OPEN);
+   double currentSL = PositionGetDouble(POSITION_SL);
+   double currentTP = PositionGetDouble(POSITION_TP);
+   ENUM_POSITION_TYPE posType = (ENUM_POSITION_TYPE)PositionGetInteger(POSITION_TYPE);
+   
+   double currentPrice;
+   if(posType == POSITION_TYPE_BUY)
+      currentPrice = SymbolInfoDouble(_Symbol, SYMBOL_BID);
+   else
+      currentPrice = SymbolInfoDouble(_Symbol, SYMBOL_ASK);
+   
+   double profit = 0;
+   if(posType == POSITION_TYPE_BUY)
+      profit = currentPrice - openPrice;
+   else
+      profit = openPrice - currentPrice;
+   
+   // Calcular distancia de activación en puntos
+   double activationDistance = ATR_Value * Trailing_Start_ATR;
+   double trailingStep = ATR_Value * Trailing_Step_ATR;
+   
+   // Verificar si se activó el trailing
+   if(profit >= activationDistance)
+   {
+      double newSL, newTP;
+      
+      if(posType == POSITION_TYPE_BUY)
+      {
+         // Para BUY: SL sigue el precio hacia arriba
+         newSL = currentPrice - trailingStep;
+         
+         // Solo modificar si el nuevo SL es mayor que el actual
+         if(newSL > currentSL || currentSL == 0)
+         {
+            // TP también persigue el precio
+            newTP = currentPrice + (TakeProfit_ATR_Mult * ATR_Value);
+            
+            if(trade.PositionModify(current_ticket, newSL, newTP))
+            {
+               Print("Trailing BUY: SL actualizado a ", newSL, " - TP actualizado a ", newTP);
+            }
+         }
+      }
+      else if(posType == POSITION_TYPE_SELL)
+      {
+         // Para SELL: SL sigue el precio hacia abajo
+         newSL = currentPrice + trailingStep;
+         
+         // Solo modificar si el nuevo SL es menor que el actual
+         if(newSL < currentSL || currentSL == 0)
+         {
+            // TP también persigue el precio
+            newTP = currentPrice - (TakeProfit_ATR_Mult * ATR_Value);
+            
+            if(trade.PositionModify(current_ticket, newSL, newTP))
+            {
+               Print("Trailing SELL: SL actualizado a ", newSL, " - TP actualizado a ", newTP);
+            }
+         }
+      }
+   }
 }
 //+------------------------------------------------------------------+
