@@ -22,7 +22,8 @@ input double BB_Expansion_Max = 1.5;   // Máximo de expansión permitida (multi
 input double Candle_Max_Size_ATR = 2.0; // Tamaño máximo de vela para entrar (multiplicador del ATR) - filtro de fuerza
 input double Trend_Angle_Min = 45.0;    // Ángulo mínimo para detectar tendencia (grados) - 0 = solo reversión
 input bool   UseTrendMode = true;       // Usar modo tendencia cuando bandas inclinadas
-input double LotSize = 0.01;           // Tamaño del lote
+input double RiskPercent = 1.0;         // Porcentaje de riesgo por operación (1% del capital)
+input double LotSize = 0.01;           // Tamaño del lote (sobrescrito si RiskPercent > 0)
 input int    MagicNumber = 654321;     // Número mágico (diferente al EA trend)
 input int    Slippage = 3;              // Deslizamiento máximo
 input double StopLoss_ATR_Mult = 5.0;  // Multiplicador ATR para Stop Loss - aumentado de 3.0 a 5.0
@@ -51,6 +52,7 @@ double BB_Width_Average;
 double BB_Slope; // Pendiente de la banda media
 ulong ticket_quick = 0;     // Ticket para operación rápida (ratio 1:2)
 ulong ticket_trailing = 0;  // Ticket para operación con trailing
+bool reentry_after_win = false; // Flag para reentrada después de ganancia
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                     |
@@ -88,6 +90,7 @@ int OnInit()
    Print("Filtro expansión BB máximo: ", BB_Expansion_Max, "x ancho promedio");
    Print("Filtro fuerza vela máximo: ", Candle_Max_Size_ATR, "x ATR");
    Print("Modo tendencia: ", UseTrendMode, " - Ángulo mínimo: ", Trend_Angle_Min, " grados");
+   Print("Riesgo por operación: ", RiskPercent, "% del capital");
    Print("MagicNumber: ", MagicNumber);
    
    return(INIT_SUCCEEDED);
@@ -130,6 +133,15 @@ void OnTick()
    
    // Verificar operaciones existentes
    CheckOperations();
+   
+   // Si hay flag de reentrada después de ganancia, abrir nueva operación
+   if(reentry_after_win && ticket_quick == 0 && ticket_trailing == 0)
+   {
+      Print("Reentrada después de ganancia fuera de banda");
+      reentry_after_win = false;
+      CheckReversionSignals();
+      return;
+   }
    
    // Si no hay operaciones abiertas, buscar señales de reversión
    if(ticket_quick == 0 && ticket_trailing == 0)
@@ -207,6 +219,37 @@ void CalculateIndicators()
 }
 
 //+------------------------------------------------------------------+
+//| Calcular tamaño de lote basado en riesgo porcentual               |
+//+------------------------------------------------------------------+
+double CalculateLotSize(double sl_distance)
+{
+   if(RiskPercent <= 0)
+      return LotSize;
+   
+   double accountBalance = AccountInfoDouble(ACCOUNT_BALANCE);
+   double riskAmount = accountBalance * (RiskPercent / 100.0);
+   double tickValue = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_VALUE);
+   double tickSize = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_SIZE);
+   
+   // Calcular puntos en el instrumento
+   double points = sl_distance / tickSize;
+   
+   // Calcular lote basado en riesgo
+   double lotSize = riskAmount / (points * tickValue);
+   
+   // Ajustar a lote mínimo y máximo del instrumento
+   double minLot = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN);
+   double maxLot = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MAX);
+   double lotStep = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_STEP);
+   
+   lotSize = MathFloor(lotSize / lotStep) * lotStep;
+   lotSize = MathMax(lotSize, minLot);
+   lotSize = MathMin(lotSize, maxLot);
+   
+   return lotSize;
+}
+
+//+------------------------------------------------------------------+
 //| Calcular ángulo de la pendiente en grados                         |
 //+------------------------------------------------------------------+
 double CalculateSlopeAngle(double slope)
@@ -247,6 +290,10 @@ void CheckReversionSignals()
    double high = iHigh(_Symbol, TimeFrame, 1);
    double low = iLow(_Symbol, TimeFrame, 1);
    
+   // Calcular tamaño de lote basado en riesgo
+   double sl_distance = ATR_Value * StopLoss_ATR_Mult;
+   double calculated_lot = CalculateLotSize(sl_distance);
+   
    // Verificar si hay tendencia
    bool trending = IsTrending();
    int trend_direction = GetTrendDirection();
@@ -273,7 +320,7 @@ void CheckReversionSignals()
             // Operación 1: Rápida (ratio 1:2)
             double sl1 = close - (ATR_Value * StopLoss_ATR_Mult);
             double tp1 = close + (ATR_Value * TakeProfit_Quick_ATR);
-            ticket_quick = OpenOrder(ORDER_TYPE_BUY, LotSize, sl1, tp1, "BB Trend Quick Buy");
+            ticket_quick = OpenOrder(ORDER_TYPE_BUY, calculated_lot, sl1, tp1, "BB Trend Quick Buy");
             Print("Tendencia BUY Rápida: TP 1:2 - Ángulo: ", CalculateSlopeAngle(BB_Slope), " Vela: ", candle_size, " - Ticket: ", ticket_quick);
             
             // Operación 2: Con trailing stop
@@ -281,7 +328,7 @@ void CheckReversionSignals()
             {
                double sl2 = close - (ATR_Value * StopLoss_ATR_Mult);
                double tp2 = close + (ATR_Value * TakeProfit_ATR_Mult);
-               ticket_trailing = OpenOrder(ORDER_TYPE_BUY, LotSize, sl2, tp2, "BB Trend Trailing Buy");
+               ticket_trailing = OpenOrder(ORDER_TYPE_BUY, calculated_lot, sl2, tp2, "BB Trend Trailing Buy");
                Print("Tendencia BUY Trailing: TP largo - Ticket: ", ticket_trailing);
             }
          }
@@ -294,7 +341,7 @@ void CheckReversionSignals()
             // Operación 1: Rápida (ratio 1:2)
             double sl1 = close + (ATR_Value * StopLoss_ATR_Mult);
             double tp1 = close - (ATR_Value * TakeProfit_Quick_ATR);
-            ticket_quick = OpenOrder(ORDER_TYPE_SELL, LotSize, sl1, tp1, "BB Trend Quick Sell");
+            ticket_quick = OpenOrder(ORDER_TYPE_SELL, calculated_lot, sl1, tp1, "BB Trend Quick Sell");
             Print("Tendencia SELL Rápida: TP 1:2 - Ángulo: ", CalculateSlopeAngle(BB_Slope), " Vela: ", candle_size, " - Ticket: ", ticket_quick);
             
             // Operación 2: Con trailing stop
@@ -302,7 +349,7 @@ void CheckReversionSignals()
             {
                double sl2 = close + (ATR_Value * StopLoss_ATR_Mult);
                double tp2 = close - (ATR_Value * TakeProfit_ATR_Mult);
-               ticket_trailing = OpenOrder(ORDER_TYPE_SELL, LotSize, sl2, tp2, "BB Trend Trailing Sell");
+               ticket_trailing = OpenOrder(ORDER_TYPE_SELL, calculated_lot, sl2, tp2, "BB Trend Trailing Sell");
                Print("Tendencia SELL Trailing: TP largo - Ticket: ", ticket_trailing);
             }
          }
@@ -319,7 +366,7 @@ void CheckReversionSignals()
             // Operación 1: Rápida (ratio 1:2)
             double sl1 = close - (ATR_Value * StopLoss_ATR_Mult);
             double tp1 = close + (ATR_Value * TakeProfit_Quick_ATR);
-            ticket_quick = OpenOrder(ORDER_TYPE_BUY, LotSize, sl1, tp1, "BB Reversion Quick Buy");
+            ticket_quick = OpenOrder(ORDER_TYPE_BUY, calculated_lot, sl1, tp1, "BB Reversion Quick Buy");
             Print("Reversión BUY Rápida: TP 1:2 - EMA: ", EMA_Value, " RSI: ", RSI_Value, " Vela: ", candle_size, " Ancho BB: ", BB_Width_Current, " - Ticket: ", ticket_quick);
             
             // Operación 2: Con trailing stop
@@ -327,7 +374,7 @@ void CheckReversionSignals()
             {
                double sl2 = close - (ATR_Value * StopLoss_ATR_Mult);
                double tp2 = close + (ATR_Value * TakeProfit_ATR_Mult);
-               ticket_trailing = OpenOrder(ORDER_TYPE_BUY, LotSize, sl2, tp2, "BB Reversion Trailing Buy");
+               ticket_trailing = OpenOrder(ORDER_TYPE_BUY, calculated_lot, sl2, tp2, "BB Reversion Trailing Buy");
                Print("Reversión BUY Trailing: TP largo - Ticket: ", ticket_trailing);
             }
          }
@@ -344,7 +391,7 @@ void CheckReversionSignals()
             // Operación 1: Rápida (ratio 1:2)
             double sl1 = close + (ATR_Value * StopLoss_ATR_Mult);
             double tp1 = close - (ATR_Value * TakeProfit_Quick_ATR);
-            ticket_quick = OpenOrder(ORDER_TYPE_SELL, LotSize, sl1, tp1, "BB Reversion Quick Sell");
+            ticket_quick = OpenOrder(ORDER_TYPE_SELL, calculated_lot, sl1, tp1, "BB Reversion Quick Sell");
             Print("Reversión SELL Rápida: TP 1:2 - EMA: ", EMA_Value, " RSI: ", RSI_Value, " Vela: ", candle_size, " Ancho BB: ", BB_Width_Current, " - Ticket: ", ticket_quick);
             
             // Operación 2: Con trailing stop
@@ -352,7 +399,7 @@ void CheckReversionSignals()
             {
                double sl2 = close + (ATR_Value * StopLoss_ATR_Mult);
                double tp2 = close - (ATR_Value * TakeProfit_ATR_Mult);
-               ticket_trailing = OpenOrder(ORDER_TYPE_SELL, LotSize, sl2, tp2, "BB Reversion Trailing Sell");
+               ticket_trailing = OpenOrder(ORDER_TYPE_SELL, calculated_lot, sl2, tp2, "BB Reversion Trailing Sell");
                Print("Reversión SELL Trailing: TP largo - Ticket: ", ticket_trailing);
             }
          }
@@ -385,19 +432,28 @@ void CheckQuickExit()
    {
       if(close >= tp)
       {
+         // Verificar si cerró fuera de la banda (ganadora)
+         double currentBB_Upper = BB_Upper;
+         double currentBB_Lower = BB_Lower;
+         bool closed_outside_band = (close > currentBB_Upper || close < currentBB_Lower);
+         
          ClosePosition(ticket_quick);
-         Print("Operación BUY Rápida cerrada por TP 1:2 - Ticket: ", ticket_quick);
+         Print("Operación BUY Rápida cerrada por TP 1:2 - Ticket: ", ticket_quick, " - Fuera de banda: ", closed_outside_band);
          ticket_quick = 0;
+         
+         // Activar reentrada si cerró ganadora fuera de banda
+         if(closed_outside_band)
+            reentry_after_win = true;
          
          // Mover SL de operación trailing a break even
          if(ticket_trailing != 0 && PositionSelectByTicket(ticket_trailing))
          {
-            double openPrice = PositionGetDouble(POSITION_PRICE_OPEN);
+            double openPriceTrailing = PositionGetDouble(POSITION_PRICE_OPEN);
             double currentSL = PositionGetDouble(POSITION_SL);
             
-            if(currentSL < openPrice)
+            if(currentSL < openPriceTrailing)
             {
-               if(trade.PositionModify(ticket_trailing, openPrice, PositionGetDouble(POSITION_TP)))
+               if(trade.PositionModify(ticket_trailing, openPriceTrailing, PositionGetDouble(POSITION_TP)))
                   Print("Break even aplicado a BUY Trailing - Ticket: ", ticket_trailing);
             }
          }
@@ -407,19 +463,28 @@ void CheckQuickExit()
    {
       if(close <= tp)
       {
+         // Verificar si cerró fuera de la banda (ganadora)
+         double currentBB_Upper = BB_Upper;
+         double currentBB_Lower = BB_Lower;
+         bool closed_outside_band = (close > currentBB_Upper || close < currentBB_Lower);
+         
          ClosePosition(ticket_quick);
-         Print("Operación SELL Rápida cerrada por TP 1:2 - Ticket: ", ticket_quick);
+         Print("Operación SELL Rápida cerrada por TP 1:2 - Ticket: ", ticket_quick, " - Fuera de banda: ", closed_outside_band);
          ticket_quick = 0;
+         
+         // Activar reentrada si cerró ganadora fuera de banda
+         if(closed_outside_band)
+            reentry_after_win = true;
          
          // Mover SL de operación trailing a break even
          if(ticket_trailing != 0 && PositionSelectByTicket(ticket_trailing))
          {
-            double openPrice = PositionGetDouble(POSITION_PRICE_OPEN);
+            double openPriceTrailing = PositionGetDouble(POSITION_PRICE_OPEN);
             double currentSL = PositionGetDouble(POSITION_SL);
             
-            if(currentSL > openPrice || currentSL == 0)
+            if(currentSL > openPriceTrailing || currentSL == 0)
             {
-               if(trade.PositionModify(ticket_trailing, openPrice, PositionGetDouble(POSITION_TP)))
+               if(trade.PositionModify(ticket_trailing, openPriceTrailing, PositionGetDouble(POSITION_TP)))
                   Print("Break even aplicado a SELL Trailing - Ticket: ", ticket_trailing);
             }
          }
