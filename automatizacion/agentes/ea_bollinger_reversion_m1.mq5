@@ -18,12 +18,13 @@ input int    RSI_Period = 14;          // Período RSI (filtro momentum)
 input int    RSI_Overbought = 70;      // Nivel sobrecompra RSI
 input int    RSI_Oversold = 30;        // Nivel sobrevenda RSI
 input double BB_Expansion_Max = 1.5;   // Máximo de expansión permitida (multiplicador del ancho promedio)
+input double Candle_Max_Size_ATR = 2.0; // Tamaño máximo de vela para entrar (multiplicador del ATR) - filtro de fuerza
 input double LotSize = 0.01;           // Tamaño del lote
 input int    MagicNumber = 654321;     // Número mágico (diferente al EA trend)
 input int    Slippage = 3;              // Deslizamiento máximo
-input double StopLoss_ATR_Mult = 3.0;  // Multiplicador ATR para Stop Loss - reducido de 4.0 a 3.0
-input double TakeProfit_ATR_Mult = 15.0; // Multiplicador ATR para Take Profit (operación con trailing) - aumentado de 12.0 a 15.0
-input double TakeProfit_Quick_ATR = 3.0; // Multiplicador ATR para Take Profit rápido (ratio 1:2) - aumentado de 2.0 a 3.0
+input double StopLoss_ATR_Mult = 5.0;  // Multiplicador ATR para Stop Loss - aumentado de 3.0 a 5.0
+input double TakeProfit_ATR_Mult = 20.0; // Multiplicador ATR para Take Profit (operación con trailing) - aumentado de 15.0 a 20.0
+input double TakeProfit_Quick_ATR = 5.0; // Multiplicador ATR para Take Profit rápido (ratio 1:2) - aumentado de 3.0 a 5.0
 input bool   UseTrailingStop = true;   // Usar trailing stop
 input double Trailing_Start_ATR = 3.0; // Distancia desde entrada para activar trailing (en ATR) - aumentado de 2.5 a 3.0
 input double Trailing_Step_ATR = 2.0;  // Paso del trailing stop (en ATR) - aumentado de 1.5 a 2.0
@@ -80,6 +81,7 @@ int OnInit()
    Print("EMA: ", EMA_Period, " períodos (filtro tendencia)");
    Print("RSI: ", RSI_Period, " períodos (filtro momentum)");
    Print("Filtro expansión BB máximo: ", BB_Expansion_Max, "x ancho promedio");
+   Print("Filtro fuerza vela máximo: ", Candle_Max_Size_ATR, "x ATR");
    Print("MagicNumber: ", MagicNumber);
    
    return(INIT_SUCCEEDED);
@@ -206,18 +208,22 @@ void CheckReversionSignals()
    // Señal de reversión alcista: precio toca banda inferior
    if(low <= BB_Lower)
    {
-      // FILTROS: No operar BUY si hay tendencia alcista fuerte o momentum alcista extremo
+      // FILTROS: No operar BUY si hay tendencia alcista fuerte, momentum alcista extremo o fuerza excesiva en la vela
       bool bb_expansion_filter = (BB_Width_Current <= (BB_Width_Average * BB_Expansion_Max));
       bool ema_filter = (close < EMA_Value); // Precio por debajo de EMA (no tendencia alcista)
       bool rsi_filter = (RSI_Value < RSI_Overbought); // RSI no en sobrecompra
       
-      if(bb_expansion_filter && ema_filter && rsi_filter)
+      // Calcular tamaño de la vela
+      double candle_size = high - low;
+      bool candle_force_filter = (candle_size <= (ATR_Value * Candle_Max_Size_ATR)); // Vela no muy grande
+      
+      if(bb_expansion_filter && ema_filter && rsi_filter && candle_force_filter)
       {
          // Operación 1: Rápida (ratio 1:2)
          double sl1 = close - (ATR_Value * StopLoss_ATR_Mult);
          double tp1 = close + (ATR_Value * TakeProfit_Quick_ATR);
          ticket_quick = OpenOrder(ORDER_TYPE_BUY, LotSize, sl1, tp1, "BB Reversion Quick Buy");
-         Print("Reversión BUY Rápida: TP 1:2 - EMA: ", EMA_Value, " RSI: ", RSI_Value, " Ancho BB: ", BB_Width_Current, " - Ticket: ", ticket_quick);
+         Print("Reversión BUY Rápida: TP 1:2 - EMA: ", EMA_Value, " RSI: ", RSI_Value, " Vela: ", candle_size, " Ancho BB: ", BB_Width_Current, " - Ticket: ", ticket_quick);
          
          // Operación 2: Con trailing stop
          if(ticket_quick != 0)
@@ -230,24 +236,28 @@ void CheckReversionSignals()
       }
       else
       {
-         Print("BUY filtrado - EMA: ", close, " vs ", EMA_Value, " - RSI: ", RSI_Value, " (max ", RSI_Overbought, ") - BB: ", BB_Width_Current, " (máximo: ", BB_Width_Average * BB_Expansion_Max, ")");
+         Print("BUY filtrado - EMA: ", close, " vs ", EMA_Value, " - RSI: ", RSI_Value, " (max ", RSI_Overbought, ") - Vela: ", candle_size, " (máximo: ", ATR_Value * Candle_Max_Size_ATR, ") - BB: ", BB_Width_Current, " (máximo: ", BB_Width_Average * BB_Expansion_Max, ")");
       }
    }
    // Señal de reversión bajista: precio toca banda superior
    else if(high >= BB_Upper)
    {
-      // FILTROS: No operar SELL si hay tendencia bajista fuerte o momentum bajista extremo
+      // FILTROS: No operar SELL si hay tendencia bajista fuerte, momentum bajista extremo o fuerza excesiva en la vela
       bool bb_expansion_filter = (BB_Width_Current <= (BB_Width_Average * BB_Expansion_Max));
       bool ema_filter = (close > EMA_Value); // Precio por encima de EMA (no tendencia bajista)
       bool rsi_filter = (RSI_Value > RSI_Oversold); // RSI no en sobrevenda
       
-      if(bb_expansion_filter && ema_filter && rsi_filter)
+      // Calcular tamaño de la vela
+      double candle_size = high - low;
+      bool candle_force_filter = (candle_size <= (ATR_Value * Candle_Max_Size_ATR)); // Vela no muy grande
+      
+      if(bb_expansion_filter && ema_filter && rsi_filter && candle_force_filter)
       {
          // Operación 1: Rápida (ratio 1:2)
          double sl1 = close + (ATR_Value * StopLoss_ATR_Mult);
          double tp1 = close - (ATR_Value * TakeProfit_Quick_ATR);
          ticket_quick = OpenOrder(ORDER_TYPE_SELL, LotSize, sl1, tp1, "BB Reversion Quick Sell");
-         Print("Reversión SELL Rápida: TP 1:2 - EMA: ", EMA_Value, " RSI: ", RSI_Value, " Ancho BB: ", BB_Width_Current, " - Ticket: ", ticket_quick);
+         Print("Reversión SELL Rápida: TP 1:2 - EMA: ", EMA_Value, " RSI: ", RSI_Value, " Vela: ", candle_size, " Ancho BB: ", BB_Width_Current, " - Ticket: ", ticket_quick);
          
          // Operación 2: Con trailing stop
          if(ticket_quick != 0)
@@ -260,7 +270,7 @@ void CheckReversionSignals()
       }
       else
       {
-         Print("SELL filtrado - EMA: ", close, " vs ", EMA_Value, " - RSI: ", RSI_Value, " (min ", RSI_Oversold, ") - BB: ", BB_Width_Current, " (máximo: ", BB_Width_Average * BB_Expansion_Max, ")");
+         Print("SELL filtrado - EMA: ", close, " vs ", EMA_Value, " - RSI: ", RSI_Value, " (min ", RSI_Oversold, ") - Vela: ", candle_size, " (máximo: ", ATR_Value * Candle_Max_Size_ATR, ") - BB: ", BB_Width_Current, " (máximo: ", BB_Width_Average * BB_Expansion_Max, ")");
       }
    }
 }
