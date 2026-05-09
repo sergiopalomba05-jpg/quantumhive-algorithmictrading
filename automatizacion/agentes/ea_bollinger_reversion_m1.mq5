@@ -53,7 +53,7 @@ double RSI_Value;
 double EMA_Value;
 double ADX_Value;
 double MACD_Main;
-double MACD_Signal;
+double MACD_Signal_Value;  // Valor actual del indicador MACD Signal (evita conflicto con parámetro)
 ulong ticket_quick = 0;     // Ticket para operación rápida (ratio 1:2)
 ulong ticket_trailing = 0;  // Ticket para operación con trailing
 
@@ -215,7 +215,7 @@ void CalculateIndicators()
       return;
    
    MACD_Main = MACD_Main_Buffer[1];
-   MACD_Signal = MACD_Signal_Buffer[1];
+   MACD_Signal_Value = MACD_Signal_Buffer[1];
 }
 
 //+------------------------------------------------------------------+
@@ -234,7 +234,7 @@ void CheckReversionSignals()
       bool rsi_filter = (RSI_Value < RSI_Overbought); // RSI no en sobrecompra
       bool ema_filter = (close < EMA_Value); // Precio por debajo de EMA (no tendencia alcista)
       bool adx_filter = (ADX_Value < ADX_Max); // Tendencia débil (ADX < 25)
-      bool macd_filter = (MACD_Main > MACD_Signal); // Momentum alcista
+      bool macd_filter = (MACD_Main > MACD_Signal_Value); // Momentum alcista
       
       if(rsi_filter && ema_filter && adx_filter && macd_filter)
       {
@@ -255,7 +255,7 @@ void CheckReversionSignals()
       }
       else
       {
-         Print("BUY filtrado - RSI: ", RSI_Value, " (max ", RSI_Overbought, ") - EMA: ", close, " vs ", EMA_Value, " - ADX: ", ADX_Value, " (max ", ADX_Max, ") - MACD: ", MACD_Main, " vs ", MACD_Signal);
+         Print("BUY filtrado - RSI: ", RSI_Value, " (max ", RSI_Overbought, ") - EMA: ", close, " vs ", EMA_Value, " - ADX: ", ADX_Value, " (max ", ADX_Max, ") - MACD: ", MACD_Main, " vs ", MACD_Signal_Value);
       }
    }
    // Señal de reversión bajista: precio toca banda superior
@@ -265,7 +265,7 @@ void CheckReversionSignals()
       bool rsi_filter = (RSI_Value > RSI_Oversold); // RSI no en sobrevenda
       bool ema_filter = (close > EMA_Value); // Precio por encima de EMA (no tendencia bajista)
       bool adx_filter = (ADX_Value < ADX_Max); // Tendencia débil (ADX < 25)
-      bool macd_filter = (MACD_Main < MACD_Signal); // Momentum bajista
+      bool macd_filter = (MACD_Main < MACD_Signal_Value); // Momentum bajista
       
       if(rsi_filter && ema_filter && adx_filter && macd_filter)
       {
@@ -286,7 +286,7 @@ void CheckReversionSignals()
       }
       else
       {
-         Print("SELL filtrado - RSI: ", RSI_Value, " (min ", RSI_Oversold, ") - EMA: ", close, " vs ", EMA_Value, " - ADX: ", ADX_Value, " (max ", ADX_Max, ") - MACD: ", MACD_Main, " vs ", MACD_Signal);
+         Print("SELL filtrado - RSI: ", RSI_Value, " (min ", RSI_Oversold, ") - EMA: ", close, " vs ", EMA_Value, " - ADX: ", ADX_Value, " (max ", ADX_Max, ") - MACD: ", MACD_Main, " vs ", MACD_Signal_Value);
       }
    }
 }
