@@ -176,26 +176,16 @@ async def procesar_video(file_path: str) -> str:
 
 async def generar_audio(texto: str) -> str:
     """
-    Genera audio usando OpenAI TTS API.
+    Genera audio usando VoiceProcessor (OpenAI TTS).
     Retorna el path del archivo de audio generado.
     """
     try:
-        import openai
-        
-        # Generar audio
-        response = openai.audio.speech.create(
-            model="tts-1",
-            voice="alloy",
-            input=texto
-        )
-        
-        # Guardar archivo temporal
-        temp_dir = Path(tempfile.gettempdir())
-        temp_path = temp_dir / f"agi_response_{datetime.now().timestamp()}.mp3"
-        response.stream_to_file(str(temp_path))
-        
-        logger.info(f"Audio generado: {temp_path}")
-        return str(temp_path)
+        if VOICE_PROCESSOR_AVAILABLE and voice_processor:
+            audio_path = voice_processor.texto_a_voz(texto)
+            if audio_path:
+                logger.info(f"Audio generado: {audio_path}")
+                return audio_path
+        return ""
     except Exception as e:
         logger.error(f"Error generando audio: {e}")
         return ""
@@ -203,12 +193,7 @@ async def generar_audio(texto: str) -> str:
 # Identidad operativa CEO I
 ROOT_DIR = Path(__file__).resolve().parents[2]
 QUANTUM_ESTADO_PATH = ROOT_DIR / "QUANTUM_ESTADO.md"
-SYSTEM_PROMPT = """Sos el CEO I de QuantumHive, extensión directa de la conciencia de Sergio.
-Tono obligatorio: frío, profesional, agresivo para el profit y estrictamente técnico.
-Regla de oro anti-alucinación:
-1) Si el usuario pide datos de agentes, pips, uptime, drawdown o estado operativo, debés usar datos reales desde agi_memoria_telegram.db (consulta SQL) o QUANTUM_ESTADO.md.
-2) Si el dato no existe o no se puede leer, tenés prohibido inventar. Respondé literal: 'No tengo conexión al sensor de agentes activos' o 'Dato no disponible en la base de datos'.
-3) Prohibido el chamuyo decorativo, opiniones vacías o números estimados sin fuente."""
+SYSTEM_PROMPT = """Eres el CEO I. Hablas como un ingeniero senior. Respuestas de máximo 5 líneas. Si el audio falla, responde: 'ERROR: Transcripción fallida'. No des alternativas."""
 
 
 @dataclass
@@ -987,12 +972,17 @@ def procesar_mensaje_con_llm(message_text, tipo_mensaje: str = "general"):
         for msg in messages:
             llm_messages.append(LLMMessage(role=msg['role'], content=msg['content']))
         
-        # Llamar al wrapper (si cae a OpenRouter, usar modelo free explícito)
-        kwargs = {"max_tokens": 1024}
-        if get_llm_engine() == "openrouter":
-            kwargs["model"] = OPENROUTER_FALLBACK_MODEL
-        respuesta = llm_client.messages_create(llm_messages, **kwargs)
-        logger.info(f"Respuesta del wrapper: {respuesta[:100]}...")
+# Llamar al wrapper (si cae a OpenRouter, usar modelo free explícito)
+kwargs = {"max_tokens": 1024}
+if get_llm_engine() == "openrouter":
+    kwargs["model"] = OPENROUTER_FALLBACK_MODEL
+
+# Asegurarse de que el modelo Anthropic no se use
+# if get_llm_engine() == "anthropic":
+#     raise RuntimeError("Anthropic ya no es un motor LLM permitido.")
+
+respuesta = llm_client.messages_create(llm_messages, **kwargs)
+logger.info(f"Respuesta del wrapper: {respuesta[:100]}...")
         
         # 5. Guardar mensaje del usuario y respuesta en historial
         guardar_en_historial(memoria.db_path, "user", message_text)
