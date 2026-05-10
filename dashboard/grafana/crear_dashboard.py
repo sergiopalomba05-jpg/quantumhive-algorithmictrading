@@ -263,12 +263,12 @@ DASHBOARD = {
                     {
                         "refId": "nodes",
                         "rawSQL": """
-                            SELECT 'root' as id, 'QuantumHive' as title, 'Colmena' as subTitle, 'activo' as mainStat, 'green' as color
+                            SELECT 'root' as id, 'QuantumHive' as title, 'Colmena' as subTitle, '100' as mainStat, 'green' as color
                             UNION ALL
                             SELECT DISTINCT macrodivision as id, macrodivision as title, 'Macrodivisión' as subTitle, '' as mainStat, 'blue' as color 
                             FROM agentes WHERE macrodivision IS NOT NULL
                             UNION ALL
-                            SELECT nombre as id, nombre as title, estado as subTitle, dgcr_score as mainStat,
+                            SELECT nombre as id, nombre as title, estado as subTitle, CAST(dgcr_score AS TEXT) as mainStat,
                             CASE estado WHEN 'activo' THEN 'green' WHEN 'cuarentena' THEN 'red' ELSE 'gray' END as color
                             FROM agentes WHERE nombre IS NOT NULL
                         """,
