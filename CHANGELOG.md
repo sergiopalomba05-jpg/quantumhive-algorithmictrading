@@ -1,6 +1,12 @@
 # CHANGELOG
 
 Todos los cambios notables del proyecto.
+## [2026-05-09] - FEAT
+**Commit:** 5c78e3a5
+**Módulo:** grafana
+- Dashboard Grafana: instalación local, datasource SQLite, 13 Macrodivisiones, agente reporter
+
+
 ## [2026-05-08] - FIX
 **Commit:** d9aa0f71
 **Módulo:** agi_telegram

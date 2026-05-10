@@ -254,6 +254,19 @@ class QuantumHiveScheduler:
             name='Base de conocimiento'
         )
 
+        # Grafana Reporter — actualiza métricas cada 5 minutos
+        try:
+            from agente_grafana_reporter import AgenteGrafanaReporter
+            self.agente_grafana_reporter = AgenteGrafanaReporter()
+            self.scheduler.add_job(
+                func=self.agente_grafana_reporter.ejecutar,
+                trigger=IntervalTrigger(minutes=5),
+                id='grafana_reporter',
+                name='Grafana Reporter — métricas Colmena'
+            )
+        except Exception as e:
+            logger.error(f"Error registrando Grafana Reporter: {e}")
+
         logger.info(f"Jobs registrados: {len(self.scheduler.get_jobs())}")
 
     def iniciar(self):
