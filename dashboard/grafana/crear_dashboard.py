@@ -263,13 +263,13 @@ DASHBOARD = {
                     {
                         "refId": "nodes",
                         "rawSQL": """
-                            SELECT 'root' as id, 'QuantumHive' as title, 'Colmena' as subTitle, '100' as mainStat, 'green' as color
+                            SELECT CAST('root' AS TEXT) as id, CAST('QuantumHive' AS TEXT) as title, CAST('Colmena' AS TEXT) as subTitle, CAST('100' AS TEXT) as mainStat, CAST('green' AS TEXT) as color
                             UNION ALL
-                            SELECT DISTINCT macrodivision as id, macrodivision as title, 'Macrodivisión' as subTitle, '' as mainStat, 'blue' as color 
-                            FROM agentes WHERE macrodivision IS NOT NULL
+                            SELECT CAST(macrodivision AS TEXT) as id, CAST(macrodivision AS TEXT) as title, CAST('Macrodivisión' AS TEXT) as subTitle, CAST('' AS TEXT) as mainStat, CAST('blue' AS TEXT) as color 
+                            FROM (SELECT DISTINCT macrodivision FROM agentes WHERE macrodivision IS NOT NULL)
                             UNION ALL
-                            SELECT nombre as id, nombre as title, estado as subTitle, CAST(dgcr_score AS TEXT) as mainStat,
-                            CASE estado WHEN 'activo' THEN 'green' WHEN 'cuarentena' THEN 'red' ELSE 'gray' END as color
+                            SELECT CAST(nombre AS TEXT) as id, CAST(nombre AS TEXT) as title, CAST(estado AS TEXT) as subTitle, CAST(dgcr_score AS TEXT) as mainStat,
+                            CAST(CASE estado WHEN 'activo' THEN 'green' WHEN 'cuarentena' THEN 'red' ELSE 'gray' END AS TEXT) as color
                             FROM agentes WHERE nombre IS NOT NULL
                         """,
                         "format": "table"
@@ -277,13 +277,35 @@ DASHBOARD = {
                     {
                         "refId": "edges",
                         "rawSQL": """
-                            SELECT 'edge_root_' || macrodivision as id, 'root' as source, macrodivision as target
+                            SELECT CAST('edge_root_' || macrodivision AS TEXT) as id, CAST('root' AS TEXT) as source, CAST(macrodivision AS TEXT) as target
                             FROM (SELECT DISTINCT macrodivision FROM agentes WHERE macrodivision IS NOT NULL)
                             UNION ALL
-                            SELECT 'edge_' || macrodivision || '_' || nombre as id, macrodivision as source, nombre as target
+                            SELECT CAST('edge_' || macrodivision || '_' || nombre AS TEXT) as id, CAST(macrodivision AS TEXT) as source, CAST(nombre AS TEXT) as target
                             FROM agentes WHERE macrodivision IS NOT NULL AND nombre IS NOT NULL
                         """,
                         "format": "table"
+                    }
+                ],
+                "transformations": [
+                    {
+                        "id": "convertFieldType",
+                        "options": {
+                            "conversions": [
+                                {
+                                    "targetField": "id",
+                                    "destinationType": "string"
+                                },
+                                {
+                                    "targetField": "source",
+                                    "destinationType": "string"
+                                },
+                                {
+                                    "targetField": "target",
+                                    "destinationType": "string"
+                                }
+                            ],
+                            "fields": {}
+                        }
                     }
                 ]
             }
