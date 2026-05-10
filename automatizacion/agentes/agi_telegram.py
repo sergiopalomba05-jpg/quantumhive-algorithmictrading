@@ -91,6 +91,16 @@ except Exception as e:
     EVENT_BUS_AVAILABLE = False
     logger.warning(f"Event Bus no disponible: {e}")
 
+# Agente Cerebro — Contexto en tiempo real
+try:
+    from agente_cerebro import agente_cerebro
+    CEREBRO_DISPONIBLE = True
+    logger.info("Agente Cerebro disponible — contexto en tiempo real activado")
+except ImportError:
+    agente_cerebro = None
+    CEREBRO_DISPONIBLE = False
+    logger.warning("agente_cerebro no disponible — AGI sin contexto en tiempo real")
+
 # Scheduler
 try:
     from scheduler import scheduler_qh
@@ -810,6 +820,17 @@ def construir_mensaje_sistema(db_conn, tipo_mensaje: str) -> str:
     if contexto_dinamico:
         partes.append(f"\n\n---\n## ESTADO ACTUAL DEL SISTEMA\n{contexto_dinamico}")
     
+    # Novedades de la Colmena en tiempo real (Agente Cerebro)
+    if CEREBRO_DISPONIBLE and agente_cerebro:
+        try:
+            briefing = agente_cerebro.generar_briefing_para_agi()
+            # Marcar como leídos solo si es una consulta general o de estado
+            if tipo_mensaje in ["general", "estado"]:
+                agente_cerebro.marcar_leidos()
+            partes.append(f"\n\n---\n## NOVEDADES DE LA COLMENA (TIEMPO REAL)\n{briefing}")
+        except Exception as e:
+            logger.error(f"Error cargando briefing de Agente Cerebro: {e}")
+
     return "\n".join(partes)
 
 
@@ -972,17 +993,17 @@ def procesar_mensaje_con_llm(message_text, tipo_mensaje: str = "general"):
         for msg in messages:
             llm_messages.append(LLMMessage(role=msg['role'], content=msg['content']))
         
-# Llamar al wrapper (si cae a OpenRouter, usar modelo free explícito)
-kwargs = {"max_tokens": 1024}
-if get_llm_engine() == "openrouter":
-    kwargs["model"] = OPENROUTER_FALLBACK_MODEL
+        # Llamar al wrapper (si cae a OpenRouter, usar modelo free explícito)
+        kwargs = {"max_tokens": 1024}
+        if get_llm_engine() == "openrouter":
+            kwargs["model"] = OPENROUTER_FALLBACK_MODEL
 
-# Asegurarse de que el modelo Anthropic no se use
-# if get_llm_engine() == "anthropic":
-#     raise RuntimeError("Anthropic ya no es un motor LLM permitido.")
+        # Asegurarse de que el modelo Anthropic no se use
+        # if get_llm_engine() == "anthropic":
+        #     raise RuntimeError("Anthropic ya no es un motor LLM permitido.")
 
-respuesta = llm_client.messages_create(llm_messages, **kwargs)
-logger.info(f"Respuesta del wrapper: {respuesta[:100]}...")
+        respuesta = llm_client.messages_create(llm_messages, **kwargs)
+        logger.info(f"Respuesta del wrapper: {respuesta[:100]}...")
         
         # 5. Guardar mensaje del usuario y respuesta en historial
         guardar_en_historial(memoria.db_path, "user", message_text)

@@ -18,6 +18,13 @@ logger = logging.getLogger(__name__)
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN', '')
 USER_TELEGRAM_ID = os.getenv('USER_TELEGRAM_ID', '')
 
+# Importar Agente Cerebro
+try:
+    from agente_cerebro import agente_cerebro
+    CEREBRO_DISPONIBLE = True
+except ImportError:
+    agente_cerebro = None
+    CEREBRO_DISPONIBLE = False
 
 def notificar_sergio(mensaje: str):
     """Envía notificación a Sergio via Telegram."""
@@ -253,6 +260,15 @@ class QuantumHiveScheduler:
             id='base_conocimiento',
             name='Base de conocimiento'
         )
+
+        # Agente Cerebro — briefing horario para AGI
+        if CEREBRO_DISPONIBLE and agente_cerebro:
+            self.scheduler.add_job(
+                func=agente_cerebro.ejecutar,
+                trigger=IntervalTrigger(hours=1),
+                id='agente_cerebro_briefing',
+                name='Agente Cerebro — briefing horario para AGI'
+            )
 
         # Grafana Reporter — actualiza métricas cada 5 minutos
         try:
