@@ -252,6 +252,40 @@ DASHBOARD = {
                     """,
                     "format": "table"
                 }]
+            },
+            # ─── FILA 7: JERARQUÍA DE NODOS (NODE GRAPH) ─────────────────
+            {
+                "id": 60,
+                "title": "Jerarquía de Nodos — Colmena",
+                "type": "nodeGraph",
+                "gridPos": {"h": 16, "w": 24, "x": 0, "y": 48},
+                "targets": [
+                    {
+                        "refId": "nodes",
+                        "rawSQL": """
+                            SELECT 'root' as id, 'QuantumHive' as title, 'Colmena' as subTitle, 'activo' as mainStat, 'green' as color
+                            UNION ALL
+                            SELECT DISTINCT macrodivision as id, macrodivision as title, 'Macrodivisión' as subTitle, '' as mainStat, 'blue' as color 
+                            FROM agentes WHERE macrodivision IS NOT NULL
+                            UNION ALL
+                            SELECT nombre as id, nombre as title, estado as subTitle, dgcr_score as mainStat,
+                            CASE estado WHEN 'activo' THEN 'green' WHEN 'cuarentena' THEN 'red' ELSE 'gray' END as color
+                            FROM agentes WHERE nombre IS NOT NULL
+                        """,
+                        "format": "table"
+                    },
+                    {
+                        "refId": "edges",
+                        "rawSQL": """
+                            SELECT 'edge_root_' || macrodivision as id, 'root' as source, macrodivision as target
+                            FROM (SELECT DISTINCT macrodivision FROM agentes WHERE macrodivision IS NOT NULL)
+                            UNION ALL
+                            SELECT 'edge_' || macrodivision || '_' || nombre as id, macrodivision as source, nombre as target
+                            FROM agentes WHERE macrodivision IS NOT NULL AND nombre IS NOT NULL
+                        """,
+                        "format": "table"
+                    }
+                ]
             }
         ],
         "time": {"from": "now-24h", "to": "now"},

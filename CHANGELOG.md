@@ -2,6 +2,12 @@
 
 Todos los cambios notables del proyecto.
 ## [2026-05-09] - FEAT
+**Commit:** 1512e5de
+**Módulo:** grafana
+- Dashboard Grafana: Agregado panel Node Graph para visualizar la jerarquía Colmena -> Macrodivisiones -> Agentes estructuralmente
+
+
+## [2026-05-09] - FEAT
 **Commit:** 5c78e3a5
 **Módulo:** grafana
 - Dashboard Grafana: instalación local, datasource SQLite, 13 Macrodivisiones, agente reporter
