@@ -132,7 +132,7 @@ logger.info(f"OpenRouter fallback model configurado: {OPENROUTER_FALLBACK_MODEL}
 
 async def transcribir_audio(file_path: str) -> str:
     """
-    Transcribe audio usando VoiceProcessor (whisper local + fallback OpenAI).
+    Transcribe audio usando VoiceProcessor (Groq Whisper-large-v3).
     """
     try:
         if VOICE_PROCESSOR_AVAILABLE and voice_processor:
