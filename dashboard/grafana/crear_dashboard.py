@@ -9,7 +9,7 @@ from pathlib import Path
 
 GRAFANA_URL = "http://localhost:3000"
 GRAFANA_USER = "admin"
-GRAFANA_PASS = "admin"
+GRAFANA_PASS = "admin"  # Cambiar localmente si es necesario
 
 DASHBOARD = {
     "dashboard": {
@@ -306,10 +306,10 @@ def crear_dashboard():
     
     if response.status_code == 200:
         result = response.json()
-        print(f"✅ Dashboard creado: {GRAFANA_URL}{result.get('url', '')}")
+        print(f"Dashboard creado correctamente en: {GRAFANA_URL}{result.get('url', '')}")
         return True
     else:
-        print(f"❌ Error: {response.status_code} — {response.text}")
+        print(f"Error ({response.status_code}): {response.text}")
         return False
 
 if __name__ == "__main__":
