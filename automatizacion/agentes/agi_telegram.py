@@ -1180,9 +1180,32 @@ def procesar_mensaje(message):
         return "Lo siento, hubo un error procesando tu mensaje.", False
 
 def enviar_mensaje_telegram(chat_id, text, enviar_audio: bool = False):
-    """Envía mensaje a Telegram. Opcionalmente envía también audio."""
+    """Envía mensaje a Telegram. Si enviar_audio=True, solo audio (sin texto duplicado)."""
     try:
-        # Protocolo de caracteres: si supera 4000, enviar como documento .txt
+        # AUDIO: si el usuario envió voz, responder solo con audio (sin texto duplicado)
+        if enviar_audio and text:
+            try:
+                audio_path = generar_audio(text)
+                if audio_path:
+                    audio_url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendVoice"
+                    with open(audio_path, 'rb') as audio_file:
+                        files = {'voice': audio_file}
+                        payload = {'chat_id': chat_id}
+                        response = requests.post(audio_url, data=payload, files=files, timeout=10)
+                    os.remove(audio_path)
+                    if response.status_code == 200:
+                        logger.info(f"Audio enviado a chat_id {chat_id}")
+                        return True
+                    logger.error(f"Error enviando audio: {response.text}")
+            except Exception as e:
+                logger.error(f"Error enviando audio, fallback a texto: {e}")
+            # Fallback: si falla audio, enviar texto
+            url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+            payload = {'chat_id': chat_id, 'text': text, 'parse_mode': 'HTML'}
+            response = requests.post(url, json=payload, timeout=10)
+            return response.status_code == 200
+
+        # TEXTO: solo enviar texto (sin audio)
         if text and len(text) > 4000:
             temp_dir = Path(tempfile.gettempdir())
             temp_txt_path = temp_dir / f"agi_reporte_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
@@ -1204,42 +1227,14 @@ def enviar_mensaje_telegram(chat_id, text, enviar_audio: bool = False):
                     temp_txt_path.unlink()
 
         url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-        payload = {
-            'chat_id': chat_id,
-            'text': text,
-            'parse_mode': 'HTML'
-        }
-        
+        payload = {'chat_id': chat_id, 'text': text, 'parse_mode': 'HTML'}
         response = requests.post(url, json=payload, timeout=10)
-        
         if response.status_code == 200:
             logger.info(f"Mensaje enviado a chat_id {chat_id}")
-            
-            # Generar y enviar audio si está habilitado
-            if enviar_audio and text:
-                try:
-                    audio_path = generar_audio(text)
-                    if audio_path:
-                        # Enviar audio como mensaje de voz
-                        audio_url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendVoice"
-                        with open(audio_path, 'rb') as audio_file:
-                            files = {'voice': audio_file}
-                            audio_payload = {'chat_id': chat_id}
-                            audio_response = requests.post(audio_url, data=audio_payload, files=files, timeout=10)
-                        
-                        # Eliminar archivo temporal
-                        os.remove(audio_path)
-                        
-                        if audio_response.status_code == 200:
-                            logger.info(f"Audio enviado a chat_id {chat_id}")
-                except Exception as e:
-                    logger.error(f"Error enviando audio: {e}")
-            
             return True
-        else:
-            logger.error(f"Error enviando mensaje: {response.text}")
-            return False
-            
+        logger.error(f"Error enviando mensaje: {response.text}")
+        return False
+
     except Exception as e:
         logger.error(f"Error enviando mensaje: {e}")
         return False
