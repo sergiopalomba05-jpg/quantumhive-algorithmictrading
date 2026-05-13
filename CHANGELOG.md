@@ -2,6 +2,12 @@
 
 Todos los cambios notables del proyecto.
 ## [2026-05-13] - FIX
+**Commit:** 843957ea
+**Módulo:** agi_telegram
+- diagnostico audio: prints en voice_processor y handler de audio + verificacion GROQ_API_KEY + logs de descarga y transcripcion
+
+
+## [2026-05-13] - FIX
 **Commit:** 92a3baec
 **Módulo:** agi_telegram
 - SYSTEM_PROMPT toxico eliminado, audio fallido guarda [Audio no disponible], early returns corregidos, historial sanitizado

@@ -1051,34 +1051,48 @@ def procesar_mensaje(message):
             logger.info("Mensaje de audio recibido")
             try:
                 voice_file_id = message['voice']['file_id']
+                logger.info(f"DIAG AUDIO: file_id={voice_file_id}")
+                
                 voice_url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getFile?file_id={voice_file_id}"
+                logger.info(f"DIAG AUDIO: getFile URL={voice_url}")
                 voice_response = requests.get(voice_url).json()
+                logger.info(f"DIAG AUDIO: respuesta getFile={voice_response}")
+                
                 if not voice_response.get('ok'):
+                    logger.error(f"DIAG AUDIO: getFile falló: {voice_response}")
                     guardar_en_historial(memoria.db_path, "user", "[Audio no disponible]")
                     return "No pude procesar el audio, podés escribirme", False
                     
                 file_path = voice_response['result']['file_path']
                 download_url = f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{file_path}"
+                logger.info(f"DIAG AUDIO: download URL={download_url}")
+                
                 audio_file = requests.get(download_url)
+                logger.info(f"DIAG AUDIO: descarga completada, content-length={len(audio_file.content)} bytes")
                 
                 # Guardar archivo temporal
                 temp_dir = Path(tempfile.gettempdir())
                 temp_path = temp_dir / f"voice_{voice_file_id}.ogg"
+                logger.info(f"DIAG AUDIO: temp_dir={temp_dir}")
+                logger.info(f"DIAG AUDIO: temp_path={temp_path}")
+                
                 with open(temp_path, 'wb') as f:
                     f.write(audio_file.content)
+                logger.info(f"DIAG AUDIO: archivo .ogg escrito, tamaño={os.path.getsize(str(temp_path))} bytes")
                 
                 # Transcribir audio
                 transcripcion = transcribir_audio(str(temp_path))
                 os.remove(temp_path)
                 
                 if not transcripcion:
+                    logger.warning("DIAG AUDIO: transcripcion=None o vacío, devolviendo respuesta limpia")
                     guardar_en_historial(memoria.db_path, "user", "[Audio no disponible]")
                     return "No pude procesar el audio, podés escribirme", False
                 
                 text = transcripcion
                 logger.info(f"Audio transcrito: {text}")
             except Exception as e:
-                logger.error(f"Error procesando audio: {e}")
+                logger.error(f"DIAG AUDIO: excepción en bloque de audio: {e}", exc_info=True)
                 guardar_en_historial(memoria.db_path, "user", "[Audio no disponible]")
                 return "No pude procesar el audio, podés escribirme", False
         
