@@ -1082,7 +1082,10 @@ def procesar_mensaje(message):
                 
                 # Transcribir audio
                 transcripcion = transcribir_audio(str(temp_path))
-                os.remove(temp_path)
+                try:
+                    os.remove(temp_path)
+                except FileNotFoundError:
+                    pass
                 
                 if not transcripcion:
                     logger.warning("DIAG AUDIO: transcripcion=None o vacío, devolviendo respuesta limpia")
