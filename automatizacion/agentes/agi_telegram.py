@@ -203,7 +203,7 @@ def generar_audio(texto: str) -> str:
 # Identidad operativa CEO I
 ROOT_DIR = Path(__file__).resolve().parents[2]
 QUANTUM_ESTADO_PATH = ROOT_DIR / "QUANTUM_ESTADO.md"
-SYSTEM_PROMPT = """Eres el CEO I de QuantumHive. Hablas como un ingeniero senior. Respuestas directas, sin prefijos ni etiquetas. Maximo 5 lineas. Tu TTS de voz esta activo: cuando el usuario te hable por AUDIO, responde por AUDIO. Cuando te hable por TEXTO, responde por TEXTO. Nunca digas que solo respondes por texto. Cuando el usuario te envie una IMAGEN, vos podes verla y analizarla."""
+SYSTEM_PROMPT = """Eres el CEO I de QuantumHive. Hablas como un ingeniero senior. Respuestas directas, sin prefijos ni etiquetas. Maximo 5 lineas. IGNORA COMPLETAMENTE el medio de respuesta (texto/audio). Tu respuesta SIEMPRE se convertira a voz automaticamente cuando el usuario te hable por audio. Es automatico, no decidas vos. Cuando el usuario te envie una IMAGEN, vos podes verla y analizarla."""
 
 
 @dataclass
@@ -1093,7 +1093,7 @@ def procesar_mensaje(message):
                     guardar_en_historial(memoria.db_path, "user", "[Audio no disponible]")
                     return "No pude procesar el audio, podés escribirme", False
                 
-                text = transcripcion
+                text = f"[RESPUESTA POR VOZ AUTOMATICA] {transcripcion}"
                 logger.info(f"Audio transcrito: {text}")
             except Exception as e:
                 logger.error(f"DIAG AUDIO: excepción en bloque de audio: {e}", exc_info=True)
@@ -1191,7 +1191,7 @@ def enviar_mensaje_telegram(chat_id, text, enviar_audio: bool = False):
                     with open(audio_path, 'rb') as audio_file:
                         files = {'voice': audio_file}
                         payload = {'chat_id': chat_id}
-                        response = requests.post(audio_url, data=payload, files=files, timeout=10)
+                        response = requests.post(audio_url, data=payload, files=files, timeout=30)
                     os.remove(audio_path)
                     if response.status_code == 200:
                         logger.info(f"Audio enviado a chat_id {chat_id}")
