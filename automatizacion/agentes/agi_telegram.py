@@ -203,7 +203,7 @@ def generar_audio(texto: str) -> str:
 # Identidad operativa CEO I
 ROOT_DIR = Path(__file__).resolve().parents[2]
 QUANTUM_ESTADO_PATH = ROOT_DIR / "QUANTUM_ESTADO.md"
-SYSTEM_PROMPT = """Eres el CEO I. Hablas como un ingeniero senior. Respuestas de máximo 5 líneas. Cuando el usuario te envia audio, vos tambien podes responder con audio (TTS activo)."""
+SYSTEM_PROMPT = """Eres el CEO I. Hablas como un ingeniero senior. Respuestas de máximo 5 líneas. Cuando el usuario te envia audio, vos tambien podes responder con audio (TTS activo). Cuando el usuario te envia una imagen, vos podes verla y analizarla."""
 
 
 @dataclass
@@ -961,9 +961,10 @@ else:
     agi_autonomous = None
     logger.info("Usando clasificador de intención legacy (ClasificadorIntencion)")
 
-def procesar_mensaje_con_llm(message_text, tipo_mensaje: str = "general"):
+def procesar_mensaje_con_llm(message_text, tipo_mensaje: str = "general", image_paths: List[str] = None):
     """
-    Procesa mensaje usando LLM Wrapper (Groq/OpenRouter) con historial completo de conversación.
+    Procesa mensaje usando LLM Wrapper (Groq/Gemini/OpenRouter) con historial completo de conversación.
+    Si image_paths se provee, usa Gemini vision para procesar las imágenes.
     """
     try:
         if not llm_client:
@@ -993,7 +994,7 @@ def procesar_mensaje_con_llm(message_text, tipo_mensaje: str = "general"):
             "content": message_text
         })
         
-        # 4. Usar wrapper (Groq → OpenRouter → Error Real)
+        # 4. Usar wrapper (Groq → Gemini → OpenRouter → Error Real)
         from agi_core.llm_wrapper import LLMMessage
         
         # Convertir mensajes a formato LLMMessage
@@ -1006,16 +1007,15 @@ def procesar_mensaje_con_llm(message_text, tipo_mensaje: str = "general"):
         for msg in messages:
             llm_messages.append(LLMMessage(role=msg['role'], content=msg['content']))
         
-        # Llamar al wrapper (si cae a OpenRouter, usar modelo free explícito)
+        # Llamar al wrapper (con o sin imágenes)
         kwargs = {"max_tokens": 1024}
         if get_llm_engine() == "openrouter":
             kwargs["model"] = OPENROUTER_FALLBACK_MODEL
 
-        # Asegurarse de que el modelo Anthropic no se use
-        # if get_llm_engine() == "anthropic":
-        #     raise RuntimeError("Anthropic ya no es un motor LLM permitido.")
-
-        respuesta = llm_client.messages_create(llm_messages, **kwargs)
+        if image_paths:
+            respuesta = llm_client.messages_create_with_images(llm_messages, images=image_paths, **kwargs)
+        else:
+            respuesta = llm_client.messages_create(llm_messages, **kwargs)
         logger.info(f"Respuesta del wrapper: {respuesta[:100]}...")
         
         # 5. Guardar mensaje del usuario y respuesta en historial
@@ -1045,6 +1045,7 @@ def procesar_mensaje(message):
         
         # Detectar si el usuario envió audio (para respuesta simétrica)
         usuario_envio_audio = 'voice' in message
+        image_paths = []
         
         # Procesar audio si está presente
         if usuario_envio_audio:
@@ -1099,17 +1100,42 @@ def procesar_mensaje(message):
                 guardar_en_historial(memoria.db_path, "user", "[Audio no disponible]")
                 return "No pude procesar el audio, podés escribirme", False
         
-        # Procesar video si está presente
-        if 'video' in message:
-            logger.info("Mensaje de video recibido")
-            # TODO: Implementar procesamiento de video
-            return "AGI: Recibí tu mensaje de video. Procesamiento de video pendiente de implementación.", False
-        
         # Procesar imagen si está presente
         if 'photo' in message:
             logger.info("Mensaje de imagen recibido")
-            # TODO: Implementar procesamiento de imagen
-            return "AGI: Recibí tu imagen. Procesamiento de imagen pendiente de implementación.", False
+            try:
+                photos = message['photo']
+                photo = photos[-1]
+                photo_file_id = photo['file_id']
+                caption = message.get('caption', '')
+
+                photo_url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getFile?file_id={photo_file_id}"
+                photo_response = requests.get(photo_url).json()
+
+                if not photo_response.get('ok'):
+                    logger.error(f"Error obteniendo archivo de foto: {photo_response}")
+                    return "No pude descargar la imagen.", False
+
+                file_path = photo_response['result']['file_path']
+                download_url = f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{file_path}"
+                img_data = requests.get(download_url).content
+
+                temp_dir = Path(tempfile.gettempdir())
+                temp_img_path = temp_dir / f"img_{photo_file_id}.jpg"
+                with open(temp_img_path, 'wb') as f:
+                    f.write(img_data)
+
+                text = caption if caption else "Sergio te envió esta imagen."
+                image_paths = [str(temp_img_path)]
+                logger.info(f"Imagen descargada: {temp_img_path}, caption: {text}")
+            except Exception as e:
+                logger.error(f"Error procesando imagen: {e}", exc_info=True)
+                return "No pude procesar la imagen.", False
+        
+        # Procesar video si está presente
+        if 'video' in message:
+            logger.info("Mensaje de video recibido")
+            return "AGI: Recibí tu mensaje de video. Procesamiento de video pendiente de implementación.", False
         
         # CLASIFICACIÓN DE INTENCIÓN (AGI UPGRADE v2.0)
         if new_intent_classifier:
@@ -1129,7 +1155,17 @@ def procesar_mensaje(message):
                 logger.error(f"Error actualizando heartbeat: {e}")
         
         # Procesar mensaje con LLM Wrapper para inteligencia real con contexto dinámico
-        respuesta = procesar_mensaje_con_llm(text, tipo_mensaje)
+        if image_paths:
+            respuesta = procesar_mensaje_con_llm(text, tipo_mensaje, image_paths=image_paths)
+        else:
+            respuesta = procesar_mensaje_con_llm(text, tipo_mensaje)
+        
+        # Limpiar archivos temporales de imágenes
+        for img_path in image_paths:
+            try:
+                os.remove(img_path)
+            except:
+                pass
         
         # Agregar metadata de tipo a la respuesta
         if tipo_mensaje != "general":
