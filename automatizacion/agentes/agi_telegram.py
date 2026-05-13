@@ -1212,11 +1212,22 @@ def enviar_mensaje_telegram(chat_id, text, enviar_audio: bool = False):
 @app.route('/webhook/telegram', methods=['POST'])
 def telegram_webhook():
     """Webhook para recibir mensajes de Telegram."""
+    logger.info(f"DIAG WEBHOOK: POST recibido en /webhook/telegram, content_type={request.content_type}, content_length={request.content_length}")
     try:
         data = request.json
+        logger.info(f"DIAG WEBHOOK: payload completo={json.dumps(data, default=str, ensure_ascii=False)}")
+        
+        if data is None:
+            logger.error("DIAG WEBHOOK: request.json es None — cuerpo vacío o no JSON")
+            return jsonify({'status': 'no data'}), 200
+        
+        logger.info(f"DIAG WEBHOOK: keys de data={list(data.keys())}")
         
         if 'message' in data:
             message = data['message']
+            logger.info(f"DIAG WEBHOOK: keys de message={list(message.keys())}")
+            logger.info(f"DIAG WEBHOOK: tiene_texto={'text' in message} | tiene_voice={'voice' in message} | tiene_photo={'photo' in message} | tiene_video={'video' in message}")
+            
             chat_id = message['chat']['id']
             
             # Procesar mensaje y detectar si usuario envió audio
@@ -1227,10 +1238,11 @@ def telegram_webhook():
             
             return jsonify({'status': 'ok'}), 200
         
+        logger.info(f"DIAG WEBHOOK: payload no contiene 'message', ignorando")
         return jsonify({'status': 'no message'}), 200
         
     except Exception as e:
-        logger.error(f"Error en webhook: {e}")
+        logger.error(f"DIAG WEBHOOK: excepción: {e}", exc_info=True)
         return jsonify({'status': 'error'}), 500
 
 @app.route('/', methods=['GET'])
