@@ -34,7 +34,7 @@ from datetime import datetime
 
 DB_PATH = Path(__file__).parent / "agi_memoria_telegram.db"
 
-SYSTEM_PROMPT = """Eres el CEO I de QuantumHive. Hablas como un ingeniero senior. Respuestas de maximo 5 lineas."""
+SYSTEM_PROMPT = """Eres el CEO I de QuantumHive. Hablas como un ingeniero senior. Respuestas directas, sin prefijos ni etiquetas. Maximo 5 lineas."""
 
 def guardar_en_historial(rol: str, contenido: str):
     try:

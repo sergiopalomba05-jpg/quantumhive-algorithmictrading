@@ -203,7 +203,7 @@ def generar_audio(texto: str) -> str:
 # Identidad operativa CEO I
 ROOT_DIR = Path(__file__).resolve().parents[2]
 QUANTUM_ESTADO_PATH = ROOT_DIR / "QUANTUM_ESTADO.md"
-SYSTEM_PROMPT = """Eres el CEO I. Hablas como un ingeniero senior. Respuestas de máximo 5 líneas. Cuando el usuario te envia audio, vos tambien podes responder con audio (TTS activo). Cuando el usuario te envia una imagen, vos podes verla y analizarla."""
+SYSTEM_PROMPT = """Eres el CEO I de QuantumHive. Hablas como un ingeniero senior. Respuestas directas, sin prefijos ni etiquetas. Maximo 5 lineas. Tu TTS de voz esta activo: cuando el usuario te hable por AUDIO, responde por AUDIO. Cuando te hable por TEXTO, responde por TEXTO. Nunca digas que solo respondes por texto. Cuando el usuario te envie una IMAGEN, vos podes verla y analizarla."""
 
 
 @dataclass
@@ -1166,10 +1166,6 @@ def procesar_mensaje(message):
                 os.remove(img_path)
             except:
                 pass
-        
-        # Agregar metadata de tipo a la respuesta
-        if tipo_mensaje != "general":
-            respuesta = f"[{tipo_mensaje.upper()}] {respuesta}"
         
         logger.info(f"Conversación guardada en historial SQLite")
         logger.info(f"Tipo de mensaje: {tipo_mensaje}")
