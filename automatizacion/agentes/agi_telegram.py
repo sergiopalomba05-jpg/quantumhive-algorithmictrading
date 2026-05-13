@@ -8,7 +8,6 @@ import json
 import logging
 import sqlite3
 import base64
-import asyncio
 import tempfile
 from flask import Flask, request, jsonify
 from datetime import datetime
@@ -25,8 +24,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# AGI UPGRADE v2.0 Modules - Agregar path antes de imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# AGI UPGRADE v2.0 Modules - Agregar paths antes de imports
+sys.path.insert(0, str(Path(__file__).parent.parent))  # automatizacion/ — para agi_core, agi_autonomous
+sys.path.insert(0, str(Path(__file__).parent))          # automatizacion/agentes/ — para agi_memory
 
 # LLM Wrapper para alternativas gratuitas
 try:
@@ -130,7 +130,7 @@ logger.info(f"OpenRouter fallback model configurado: {OPENROUTER_FALLBACK_MODEL}
 
 # Funciones Multimodales
 
-async def transcribir_audio(file_path: str) -> str:
+def transcribir_audio(file_path: str) -> str:
     """
     Transcribe audio usando VoiceProcessor (Groq Whisper-large-v3).
     """
@@ -144,7 +144,7 @@ async def transcribir_audio(file_path: str) -> str:
         return ""
 
 
-async def procesar_imagen(file_path: str, caption: str = "") -> List[Dict]:
+def procesar_imagen(file_path: str, caption: str = "") -> List[Dict]:
     """
     Procesa imagen como contenido multimodal para el motor LLM activo.
     """
@@ -171,7 +171,7 @@ async def procesar_imagen(file_path: str, caption: str = "") -> List[Dict]:
         return [{"type": "text", "text": caption if caption else ""}]
 
 
-async def procesar_video(file_path: str) -> str:
+def procesar_video(file_path: str) -> str:
     """
     Procesa video extrayendo frames clave.
     """
@@ -184,7 +184,7 @@ async def procesar_video(file_path: str) -> str:
         return ""
 
 
-async def generar_audio(texto: str) -> str:
+def generar_audio(texto: str) -> str:
     """
     Genera audio usando VoiceProcessor (OpenAI TTS).
     Retorna el path del archivo de audio generado.
@@ -1051,9 +1051,8 @@ def procesar_mensaje(message):
                     with open(temp_path, 'wb') as f:
                         f.write(audio_file.content)
                     
-                    # Transcribir audio (ejecutar coroutine)
-                    import asyncio
-                    transcripcion = asyncio.run(transcribir_audio(str(temp_path)))
+                    # Transcribir audio
+                    transcripcion = transcribir_audio(str(temp_path))
                     text = transcripcion if transcripcion else "No pude transcribir el audio"
                     
                     # Eliminar archivo temporal
@@ -1153,9 +1152,7 @@ def enviar_mensaje_telegram(chat_id, text, enviar_audio: bool = False):
             # Generar y enviar audio si está habilitado
             if enviar_audio and text:
                 try:
-                    # Ejecutar coroutine de generar_audio
-                    import asyncio
-                    audio_path = asyncio.run(generar_audio(text))
+                    audio_path = generar_audio(text)
                     if audio_path:
                         # Enviar audio como mensaje de voz
                         audio_url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendVoice"

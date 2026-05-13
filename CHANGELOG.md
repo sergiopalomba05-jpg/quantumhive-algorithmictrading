@@ -1,6 +1,24 @@
 # CHANGELOG
 
 Todos los cambios notables del proyecto.
+## [2026-05-13] - FIX
+**Commit:** 8786c64f
+**Módulo:** agi_telegram
+- AGI Telegram Fix Completo: sys.path corregido, tabla eventos creada, async removido, Procfile apunta a agi_telegram
+
+
+## [2026-05-10] - REFACTOR
+**Commit:** 8786c64f
+**Módulo:** AGI_Voice
+- Migración de transcripción OpenAI Whisper a Groq Whisper (whisper-large-v3)
+
+
+## [2026-05-10] - FIX
+**Commit:** 8032b53e
+**Módulo:** AGI/Cerebro
+- Agente Cerebro (Bridge Event Bus -> AGI) + Real-time context + Audio Fix integration
+
+
 ## [2026-05-09] - FEAT
 **Commit:** 1512e5de
 **Módulo:** grafana

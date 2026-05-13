@@ -25,7 +25,30 @@ class EventBus:
         self.db_path = db_path
         self.suscriptores: Dict[str, List[Callable]] = {}
         self._corriendo = False
+        self._crear_tablas()
         logger.info("EventBus inicializado")
+
+    def _crear_tablas(self):
+        """Crea la tabla eventos si no existe."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS eventos (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        tipo TEXT NOT NULL,
+                        origen TEXT NOT NULL,
+                        payload TEXT,
+                        estado TEXT DEFAULT 'pendiente',
+                        procesado_en TIMESTAMP,
+                        procesado_por TEXT,
+                        intentos INTEGER DEFAULT 0
+                    )
+                """)
+                conn.commit()
+            logger.info("Tabla eventos verificada/creada en SQLite")
+        except Exception as e:
+            logger.error(f"Error creando tabla eventos: {e}")
 
     def suscribir(self, tipo_evento: str, handler: Callable):
         """Suscribe un handler a un tipo de evento."""

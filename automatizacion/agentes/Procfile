@@ -1,1 +1,1 @@
-web: gunicorn agi_whatsapp:app --bind 0.0.0.0:$PORT
+web: gunicorn agi_telegram:app --bind 0.0.0.0:$PORT
