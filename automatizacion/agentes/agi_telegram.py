@@ -203,7 +203,7 @@ def generar_audio(texto: str) -> str:
 # Identidad operativa CEO I
 ROOT_DIR = Path(__file__).resolve().parents[2]
 QUANTUM_ESTADO_PATH = ROOT_DIR / "QUANTUM_ESTADO.md"
-SYSTEM_PROMPT = """Eres el CEO I. Hablas como un ingeniero senior. Respuestas de máximo 5 líneas. Si el audio falla, responde: 'ERROR: Transcripción fallida'. No des alternativas."""
+SYSTEM_PROMPT = """Eres el CEO I. Hablas como un ingeniero senior. Respuestas de máximo 5 líneas."""
 
 
 @dataclass
@@ -900,6 +900,19 @@ else:
     raise RuntimeError("LLM Wrapper es obligatorio para AGI. Verificar instalación de agi_core/llm_wrapper.py")
 
 memoria = MemoriaSQLite()
+
+# Limpiar historial de registros con errores de transcripción que envenenan el contexto
+try:
+    conn = sqlite3.connect(memoria.db_path)
+    conn.execute("DELETE FROM conversaciones WHERE contenido LIKE '%No pude transcribir el audio%' OR contenido LIKE '%Error procesando audio%'")
+    conn.commit()
+    deleted = conn.total_changes
+    conn.close()
+    if deleted:
+        logger.info(f"Historial sanitizado: {deleted} registros tóxicos eliminados")
+except Exception as e:
+    logger.warning(f"No se pudo sanitizar historial: {e}")
+
 clasificador_intencion = ClasificadorIntencion()
 
 # AGI UPGRADE v2.0 - Inicializar módulos
@@ -1026,7 +1039,7 @@ def procesar_mensaje(message):
         # Verificar si el usuario está autorizado
         if USER_TELEGRAM_ID and user_id != USER_TELEGRAM_ID:
             logger.warning(f"Usuario no autorizado: {user_id}")
-            return "Lo siento, no estás autorizado para usar este bot."
+            return "Lo siento, no estás autorizado para usar este bot.", False
         
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
@@ -1040,42 +1053,46 @@ def procesar_mensaje(message):
                 voice_file_id = message['voice']['file_id']
                 voice_url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getFile?file_id={voice_file_id}"
                 voice_response = requests.get(voice_url).json()
-                if voice_response.get('ok'):
-                    file_path = voice_response['result']['file_path']
-                    download_url = f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{file_path}"
-                    audio_file = requests.get(download_url)
+                if not voice_response.get('ok'):
+                    guardar_en_historial(memoria.db_path, "user", "[Audio no disponible]")
+                    return "No pude procesar el audio, podés escribirme", False
                     
-                    # Guardar archivo temporal
-                    temp_dir = Path(tempfile.gettempdir())
-                    temp_path = temp_dir / f"voice_{voice_file_id}.ogg"
-                    with open(temp_path, 'wb') as f:
-                        f.write(audio_file.content)
-                    
-                    # Transcribir audio
-                    transcripcion = transcribir_audio(str(temp_path))
-                    text = transcripcion if transcripcion else "No pude transcribir el audio"
-                    
-                    # Eliminar archivo temporal
-                    os.remove(temp_path)
-                    
-                    logger.info(f"Audio transcrito: {text}")
-                else:
-                    text = "Error descargando audio"
+                file_path = voice_response['result']['file_path']
+                download_url = f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{file_path}"
+                audio_file = requests.get(download_url)
+                
+                # Guardar archivo temporal
+                temp_dir = Path(tempfile.gettempdir())
+                temp_path = temp_dir / f"voice_{voice_file_id}.ogg"
+                with open(temp_path, 'wb') as f:
+                    f.write(audio_file.content)
+                
+                # Transcribir audio
+                transcripcion = transcribir_audio(str(temp_path))
+                os.remove(temp_path)
+                
+                if not transcripcion:
+                    guardar_en_historial(memoria.db_path, "user", "[Audio no disponible]")
+                    return "No pude procesar el audio, podés escribirme", False
+                
+                text = transcripcion
+                logger.info(f"Audio transcrito: {text}")
             except Exception as e:
                 logger.error(f"Error procesando audio: {e}")
-                text = "Error procesando audio"
+                guardar_en_historial(memoria.db_path, "user", "[Audio no disponible]")
+                return "No pude procesar el audio, podés escribirme", False
         
         # Procesar video si está presente
         if 'video' in message:
             logger.info("Mensaje de video recibido")
             # TODO: Implementar procesamiento de video
-            return "AGI: Recibí tu mensaje de video. Procesamiento de video pendiente de implementación."
+            return "AGI: Recibí tu mensaje de video. Procesamiento de video pendiente de implementación.", False
         
         # Procesar imagen si está presente
         if 'photo' in message:
             logger.info("Mensaje de imagen recibido")
             # TODO: Implementar procesamiento de imagen
-            return "AGI: Recibí tu imagen. Procesamiento de imagen pendiente de implementación."
+            return "AGI: Recibí tu imagen. Procesamiento de imagen pendiente de implementación.", False
         
         # CLASIFICACIÓN DE INTENCIÓN (AGI UPGRADE v2.0)
         if new_intent_classifier:

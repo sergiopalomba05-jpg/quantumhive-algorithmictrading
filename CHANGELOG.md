@@ -2,6 +2,12 @@
 
 Todos los cambios notables del proyecto.
 ## [2026-05-13] - FIX
+**Commit:** 92a3baec
+**Módulo:** agi_telegram
+- SYSTEM_PROMPT toxico eliminado, audio fallido guarda [Audio no disponible], early returns corregidos, historial sanitizado
+
+
+## [2026-05-13] - FIX
 **Commit:** 8786c64f
 **Módulo:** agi_telegram
 - AGI Telegram Fix Completo: sys.path corregido, tabla eventos creada, async removido, Procfile apunta a agi_telegram
