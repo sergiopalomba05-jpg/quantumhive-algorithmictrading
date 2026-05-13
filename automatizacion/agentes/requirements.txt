@@ -13,6 +13,7 @@ pytz
 openai
 groq
 whisper
+google-genai
 
 # Seguridad y encriptación
 cryptography

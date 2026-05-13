@@ -203,7 +203,7 @@ def generar_audio(texto: str) -> str:
 # Identidad operativa CEO I
 ROOT_DIR = Path(__file__).resolve().parents[2]
 QUANTUM_ESTADO_PATH = ROOT_DIR / "QUANTUM_ESTADO.md"
-SYSTEM_PROMPT = """Eres el CEO I. Hablas como un ingeniero senior. Respuestas de máximo 5 líneas."""
+SYSTEM_PROMPT = """Eres el CEO I. Hablas como un ingeniero senior. Respuestas de máximo 5 líneas. Cuando el usuario te envia audio, vos tambien podes responder con audio (TTS activo)."""
 
 
 @dataclass

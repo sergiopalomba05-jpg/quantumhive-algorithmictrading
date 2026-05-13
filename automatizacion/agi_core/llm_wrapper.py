@@ -1,7 +1,7 @@
 """
 LLM Wrapper — QuantumHive AGI
-Wrapper universal para motores IA (Groq, OpenRouter, Ollama)
-Permite cambiar de motor IA sin modificar la estructura AGI ni el system prompt.
+Wrapper universal para motores IA (Groq, Gemini, OpenRouter, Ollama)
+Rotacion automatica: Groq -> Gemini -> OpenRouter -> Ollama
 """
 
 import os
@@ -14,212 +14,211 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-# Importar agente LLM Manager para cambio automático de motores
 try:
     from automatizacion.agentes.agente_llm_manager import report_llm_success, report_llm_error, get_current_llm_engine
     LLM_MANAGER_AVAILABLE = True
 except ImportError:
     LLM_MANAGER_AVAILABLE = False
-    logger.warning("Agente LLM Manager no disponible - cambio automático de motores deshabilitado")
 
-# Configuración de motores IA
-LLM_ENGINE = os.getenv('LLM_ENGINE', 'groq').lower()  # 'groq', 'openrouter', 'ollama'
-OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY', '')
+# Motores IA
+LLM_ENGINE = os.getenv('LLM_ENGINE', 'groq').lower()
 GROQ_API_KEY = os.getenv('GROQ_API_KEY', '')
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
+OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY', '')
 OLLAMA_BASE_URL = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
 
-# Modelos gratuitos recomendados
 FREE_MODELS = {
-    'openrouter': [
-        'meta-llama/llama-3.1-8b-instruct:free',
-        'mistralai/mistral-7b-instruct:free',
-        'google/gemma-7b-it:free',
-    ],
-    'groq': [
-        'llama-3.3-70b-versatile',
-        'llama-3.1-8b-instant',
-        'qwen/qwen3-32b',
-    ],
-    'ollama': [
-        'llama3:8b',
-        'mistral:7b',
-        'gemma:7b',
-    ]
+    'groq': ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'qwen/qwen3-32b'],
+    'gemini': ['gemini-2.5-flash', 'gemini-2.5-flash-lite'],
+    'openrouter': ['meta-llama/llama-3.1-8b-instruct:free', 'mistralai/mistral-7b-instruct:free', 'google/gemma-7b-it:free'],
+    'ollama': ['llama3:8b', 'mistral:7b', 'gemma:7b'],
 }
 
 
 @dataclass
 class LLMMessage:
-    """Mensaje estandarizado para cualquier motor IA."""
-    role: str  # 'user', 'assistant', 'system'
+    role: str
     content: str
 
 
 class LLMWrapper:
-    """Wrapper universal para motores IA."""
-    
     def __init__(self, engine: str = None):
-        # Forzar lectura directa de Render
         self.engine = os.getenv('LLM_ENGINE', 'groq').lower() if engine is None else engine.lower()
-        print(f"DEBUG: Engine detectado desde Render: {self.engine}")
         self.client = None
+        self.model = None
+        self.gemini_api_key = GEMINI_API_KEY
         self._inicializar_cliente()
-        
+
     def _inicializar_cliente(self):
-        """Inicializa el cliente según el motor seleccionado: Groq (Principal) → Error Real."""
-        try:
-            if self.engine == 'groq':
-                self._inicializar_groq()
-            elif self.engine == 'openrouter':
-                self._inicializar_openrouter()
-            elif self.engine == 'ollama':
-                self._inicializar_ollama()
-            else:
-                logger.warning(f"Motor IA desconocido: {self.engine}. Usando Groq como principal.")
-                self._inicializar_groq()
-        except Exception as e:
-            logger.error(f"Error inicializando motor IA {self.engine}: {e}")
-            raise RuntimeError(f"No se pudo inicializar motor LLM {self.engine}")
-    
+        engines = ['groq', 'gemini', 'openrouter', 'ollama']
+        if self.engine in engines:
+            engines = [self.engine] + [e for e in engines if e != self.engine]
+
+        for eng in engines:
+            try:
+                if eng == 'groq':
+                    self._inicializar_groq()
+                elif eng == 'gemini':
+                    self._inicializar_gemini()
+                elif eng == 'openrouter':
+                    self._inicializar_openrouter()
+                elif eng == 'ollama':
+                    self._inicializar_ollama()
+                self.engine = eng
+                return
+            except Exception as e:
+                logger.warning(f"Motor {eng} no disponible: {e}")
+                continue
+        raise RuntimeError("Ningun motor LLM disponible")
+
     def _inicializar_groq(self):
-        """Inicializa cliente Groq (motor principal - muy rápido, modelos gratuitos)."""
-        try:
-            from groq import Groq
-            if GROQ_API_KEY and len(GROQ_API_KEY) > 10:
-                self.client = Groq(api_key=GROQ_API_KEY)
-                self.engine = 'groq'
-                self.model = FREE_MODELS['groq'][0]  # Primer modelo gratuito
-                logger.info(f"✅ Motor IA: Groq ({self.model}) - GRATUITO - PRINCIPAL")
-            else:
-                raise ValueError("GROQ_API_KEY no configurada")
-        except Exception as e:
-            logger.error(f"Groq no disponible: {e}")
-            raise RuntimeError("Groq no disponible - no se pudo inicializar motor LLM")
-    
+        from groq import Groq
+        if not GROQ_API_KEY or len(GROQ_API_KEY) < 10:
+            raise ValueError("GROQ_API_KEY no configurada")
+        self.client = Groq(api_key=GROQ_API_KEY)
+        self.model = FREE_MODELS['groq'][0]
+        logger.info(f"Motor IA: Groq ({self.model}) - GRATUITO")
+
+    def _inicializar_gemini(self):
+        if not self.gemini_api_key or len(self.gemini_api_key) < 10:
+            raise ValueError("GEMINI_API_KEY no configurada")
+        self.model = FREE_MODELS['gemini'][0]
+        logger.info(f"Motor IA: Gemini ({self.model}) - GRATUITO")
+
     def _inicializar_openrouter(self):
-        """Inicializa cliente OpenRouter (motor backup - modelos gratuitos)."""
-        try:
-            from openai import OpenAI
-            if OPENROUTER_API_KEY and len(OPENROUTER_API_KEY) > 10:
-                self.client = OpenAI(
-                    api_key=OPENROUTER_API_KEY,
-                    base_url="https://openrouter.ai/api/v1"
-                )
-                self.engine = 'openrouter'
-                self.model = FREE_MODELS['openrouter'][0]  # Primer modelo gratuito
-                logger.info(f"✅ Motor IA: OpenRouter ({self.model}) - GRATUITO - BACKUP")
-            else:
-                raise ValueError("OPENROUTER_API_KEY no configurada")
-        except Exception as e:
-            logger.error(f"OpenRouter no disponible: {e}")
-            raise RuntimeError("No se pudo inicializar ningún motor LLM (Groq y OpenRouter fallaron)")
-    
+        from openai import OpenAI
+        if not OPENROUTER_API_KEY or len(OPENROUTER_API_KEY) < 10:
+            raise ValueError("OPENROUTER_API_KEY no configurada")
+        self.client = OpenAI(api_key=OPENROUTER_API_KEY, base_url="https://openrouter.ai/api/v1")
+        self.model = FREE_MODELS['openrouter'][0]
+        logger.info(f"Motor IA: OpenRouter ({self.model}) - GRATUITO")
+
     def _inicializar_ollama(self):
-        """Inicializa cliente Ollama (local, totalmente gratuito)."""
-        try:
-            from openai import OpenAI
-            self.client = OpenAI(
-                base_url=OLLAMA_BASE_URL,
-                api_key="ollama"  # Ollama no requiere API key
-            )
-            self.engine = 'ollama'
-            self.model = FREE_MODELS['ollama'][0]  # Primer modelo
-            logger.info(f"✅ Motor IA: Ollama ({self.model}) - LOCAL GRATUITO")
-        except Exception as e:
-            logger.error(f"Ollama no disponible: {e}")
-            raise RuntimeError("Ollama no disponible - no se pudo inicializar motor LLM")
-    
+        from openai import OpenAI
+        self.client = OpenAI(base_url=OLLAMA_BASE_URL, api_key="ollama")
+        self.model = FREE_MODELS['ollama'][0]
+        logger.info(f"Motor IA: Ollama ({self.model}) - LOCAL")
+
     def messages_create(self, messages: List[LLMMessage], **kwargs) -> str:
-        """
-        Envía mensajes al motor IA (Groq/OpenRouter/Ollama) y retorna la respuesta.
-        """
-        if not self.client:
-            raise RuntimeError("No hay cliente IA disponible")
-        
-        try:
-            if self.engine in ['openrouter', 'groq', 'ollama']:
-                response = self._openai_compatible_create(messages, **kwargs)
-            else:
-                raise ValueError(f"Motor no soportado: {self.engine}")
-            
-            # Reportar éxito al agente LLM Manager
-            if LLM_MANAGER_AVAILABLE:
-                report_llm_success(self.engine)
-            
-            return response
-        except Exception as e:
-            error_str = str(e)
-            is_rate_limit = 'rate limit' in error_str.lower() or '429' in error_str
-            
-            # Reportar error al agente LLM Manager
-            if LLM_MANAGER_AVAILABLE:
-                report_llm_error(self.engine, error_str, is_rate_limit=is_rate_limit)
-            
-            logger.error(f"Error en messages_create: {e}")
-            raise
-    
-    def _openai_compatible_create(self, messages: List[LLMMessage], **kwargs) -> str:
-        """Usa API compatible con OpenAI (OpenRouter, Groq, Ollama)."""
-        # Convertir LLMMessage a formato OpenAI
-        openai_messages = []
-        
+        if self.engine == 'gemini':
+            return self._gemini_create(messages, **kwargs)
+        return self._openai_compatible_create(messages, **kwargs)
+
+    def _gemini_create(self, messages: List[LLMMessage], **kwargs) -> str:
+        from google import genai
+        from google.genai import types
+
+        client = genai.Client(api_key=self.gemini_api_key)
+
+        system_text = ""
+        gemini_history = []
+
         for msg in messages:
-            openai_messages.append({
-                'role': msg.role,
-                'content': msg.content
-            })
-        
-        model = kwargs.get('model', getattr(self, 'model', 'llama3-8b-8192'))
-        
+            if msg.role == 'system':
+                system_text = msg.content
+            elif msg.role == 'user':
+                gemini_history.append({"role": "user", "text": msg.content})
+            elif msg.role == 'assistant':
+                gemini_history.append({"role": "model", "text": msg.content})
+
+        last_user = gemini_history.pop() if gemini_history else {"role": "user", "text": ""}
+
+        hist_contents = []
+        i = 0
+        while i < len(gemini_history) - 1:
+            if gemini_history[i]['role'] == 'user' and gemini_history[i+1]['role'] == 'model':
+                hist_contents.append(types.Content(
+                    role="user", parts=[types.Part.from_text(gemini_history[i]['text'])]
+                ))
+                hist_contents.append(types.Content(
+                    role="model", parts=[types.Part.from_text(gemini_history[i+1]['text'])]
+                ))
+                i += 2
+            else:
+                i += 1
+
+        model_name = kwargs.get('model', self.model)
+        config = types.GenerateContentConfig(
+            system_instruction=system_text or None,
+            max_output_tokens=kwargs.get('max_tokens', 4096),
+            temperature=kwargs.get('temperature', 0.7),
+        )
+
+        chat = client.chats.create(model=model_name, history=hist_contents, config=config)
+        response = chat.send_message(last_user['text'])
+        return response.text
+
+    def _openai_compatible_create(self, messages: List[LLMMessage], **kwargs) -> str:
+        openai_messages = [{'role': m.role, 'content': m.content} for m in messages]
+        model = kwargs.get('model', self.model or 'llama-3.3-70b-versatile')
+
         response = self.client.chat.completions.create(
             model=model,
             messages=openai_messages,
             max_tokens=kwargs.get('max_tokens', 4096),
-            temperature=kwargs.get('temperature', 0.7)
+            temperature=kwargs.get('temperature', 0.7),
         )
-        
         return response.choices[0].message.content
-    
+
+    def messages_create_with_images(self, messages: List[LLMMessage], images: List[str] = None, **kwargs) -> str:
+        """Envia mensajes con soporte de imagenes (usa Gemini si el motor no soporta vision)."""
+        if images and self.engine != 'gemini':
+            old_engine = self.engine
+            try:
+                self.engine = 'gemini'
+                return self._gemini_create_with_images(messages, images, **kwargs)
+            finally:
+                self.engine = old_engine
+        return self.messages_create(messages, **kwargs)
+
+    def _gemini_create_with_images(self, messages: List[LLMMessage], image_paths: List[str], **kwargs) -> str:
+        from google import genai
+        from google.genai import types
+
+        client = genai.Client(api_key=self.gemini_api_key)
+
+        system_text = ""
+        for msg in messages:
+            if msg.role == 'system':
+                system_text = msg.content
+
+        parts = []
+        for img_path in image_paths:
+            import PIL.Image
+            img = PIL.Image.open(img_path)
+            parts.append(img)
+
+        last_content = messages[-1].content if messages else ""
+        parts.append(last_content)
+
+        config = types.GenerateContentConfig(
+            system_instruction=system_text or None,
+            max_output_tokens=kwargs.get('max_tokens', 4096),
+        )
+
+        response = client.models.generate_content(
+            model=kwargs.get('model', self.model),
+            contents=parts,
+            config=config,
+        )
+        return response.text
+
     def cambiar_motor(self, nuevo_motor: str):
-        """Cambia el motor IA en tiempo de ejecución."""
-        logger.info(f"Cambiando motor IA de {self.engine} a {nuevo_motor}")
+        logger.info(f"Cambiando a motor: {nuevo_motor}")
         self.engine = nuevo_motor.lower()
         self._inicializar_cliente()
 
 
-# Instancia global
 llm_wrapper = LLMWrapper()
 
-# Función de compatibilidad para código existente
+
 def get_llm_client():
-    """Retorna el cliente IA configurado (compatible con código existente)."""
     return llm_wrapper.client
 
 
 def get_llm_engine():
-    """Retorna el motor IA actual."""
     return llm_wrapper.engine
 
 
 def is_free_engine():
-    """Verifica si el motor actual es gratuito."""
-    return llm_wrapper.engine in ['openrouter', 'groq', 'ollama']
-
-
-if __name__ == "__main__":
-    # Test del wrapper
-    print("=== TEST LLM WRAPPER ===")
-    print(f"Motor actual: {llm_wrapper.engine}")
-    print(f"Es gratuito: {is_free_engine()}")
-    
-    # Test de mensaje
-    test_messages = [
-        LLMMessage(role='system', content='Eres un asistente útil.'),
-        LLMMessage(role='user', content='Hola, ¿cómo estás?')
-    ]
-    
-    try:
-        respuesta = llm_wrapper.messages_create(test_messages)
-        print(f"\nRespuesta: {respuesta}")
-    except Exception as e:
-        print(f"\nError en test: {e}")
+    return llm_wrapper.engine in ['groq', 'gemini', 'openrouter', 'ollama']

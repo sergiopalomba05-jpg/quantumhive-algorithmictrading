@@ -1,6 +1,12 @@
 # CHANGELOG
 
 Todos los cambios notables del proyecto.
+## [2026-05-13] - FEAT
+**Commit:** b041bcbe
+**Módulo:** agi_core
+- Gemini como motor en LLM Wrapper (Groq -> Gemini -> OpenRouter -> Ollama) + agi_local.py CLI con archivos e imagenes + SYSTEM_PROMPT dice que AGI puede responder con audio
+
+
 ## [2026-05-13] - FIX
 **Commit:** 843957ea
 **Módulo:** agi_telegram
