@@ -1,6 +1,48 @@
 # CHANGELOG
 
 Todos los cambios notables del proyecto.
+## [2026-05-14] - FEAT
+**Commit:** 8c7090b2
+**Módulo:** goat_btc
+- G.O.A.T PROTOCOL BTC/USD v1.0 - agente de analisis BTC en tiempo real con Binance WebSocket, BB 30/3.0, CVD real, ADX, scoring 0-100, clasificador rebote/surfeo, terminal rich, Event Bus + SQLite
+
+
+## [2026-05-13] - FEAT
+**Commit:** 3b6dd925
+**Módulo:** agi_telegram, agi_desktop
+- Audio largo: SYSTEM_PROMPT sin limite de lineas + max_tokens 1024 a 4096 para audios de 1-3 min
+
+
+## [2026-05-13] - FIX
+**Commit:** f5fb9f45
+**Módulo:** agi_telegram, agi_desktop
+- Audio invisible para el LLM: SYSTEM_PROMPT sin mencion de audio + sin prefijo, todo el audio es transparente en codigo
+
+
+## [2026-05-13] - FIX
+**Commit:** b75ce735
+**Módulo:** agi_telegram, agi_desktop
+- Audio: SYSTEM_PROMPT mas directo + prefijo [RESPUESTA POR VOZ AUTOMATICA] + timeout 30s para sendVoice
+
+
+## [2026-05-13] - FIX
+**Commit:** 1d0a6cc3
+**Módulo:** agi_telegram, agi_desktop
+- Audio: solo audio cuando envian voz (sin texto duplicado) + AGI Desktop con contexto completo (Event Bus, GitHub Memory, Agente Cerebro, v2)
+
+
+## [2026-05-13] - FIX
+**Commit:** 869e1a6c
+**Módulo:** agi_telegram, agi_desktop
+- SYSTEM_PROMPT sin prefijo [TIPO] + instruccion explicita de audio/vision
+
+
+## [2026-05-13] - FEAT
+**Commit:** a1c60b7a
+**Módulo:** agi_telegram, agi_desktop
+- Imagenes en AGI Telegram (Gemini vision) + AGI Desktop (Gradio) + SYSTEM_PROMPT actualizado
+
+
 ## [2026-05-13] - FEAT
 **Commit:** b041bcbe
 **Módulo:** agi_core
