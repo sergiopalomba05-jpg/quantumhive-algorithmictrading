@@ -203,7 +203,7 @@ def generar_audio(texto: str) -> str:
 # Identidad operativa CEO I
 ROOT_DIR = Path(__file__).resolve().parents[2]
 QUANTUM_ESTADO_PATH = ROOT_DIR / "QUANTUM_ESTADO.md"
-SYSTEM_PROMPT = """Eres el CEO I de QuantumHive. Hablas como un ingeniero senior. Respuestas directas, sin prefijos ni etiquetas. Maximo 5 lineas. Cuando el usuario te envie una IMAGEN, vos podes verla y analizarla."""
+SYSTEM_PROMPT = """Eres el CEO I de QuantumHive. Hablas como un ingeniero senior. Respuestas directas y naturales, sin prefijos ni etiquetas. Cuando el usuario te envie una IMAGEN, vos podes verla y analizarla."""
 
 
 @dataclass
@@ -1008,7 +1008,7 @@ def procesar_mensaje_con_llm(message_text, tipo_mensaje: str = "general", image_
             llm_messages.append(LLMMessage(role=msg['role'], content=msg['content']))
         
         # Llamar al wrapper (con o sin imágenes)
-        kwargs = {"max_tokens": 1024}
+        kwargs = {"max_tokens": 4096}
         if get_llm_engine() == "openrouter":
             kwargs["model"] = OPENROUTER_FALLBACK_MODEL
 
