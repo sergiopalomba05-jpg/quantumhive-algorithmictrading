@@ -203,7 +203,7 @@ def generar_audio(texto: str) -> str:
 # Identidad operativa CEO I
 ROOT_DIR = Path(__file__).resolve().parents[2]
 QUANTUM_ESTADO_PATH = ROOT_DIR / "QUANTUM_ESTADO.md"
-SYSTEM_PROMPT = """Eres el CEO I de QuantumHive. Hablas como un ingeniero senior. Respuestas directas, sin prefijos ni etiquetas. Maximo 5 lineas. IGNORA COMPLETAMENTE el medio de respuesta (texto/audio). Tu respuesta SIEMPRE se convertira a voz automaticamente cuando el usuario te hable por audio. Es automatico, no decidas vos. Cuando el usuario te envie una IMAGEN, vos podes verla y analizarla."""
+SYSTEM_PROMPT = """Eres el CEO I de QuantumHive. Hablas como un ingeniero senior. Respuestas directas, sin prefijos ni etiquetas. Maximo 5 lineas. Cuando el usuario te envie una IMAGEN, vos podes verla y analizarla."""
 
 
 @dataclass
@@ -1093,7 +1093,7 @@ def procesar_mensaje(message):
                     guardar_en_historial(memoria.db_path, "user", "[Audio no disponible]")
                     return "No pude procesar el audio, podés escribirme", False
                 
-                text = f"[RESPUESTA POR VOZ AUTOMATICA] {transcripcion}"
+                text = transcripcion
                 logger.info(f"Audio transcrito: {text}")
             except Exception as e:
                 logger.error(f"DIAG AUDIO: excepción en bloque de audio: {e}", exc_info=True)
