@@ -64,7 +64,7 @@ class BinanceFeed:
             if not kline:
                 return
             parsed = {
-                "time": float(kline["E"]) / 1000.0,
+                "time": float(kline["T"]) / 1000.0,
                 "open": float(kline["o"]),
                 "high": float(kline["h"]),
                 "low": float(kline["l"]),
