@@ -21,7 +21,7 @@ except ImportError:
     LLM_MANAGER_AVAILABLE = False
 
 # Motores IA
-LLM_ENGINE = os.getenv('LLM_ENGINE', 'groq').lower()
+LLM_ENGINE = os.getenv('LLM_ENGINE', 'gemini').lower()
 GROQ_API_KEY = os.getenv('GROQ_API_KEY', '')
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
 OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY', '')
@@ -43,7 +43,7 @@ class LLMMessage:
 
 class LLMWrapper:
     def __init__(self, engine: str = None):
-        self.engine = os.getenv('LLM_ENGINE', 'groq').lower() if engine is None else engine.lower()
+        self.engine = os.getenv('LLM_ENGINE', 'gemini').lower() if engine is None else engine.lower()
         self.client = None
         self.model = None
         self.gemini_api_key = GEMINI_API_KEY
@@ -100,9 +100,32 @@ class LLMWrapper:
         logger.info(f"Motor IA: Ollama ({self.model}) - LOCAL")
 
     def messages_create(self, messages: List[LLMMessage], **kwargs) -> str:
-        if self.engine == 'gemini':
-            return self._gemini_create(messages, **kwargs)
-        return self._openai_compatible_create(messages, **kwargs)
+        engines = ['groq', 'gemini', 'openrouter', 'ollama']
+        start_idx = engines.index(self.engine) if self.engine in engines else 0
+        last_error = None
+
+        for i in range(len(engines)):
+            idx = (start_idx + i) % len(engines)
+            eng = engines[idx]
+
+            if eng != self.engine:
+                try:
+                    logger.warning(f"Rotando motor: {self.engine} -> {eng}")
+                    self.cambiar_motor(eng)
+                except Exception as e:
+                    last_error = e
+                    continue
+
+            try:
+                if eng == 'gemini':
+                    return self._gemini_create(messages, **kwargs)
+                return self._openai_compatible_create(messages, **kwargs)
+            except Exception as e:
+                last_error = e
+                logger.warning(f"Motor {eng} falló: {e}")
+                continue
+
+        raise last_error or RuntimeError("Ningun motor LLM disponible")
 
     def _gemini_create(self, messages: List[LLMMessage], **kwargs) -> str:
         from google import genai

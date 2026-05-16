@@ -46,14 +46,25 @@ def _request(method: str, endpoint: str, params: dict = None, signed: bool = Fal
         params['timestamp'] = int(time.time() * 1000)
         query_string = '&'.join([f"{k}={v}" for k, v in sorted(params.items())])
         params['signature'] = _firmar(query_string)
+    logger.info(f"Request {method} {url} params={ {k:v for k,v in params.items() if k != 'signature'} }")
     try:
         if method == 'GET':
             resp = requests.get(url, headers=headers, params=params, timeout=10)
         else:
             resp = requests.post(url, headers=headers, params=params, timeout=10)
+        logger.info(f"Response {method} {endpoint}: status={resp.status_code}")
         if resp.status_code == 200:
             return resp.json()
-        logger.error(f"Error {method} {endpoint}: {resp.status_code} {resp.text}")
+        logger.error(f"Error {method} {endpoint}: {resp.status_code} {resp.text[:500]}")
+        logger.error(f"Request URL: {url}")
+        logger.error(f"Request params (sin signature): { {k:v for k,v in params.items() if k != 'signature'} }")
+        logger.error(f"Headers X-MBX-APIKEY present: {bool(API_KEY)}")
+        logger.error(f"BASE_URL: {BASE_URL}")
+        return None
+    except requests.exceptions.ConnectionError as e:
+        logger.error(f"Conexión fallida {method} {endpoint}: {e}")
+        logger.error(f"  URL: {url}")
+        logger.error(f"  Verificar BASE_URL={BASE_URL} — debe ser https://testnet.binancefuture.com")
         return None
     except Exception as e:
         logger.error(f"Excepción {method} {endpoint}: {e}")
@@ -61,7 +72,13 @@ def _request(method: str, endpoint: str, params: dict = None, signed: bool = Fal
 
 
 def set_leverage(symbol: str = SYMBOL, leverage: int = LEVERAGE):
-    return _request('POST', '/fapi/v1/leverage', {'symbol': symbol, 'leverage': leverage}, signed=True)
+    logger.info(f"set_leverage() llamada: symbol={symbol}, leverage={leverage}")
+    result = _request('POST', '/fapi/v1/leverage', {'symbol': symbol, 'leverage': leverage}, signed=True)
+    if result:
+        logger.info(f"Leverage configurado: {result}")
+    else:
+        logger.error(f"Fallo configurando leverage {leverage} para {symbol}")
+    return result
 
 
 def get_precio_actual(symbol: str = SYMBOL) -> float:
@@ -98,22 +115,40 @@ def ejecutar_orden(side: str, precio: float = None, symbol: str = SYMBOL):
         logger.info(f"[SIMULACIÓN] {side} {symbol} @ {precio}")
         return {"orderId": f"sim_{int(time.time())}", "status": "SIMULATED", "side": side, "symbol": symbol}
 
+    logger.info(f"ejecutar_orden() llamada: side={side}, precio={precio}, symbol={symbol}")
+    logger.info(f"BINANCE_TESTNET={BINANCE_TESTNET}, BASE_URL={BASE_URL}")
+    logger.info(f"API_KEY present: {bool(API_KEY)}, SECRET_KEY present: {bool(SECRET_KEY)}")
+    logger.info(f"AMOUNT_USDT={AMOUNT_USDT}, LEVERAGE={LEVERAGE}")
+
     qty = _calcular_cantidad(side, precio or get_precio_actual(symbol))
+    logger.info(f"Cantidad calculada: {qty}")
+
+    side_up = side.upper()
+    if side_up not in ('BUY', 'SELL', 'LONG', 'SHORT'):
+        logger.error(f"Side inválido: {side}. Debe ser BUY/SELL o LONG/SHORT")
+        return None
+
+    # Normalizar side para Binance Futures
+    binance_side = 'BUY' if side_up in ('BUY', 'LONG') else 'SELL'
     params = {
         'symbol': symbol,
-        'side': side.upper(),
+        'side': binance_side,
         'type': 'MARKET',
         'quantity': qty,
-        'reduceOnly': 'false',
     }
-    if side.upper() == 'SELL':
+    if side_up in ('SELL', 'SHORT'):
         params['positionSide'] = 'SHORT'
+    elif side_up in ('BUY', 'LONG'):
+        params['positionSide'] = 'LONG'
+
+    logger.info(f"Enviando orden: {params}")
 
     result = _request('POST', '/fapi/v1/order', params, signed=True)
     if result:
-        logger.info(f"Orden ejecutada: {side} {qty} {symbol} @ mercado")
+        logger.info(f"Orden EJECUTADA exitosamente: {result}")
     else:
-        logger.error(f"Fallo ejecutando orden {side}")
+        logger.error(f"Fallo ejecutando orden {side_up} — result=None")
+        logger.error(f"  symbol={symbol}, qty={qty}, side={binance_side}")
     return result
 
 
