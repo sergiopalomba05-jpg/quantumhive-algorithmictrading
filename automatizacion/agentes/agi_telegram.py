@@ -1343,6 +1343,22 @@ def enviar_senal_con_inline_keyboard(chat_id, senal_id: int, direccion: str, sco
         return None
 
 
+# ── Deduplicación de updates ────────────────────────────────────────────────
+
+_processed_updates: set = set()
+_MAX_PROCESSED_UPDATES = 1000
+
+def _check_update_id(update_id: int) -> bool:
+    """Returns True if update_id ya fue procesado (duplicado)."""
+    if update_id in _processed_updates:
+        logger.info(f"update_id {update_id} ya procesado, ignorando duplicado")
+        return True
+    _processed_updates.add(update_id)
+    if len(_processed_updates) > _MAX_PROCESSED_UPDATES:
+        _processed_updates.clear()
+    return False
+
+
 @app.route('/webhook/telegram', methods=['POST'])
 def telegram_webhook():
     """Webhook para recibir mensajes de Telegram y callbacks de inline buttons."""
@@ -1350,6 +1366,11 @@ def telegram_webhook():
         data = request.json
         if data is None:
             return jsonify({'status': 'no data'}), 200
+
+        # Deduplicación por update_id
+        update_id = data.get('update_id')
+        if update_id is not None and _check_update_id(update_id):
+            return jsonify({'status': 'duplicate', 'update_id': update_id}), 200
 
         # ── Callback Query (inline buttons) ─────────────────────
         if 'callback_query' in data:
