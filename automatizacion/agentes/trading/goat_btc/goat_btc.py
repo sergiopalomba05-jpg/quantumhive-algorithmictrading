@@ -153,6 +153,18 @@ def _calcular_deltas_velas(klines, n=5):
 # ── Autonomous execution ─────────────────────────────────────────────────────
 
 AGI_TELEGRAM_URL = os.getenv('AGI_TELEGRAM_URL', 'https://quantumhive-agi-telegram.onrender.com')
+CEREBRO_API_URL = f"http://localhost:{os.getenv('CEREBRO_PORT', '5001')}"
+
+
+def _publicar_evento_cerebro(tipo: str, payload: dict):
+    """Publica evento al Cerebro (best-effort, no bloquea)."""
+    try:
+        import requests as req
+        req.post(f"{CEREBRO_API_URL}/evento", json={
+            "tipo": tipo, "payload": payload, "origen": "goat_btc",
+        }, timeout=2)
+    except Exception:
+        pass
 
 
 def _notificar_agi(payload: dict):
@@ -188,7 +200,14 @@ def _ejecutar_senal_automatica(senal_id: int, direccion: str, score: int, precio
         logger.info(f"[SIMULACIÓN] Orden {direccion} no ejecutada (sin executor)")
         resultado_orden = {"orderId": f"sim_{int(time.time())}", "status": "SIMULATED"}
 
-    # 2. Calcular SL/TP si no vienen dados
+    # 2. Publicar evento al Cerebro
+    _publicar_evento_cerebro("senal_detectada", {
+        "direccion": direccion, "score": score, "precio": precio,
+        "confluencias": confluencias or [], "senal_id": senal_id,
+        "order_id": resultado_orden.get("orderId", "sim") if resultado_orden else "sim",
+    })
+
+    # 3. Calcular SL/TP si no vienen dados
     if sl is None or tp is None:
         try:
             from .core.binance_executor import calcular_sl_tp
@@ -252,6 +271,16 @@ def _on_cierre_posicion(resultado: dict, senal_id: int, direccion: str, precio_e
         "precio_cierre": resultado['precio_cierre'],
         "pnl_usdt": resultado['pnl_usdt'],
         "pnl_pct": resultado.get('pnl_pct', 0),
+        "duracion_minutos": resultado['duracion_minutos'],
+        "tipo_salida": resultado.get('tipo_salida', ''),
+    })
+
+    # Publicar evento de cierre al Cerebro
+    _publicar_evento_cerebro("posicion_cerrada", {
+        "senal_id": senal_id, "direccion": direccion,
+        "precio_entrada": precio_entrada,
+        "precio_cierre": resultado['precio_cierre'],
+        "pnl_usdt": resultado['pnl_usdt'],
         "duracion_minutos": resultado['duracion_minutos'],
         "tipo_salida": resultado.get('tipo_salida', ''),
     })

@@ -853,7 +853,20 @@ def construir_mensaje_sistema(db_conn, tipo_mensaje: str) -> str:
     if contexto_dinamico:
         partes.append(f"\n\n---\n## ESTADO ACTUAL DEL SISTEMA\n{contexto_dinamico}")
     
-    # Novedades de la Colmena en tiempo real (Agente Cerebro)
+    # Contexto enriquecido vía Cerebro HTTP API (servicio separado puerto 5001)
+    CEREBRO_PORT = os.getenv('CEREBRO_PORT', '5001')
+    CEREBRO_API_URL = f"http://localhost:{CEREBRO_PORT}/contexto_agi"
+    try:
+        import requests as _req
+        _resp = _req.get(CEREBRO_API_URL, timeout=2)
+        if _resp.status_code == 200:
+            _ctx = _resp.json().get('contexto', '')
+            if _ctx:
+                partes.append(f"\n\n---\n## ESTADO DEL SISTEMA (CEREBRO API)\n{_ctx}")
+    except Exception:
+        pass
+
+    # Novedades de la Colmena en tiempo real (Agente Cerebro — fallback directo)
     if CEREBRO_DISPONIBLE and agente_cerebro:
         try:
             briefing = agente_cerebro.generar_briefing_para_agi()
