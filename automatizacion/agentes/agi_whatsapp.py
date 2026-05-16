@@ -40,6 +40,7 @@ import sys
 import json
 import logging
 import sqlite3
+import requests
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, List
@@ -95,6 +96,8 @@ Tus funciones:
 — Guardás todo en memoria persistente SQLite
 — SIEMPRE preguntás a Sergio antes de ejecutar cualquier acción directa
 — NUNCA filtrás ni ejecutás acciones directamente con la Colmena sin aprobación de Sergio
+— NUNCA inventés precios de mercado. El precio real viene del Cerebro (puerto 5001).
+  Si el Cerebro no responde, decí: "No tengo datos en tiempo real ahora."
 
 Formato de respuesta:
 — Máximo 3 líneas para respuestas cotidianas
@@ -407,6 +410,19 @@ class AGIWhatsApp:
         except Exception as e:
             logger.error(f"Error al cargar CONTEXTO_MAESTRO.md: {e}")
             return ""
+
+    def _obtener_contexto_cerebro(self) -> Optional[str]:
+        """Obtiene contexto en tiempo real del Cerebro vía API interna."""
+        try:
+            cerebro_port = os.getenv('CEREBRO_PORT', '5001')
+            url = f"http://localhost:{cerebro_port}/contexto_agi"
+            resp = requests.get(url, timeout=2)
+            if resp.status_code == 200:
+                ctx = resp.json().get('contexto', '')
+                return ctx if ctx else None
+            return None
+        except Exception:
+            return None
     
     def _verificar_usuario_autorizado(self, sender_phone: str) -> bool:
         """Verifica si el remitente está autorizado."""
@@ -676,13 +692,11 @@ class AGIWhatsApp:
         return respuesta
     
     def _reportar_estado(self) -> str:
-        """Reporta estado actual de la empresa."""
-        return """Estado empresa:
-• Bot unificado v3.3 entrenando en Kaggle
-• 11 Macrodivisiones operativas
-• 132 agentes registrados
-• Dashboard v3 con navegación jerárquica
-• Próximo paso: exportar modelo ONNX"""
+        """Reporta estado actual de la empresa usando datos reales del Cerebro."""
+        contexto_cerebro = self._obtener_contexto_cerebro()
+        if contexto_cerebro:
+            return contexto_cerebro
+        return "No tengo datos en tiempo real ahora. El Cerebro no está disponible."
     
     def _procesar_urgencia(self, contenido: str) -> str:
         """Procesa mensaje marcado como urgente."""
