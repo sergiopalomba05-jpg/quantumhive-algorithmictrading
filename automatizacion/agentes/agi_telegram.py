@@ -203,7 +203,40 @@ def generar_audio(texto: str) -> str:
 # Identidad operativa CEO I
 ROOT_DIR = Path(__file__).resolve().parents[2]
 QUANTUM_ESTADO_PATH = ROOT_DIR / "QUANTUM_ESTADO.md"
-SYSTEM_PROMPT = """Eres el CEO I de QuantumHive. Hablas como un ingeniero senior. Respuestas directas y naturales, sin prefijos ni etiquetas. Cuando el usuario te envie una IMAGEN, vos podes verla y analizarla."""
+SYSTEM_PROMPT = """
+═══ PROTOCOLO DE HONESTIDAD ABSOLUTA ═══
+
+REGLAS QUE NUNCA PODÉS VIOLAR:
+
+1. CAPACIDADES REALES: Solo podés hacer lo que tenés implementado.
+   Si no tenés la función, decí exactamente:
+   "No tengo esa capacidad todavía. Necesita ser construida por el Arquitecto."
+
+2. NUNCA INVENTES:
+   - Interacciones con Cascade o cualquier otro agente
+   - Confirmaciones de tareas que no ejecutaste
+   - Estados de sistemas que no podés verificar
+   - Tiempos de resolución de problemas
+
+3. ERRORES Y PROBLEMAS: Si detectás un error que no podés resolver, decí:
+   "Detecto un problema: [descripción exacta]. No puedo resolverlo solo.
+   Necesitás pasárselo al Arquitecto manualmente."
+
+4. CONEXIONES REALES QUE TENÉS:
+   - Podés recibir señales de goat_btc via API interna ✅
+   - Podés responder mensajes de Telegram ✅
+   - Podés acceder a tu memoria en GitHub y Supabase ✅
+
+5. CONEXIONES QUE NO TENÉS:
+   - NO podés comunicarte con Cascade directamente ❌
+   - NO podés ver si Cascade está trabajando ❌
+   - NO podés ejecutar código ni modificar archivos ❌
+   - NO podés acceder a MT5 ni a plataformas externas ❌
+
+RECORDÁ: Un "no sé" honesto vale infinito más que una respuesta inventada.
+═══════════════════════════════════════════
+
+Eres el CEO I de QuantumHive. Hablas como un ingeniero senior. Respuestas directas y naturales, sin prefijos ni etiquetas. Cuando el usuario te envie una IMAGEN, vos podes verla y analizarla."""
 
 
 @dataclass
@@ -1147,6 +1180,21 @@ def procesar_mensaje(message):
                 heartbeat_monitor.update_heartbeat("AGI_Telegram")
             except Exception as e:
                 logger.error(f"Error actualizando heartbeat: {e}")
+
+        # ── Comando /estado ────────────────────────────────────
+        if text.strip().lower() == '/estado':
+            logger.info("Comando /estado recibido, respondiendo con estado real")
+            return _generar_estado_sistema(), usuario_envio_audio
+
+        # ── Detección de capacidades inexistentes ─────────────
+        if _detectar_capacidad_inexistente(text):
+            logger.warning(f"Consulta de capacidad inexistente detectada: {text}")
+            return (
+                "No tengo conexión directa con Cascade ni puedo modificar código.\n\n"
+                "Lo que podés hacer: copiar este error y pasárselo al Arquitecto en Windsurf.\n"
+                "¿Querés que te ayude a redactar el mensaje para Cascade?",
+                usuario_envio_audio,
+            )
         
         # Procesar mensaje con LLM Wrapper para inteligencia real con contexto dinámico
         if image_paths:
@@ -1298,6 +1346,90 @@ def _actualizar_goat_pendiente(pendiente_id: int, status: str, respuesta: str = 
     )
     conn.commit()
     conn.close()
+
+
+# ── Helper: estado real del sistema ─────────────────────────────────────────
+
+PATRONES_CAPACIDAD_INEXISTENTE = [
+    "avisale a cascade", "decile al arquitecto", "comunicate con",
+    "podés arreglar", "arreglá el", "modificá el código",
+    "hablá con cascade", "pedile a cascade",
+]
+
+
+def _verificar_llm() -> bool:
+    return llm_client is not None and LLM_WRAPPER_AVAILABLE
+
+
+def _verificar_github() -> bool:
+    return github_memory is not None and GITHUB_MEMORY_AVAILABLE
+
+
+def _verificar_supabase() -> bool:
+    return supabase_memory is not None
+
+
+def _verificar_conexion_goat() -> str:
+    """Consulta última señal recibida de goat_btc como proxy de estado."""
+    try:
+        conn = sqlite3.connect(memoria.db_path)
+        row = conn.execute(
+            "SELECT timestamp_envio, direccion, score, status FROM goat_pendientes ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        conn.close()
+        if row:
+            ts, direccion, score, status = row
+            return f"✅ Recibida: {direccion} Score:{score} Status:{status} ({ts})"
+        return "⏳ Sin señales registradas aún"
+    except Exception:
+        return "⏳ Sin señales registradas aún"
+
+
+def _obtener_ultima_senal() -> str:
+    try:
+        conn = sqlite3.connect(memoria.db_path)
+        row = conn.execute(
+            "SELECT timestamp_envio, direccion, score FROM goat_pendientes ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        conn.close()
+        if row:
+            ts, direccion, score = row
+            return f"{direccion} Score:{score} — {ts[:19]}"
+        return "Ninguna"
+    except Exception:
+        return "Ninguna"
+
+
+def _detectar_capacidad_inexistente(texto: str) -> bool:
+    return any(patron in texto.lower() for patron in PATRONES_CAPACIDAD_INEXISTENTE)
+
+
+def _generar_estado_sistema() -> str:
+    estado_gemini = "✅ Gemini activo" if _verificar_llm() else "❌ Sin LLM"
+    estado_github = "✅ Conectado" if _verificar_github() else "❌ Error 401"
+    estado_supabase = "✅ Conectado" if _verificar_supabase() else "❌ Desconectado"
+    estado_goat = _verificar_conexion_goat()
+    ultima_senal = _obtener_ultima_senal()
+
+    return f"""
+🔍 ESTADO REAL DEL SISTEMA — {datetime.now().strftime('%H:%M')}
+
+🤖 AGI Core
+├── LLM: {estado_gemini}
+├── GitHub Memory: {estado_github}
+└── Supabase: {estado_supabase}
+
+📊 goat_btc
+├── {estado_goat}
+└── Última señal: {ultima_senal}
+
+🏗️ Arquitecto (Cascade)
+└── ❌ Sin conexión directa — comunicación solo via Sergio
+
+📍 Infraestructura
+├── Servidor: Render Free (se duerme 15 min sin actividad)
+└── VPS Oracle: ⏳ Pendiente acceso
+"""
 
 
 def enviar_senal_con_inline_keyboard(chat_id, senal_id: int, direccion: str, score: int,
