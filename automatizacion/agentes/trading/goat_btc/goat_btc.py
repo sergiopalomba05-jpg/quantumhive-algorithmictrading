@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 from typing import Optional
 from collections import deque
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
@@ -73,6 +74,25 @@ try:
     from .conversacion.claude_chat import ChatBTC
 except ImportError:
     from trading.goat_btc.conversacion.claude_chat import ChatBTC
+
+# ── AGI Telegram client ─────────────────────────────────────────────────────
+
+AGI_TELEGRAM_URL = os.getenv('AGI_TELEGRAM_URL', 'https://quantumhive-agi-telegram.onrender.com')
+AGI_TELEGRAM_TIMEOUT = 180  # 3 minutos máximo esperando confirmación
+
+# ── Binance Executor ────────────────────────────────────────────────────────
+
+BINANCE_EXECUTOR_AVAILABLE = False
+binance_executor = None
+try:
+    from .core.binance_executor import (
+        ejecutar_orden, cerrar_posicion, get_posicion_activa,
+        get_balance, set_leverage, BINANCE_TESTNET,
+    )
+    BINANCE_EXECUTOR_AVAILABLE = True
+    logger.info(f"Binance Executor disponible (Testnet: {BINANCE_TESTNET})")
+except Exception as e:
+    logger.warning(f"Binance Executor no disponible: {e}")
 
 # ── Event Bus ────────────────────────────────────────────────────────────────
 
@@ -133,6 +153,55 @@ def _calcular_deltas_velas(klines, n=5):
         )
         deltas.append(delta)
     return deltas
+
+
+# ── AGI Telegram helpers ────────────────────────────────────────────────────
+
+def _enviar_senal_a_agi(senal_id: int, direccion: str, score: int, precio: float,
+                        clasificacion: str = "", confluencias: list = None) -> Optional[int]:
+    """Envía señal a AGI Telegram, devuelve pendiente_id o None si falla."""
+    try:
+        import requests as req
+        payload = {
+            "senal_id": senal_id,
+            "direccion": direccion,
+            "score": score,
+            "precio": precio,
+            "clasificacion": clasificacion,
+            "confluencias": confluencias or [],
+        }
+        resp = req.post(f"{AGI_TELEGRAM_URL}/goat/senal", json=payload, timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
+            logger.info(f"Señal {senal_id} enviada a AGI Telegram, pendiente_id={data.get('pendiente_id')}")
+            return data.get('pendiente_id')
+        logger.warning(f"AGI Telegram respondió {resp.status_code}: {resp.text}")
+        return None
+    except Exception as e:
+        logger.warning(f"Error enviando señal a AGI Telegram: {e}")
+        return None
+
+
+def _esperar_confirmacion_agi(pendiente_id: int, timeout: int = AGI_TELEGRAM_TIMEOUT) -> str:
+    """Espera confirmación de AGI Telegram hasta timeout. Devuelve status."""
+    try:
+        import requests as req
+        import time as _time
+        inicio = _time.time()
+        while _time.time() - inicio < timeout:
+            resp = req.get(f"{AGI_TELEGRAM_URL}/goat/senal/{pendiente_id}/status", timeout=5)
+            if resp.status_code == 200:
+                data = resp.json()
+                status = data.get('status', 'pendiente')
+                if status != 'pendiente':
+                    logger.info(f"AGI confirmación recibida: {status}")
+                    return status
+            _time.sleep(3)
+        logger.info(f"AGI timeout {timeout}s para pendiente_id={pendiente_id}")
+        return 'expirada'
+    except Exception as e:
+        logger.warning(f"Error esperando confirmación AGI: {e}")
+        return 'error'
 
 
 # ── Signal handler ───────────────────────────────────────────────────────────
@@ -305,6 +374,11 @@ def _main_processing():
             except Exception:
                 resultado_score = {"score": 0, "direccion": None, "confluencias": [], "es_alerta": False}
 
+            # ── Score (must be before raz_lines to avoid NameError) ─
+            score = resultado_score.get("score", 0)
+            bloquear = clasificacion.get("bloquear_senal", True)
+            direccion = resultado_score.get("direccion")
+
             # ── Build terminal data ───────────────────────────────
             regimen_h1 = clasificar_bbw(bbw_h1) if bbw_h1 else "\u2014"
             regimen_m15 = clasificar_bbw(bbw_m15) if bbw_m15 else "\u2014"
@@ -353,16 +427,52 @@ def _main_processing():
                 "vol_relativo": vol_relativo,
             }
 
+            # ── Reasoning lines ────────────────────────────────────
+            raz_lines = []
+            if bb_media_m15:
+                raz_lines.append(f"Analizando BB 30/3.0 en M15 — Sup: ${bb_sup_m15:,.0f} Med: ${bb_media_m15:,.0f} Inf: ${bb_inf_m15:,.0f}")
+            raz_lines.append(f"CVD acumulado: {cvd_largo:+,d} {'— presion compradora' if cvd_largo > 0 else '— presion vendedora' if cvd_largo < 0 else '— neutral'}")
+            raz_lines.append(f"ADX {adx_m15:.1f} — {'tendencia fuerte activa' if adx_m15 > 25 else 'sin tendencia clara' if adx_m15 < 20 else 'tendencia debil'}")
+            if clasificacion.get("clasificacion") == "surfeo":
+                raz_lines.append("Clasificando regimen: TENDENCIA — rebotes bloqueados")
+            elif clasificacion.get("clasificacion") == "rebote":
+                raz_lines.append("Clasificando regimen: RANGO — rebotes habilitados")
+            else:
+                raz_lines.append("Clasificando regimen: modo conservador — esperando confirmacion")
+            if resultado_score.get("es_alerta"):
+                raz_lines.append(f"Senal detectada: {resultado_score.get('direccion', 'N/A')} | Score: {resultado_score['score']}/100")
+            else:
+                raz_lines.append("Monitoreando M1 para cambio de momentum...")
+                if score > 0 and score < 65:
+                    raz_lines.append(f"Score parcial: {score} — esperando convergencia de factores")
+            for rl in raz_lines:
+                terminal.agregar_razonamiento(rl)
+
             # ── Update terminal ───────────────────────────────────
             try:
-                terminal.actualizar(macro_data, regimen_data, flujo_data)
+                senales_hoy = 0
+                try:
+                    stats = senales_db.obtener_estadisticas()
+                    senales_hoy = stats.get("total_senales", 0)
+                except Exception:
+                    pass
+                header_data = {
+                    "precio": precio,
+                    "cambio_24h": 0.0,
+                    "regimen": regimen_m15,
+                }
+                status_data = {
+                    "precio": precio,
+                    "cvd_largo": cvd_largo,
+                    "adx": adx_m15,
+                    "regimen": regimen_m15.upper(),
+                    "senales_hoy": senales_hoy,
+                }
+                terminal.actualizar(macro_data, regimen_data, flujo_data, status_data=status_data, header_data=header_data)
             except Exception:
                 pass
 
             # ── Signal detection ──────────────────────────────────
-            score = resultado_score.get("score", 0)
-            bloquear = clasificacion.get("bloquear_senal", True)
-            direccion = resultado_score.get("direccion")
 
             if score >= 65 and direccion and not bloquear:
                 ahora = time.time()
@@ -428,73 +538,129 @@ def _main_processing():
                     except Exception as e:
                         logger.warning(f"Error guardando señal: {e}")
 
-                    # ── Confirmation mode ──────────────────────────
-                    print(f"\n{'='*50}")
-                    print(f"\u26a1 SEÑAL {direccion_up} | Score: {score}/100")
-                    print(f"Precio: ${precio:,.0f}")
-                    print(f"BB Inf: ${bb_inf_m5:,.0f}" if bb_inf_m5 else "BB Inf: N/A")
-                    print(f"BB Sup: ${bb_sup_m5:,.0f}" if bb_sup_m5 else "BB Sup: N/A")
-                    print(f"Clasificación: {clasificacion.get('clasificacion', '')}")
-                    print(f"Confianza: {clasificacion.get('confianza', 0):.1%}")
-                    print(f"Confluencias: {', '.join(resultado_score.get('confluencias', []))}")
-                    print(f"{'='*50}")
-                    print("[S] Confirmar señal | [N] Saltar | [texto] Preguntar a IA")
+                    # ── AGI Telegram confirmation ──────────────────
+                    pendiente_id = _enviar_senal_a_agi(
+                        senal_id, direccion_up, score, precio,
+                        clasificacion.get("clasificacion", ""),
+                        resultado_score.get("confluencias", []),
+                    )
 
-                    entrada = terminal.esperar_input().strip()
+                    if pendiente_id is not None:
+                        print(f"\n⚡ Señal {direccion_up} enviada a Telegram — esperando confirmación...")
+                        resultado_agi = _esperar_confirmacion_agi(pendiente_id)
 
-                    if entrada.upper() == "S":
-                        logger.info(f"Señal CONFIRMADA por trader: {direccion_up} @ {precio}")
-                        try:
-                            if senal_id:
-                                senales_db.actualizar_resultado(senal_id, "confirmada", "Confirmada por trader")
-                        except Exception:
-                            pass
-                    elif entrada.upper() == "N":
-                        logger.info(f"Señal SALTADA por trader: {direccion_up} @ {precio}")
-                        try:
-                            if senal_id:
-                                senales_db.actualizar_resultado(senal_id, "saltada", "Saltada por trader")
-                        except Exception:
-                            pass
-                    else:
-                        if entrada and chat_btc is not None and chat_btc.disponible:
+                        if resultado_agi == 'ejecutada':
+                            print(f"✅ Señal CONFIRMADA por Telegram: {direccion_up} @ ${precio:,.0f}")
+                            logger.info(f"Señal CONFIRMADA vía AGI: {direccion_up} @ {precio}")
                             try:
-                                snapshot_mercado = {
-                                    "precio": precio,
-                                    "bb_superior": bb_sup_m5,
-                                    "bb_media": bb_media_m5,
-                                    "bb_inferior": bb_inf_m5,
-                                    "bbw": bbw_m15,
-                                    "adx_m15": adx_m15,
-                                    "cvd_corto": cvd_corto,
-                                    "cvd_largo": cvd_largo,
-                                    "regimen": regimen_m15,
-                                    "ultima_senal": f"{direccion_up} Score:{score}",
-                                    "score": score,
-                                    "clasificacion": clasificacion.get("clasificacion", ""),
-                                    "confluencias": resultado_score.get("confluencias", []),
-                                    "vol_relativo": vol_relativo,
-                                    "imbalance_book": imbalance,
-                                    "delta_vela": delta_ultima,
-                                    "historial_reciente": [],
-                                }
-                                respuesta = chat_btc.preguntar(entrada, snapshot_mercado)
-                                terminal.agregar_mensaje(entrada, respuesta)
-                                logger.info(f"IA responde: {respuesta}")
-                            except Exception as e:
-                                logger.warning(f"Error consultando IA: {e}")
-                                terminal.agregar_mensaje(entrada, "Error al consultar IA")
-                        elif entrada:
-                            terminal.agregar_mensaje(entrada, "ChatBTC no disponible")
-
-                        if senal_id:
-                            try:
-                                senales_db.actualizar_resultado(
-                                    senal_id, "pendiente",
-                                    f"Input trader: {entrada[:100]}"
-                                )
+                                if senal_id:
+                                    senales_db.actualizar_resultado_agi(senal_id, "confirmada", "✅ Confirmada vía Telegram")
                             except Exception:
                                 pass
+
+                            # Ejecutar orden si binance_executor disponible
+                            if BINANCE_EXECUTOR_AVAILABLE:
+                                try:
+                                    set_leverage()
+                                    resultado_orden = ejecutar_orden(direccion_up, precio)
+                                    logger.info(f"Orden ejecutada: {resultado_orden}")
+                                except Exception as e:
+                                    logger.warning(f"Error ejecutando orden: {e}")
+                            else:
+                                logger.info(f"[SIMULACIÓN] Orden {direccion_up} no ejecutada (sin executor)")
+
+                        elif resultado_agi == 'rechazada':
+                            print(f"❌ Señal RECHAZADA por Telegram: {direccion_up} @ ${precio:,.0f}")
+                            logger.info(f"Señal RECHAZADA vía AGI: {direccion_up} @ {precio}")
+                            try:
+                                if senal_id:
+                                    senales_db.actualizar_resultado_agi(senal_id, "saltada", "❌ Rechazada vía Telegram")
+                            except Exception:
+                                pass
+
+                        else:
+                            print(f"⏰ Timeout — señal {direccion_up} simulada para tracking")
+                            logger.info(f"Señal expirada (timeout): {direccion_up} @ {precio}")
+                            try:
+                                if senal_id:
+                                    senales_db.actualizar_resultado_agi(senal_id, "no_ejecutada", "⏰ Timeout AGI")
+                            except Exception:
+                                pass
+
+                    else:
+                        # ── Fallback: terminal input ────────────────
+                        print(f"\n{'='*50}")
+                        print(f"\u26a1 SEÑAL {direccion_up} | Score: {score}/100")
+                        print(f"Precio: ${precio:,.0f}")
+                        print(f"BB Inf: ${bb_inf_m5:,.0f}" if bb_inf_m5 else "BB Inf: N/A")
+                        print(f"BB Sup: ${bb_sup_m5:,.0f}" if bb_sup_m5 else "BB Sup: N/A")
+                        print(f"Clasificación: {clasificacion.get('clasificacion', '')}")
+                        print(f"Confianza: {clasificacion.get('confianza', 0):.1%}")
+                        print(f"Confluencias: {', '.join(resultado_score.get('confluencias', []))}")
+                        print(f"{'='*50}")
+                        print("[S] Confirmar señal | [N] Saltar | [texto] Preguntar a IA")
+
+                        entrada = terminal.esperar_input().strip()
+
+                        if entrada.upper() == "S":
+                            logger.info(f"Señal CONFIRMADA por trader: {direccion_up} @ {precio}")
+                            try:
+                                if senal_id:
+                                    senales_db.actualizar_resultado(senal_id, "confirmada", "Confirmada por trader")
+                            except Exception:
+                                pass
+                            if BINANCE_EXECUTOR_AVAILABLE:
+                                try:
+                                    set_leverage()
+                                    ejecutar_orden(direccion_up, precio)
+                                except Exception as e:
+                                    logger.warning(f"Error ejecutando orden: {e}")
+                        elif entrada.upper() == "N":
+                            logger.info(f"Señal SALTADA por trader: {direccion_up} @ {precio}")
+                            try:
+                                if senal_id:
+                                    senales_db.actualizar_resultado(senal_id, "saltada", "Saltada por trader")
+                            except Exception:
+                                pass
+                        else:
+                            if entrada and chat_btc is not None and chat_btc.disponible:
+                                try:
+                                    snapshot_mercado = {
+                                        "precio": precio,
+                                        "bb_superior": bb_sup_m5,
+                                        "bb_media": bb_media_m5,
+                                        "bb_inferior": bb_inf_m5,
+                                        "bbw": bbw_m15,
+                                        "adx_m15": adx_m15,
+                                        "cvd_corto": cvd_corto,
+                                        "cvd_largo": cvd_largo,
+                                        "regimen": regimen_m15,
+                                        "ultima_senal": f"{direccion_up} Score:{score}",
+                                        "score": score,
+                                        "clasificacion": clasificacion.get("clasificacion", ""),
+                                        "confluencias": resultado_score.get("confluencias", []),
+                                        "vol_relativo": vol_relativo,
+                                        "imbalance_book": imbalance,
+                                        "delta_vela": delta_ultima,
+                                        "historial_reciente": [],
+                                    }
+                                    respuesta = chat_btc.preguntar(entrada, snapshot_mercado)
+                                    terminal.agregar_mensaje(entrada, respuesta)
+                                    logger.info(f"IA responde: {respuesta}")
+                                except Exception as e:
+                                    logger.warning(f"Error consultando IA: {e}")
+                                    terminal.agregar_mensaje(entrada, "Error al consultar IA")
+                            elif entrada:
+                                terminal.agregar_mensaje(entrada, "ChatBTC no disponible")
+
+                            if senal_id:
+                                try:
+                                    senales_db.actualizar_resultado(
+                                        senal_id, "pendiente",
+                                        f"Input trader: {entrada[:100]}"
+                                    )
+                                except Exception:
+                                    pass
 
         except Exception as e:
             logger.warning(f"Error en ciclo principal: {e}", exc_info=True)

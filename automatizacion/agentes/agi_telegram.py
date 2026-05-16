@@ -888,13 +888,7 @@ def _construir_contexto_realidad(texto: str, tipo_mensaje: str) -> str:
 if LLM_WRAPPER_AVAILABLE and llm_wrapper:
     llm_client = llm_wrapper
     USE_WRAPPER = True
-    # Forzar Groq como motor primario en runtime, independientemente del env.
-    try:
-        llm_client.cambiar_motor("groq")
-    except Exception as e:
-        logger.error(f"No se pudo forzar motor Groq: {e}")
-        raise RuntimeError("Groq es obligatorio para AGI Telegram")
-    logger.info(f"✅ LLM Wrapper activo - Motor: {get_llm_engine()} - Gratis: {is_free_engine()}")
+    logger.info(f"LLM Wrapper activo - Motor inicial: {get_llm_engine()} - Gratis: {is_free_engine()}")
 else:
     logger.error("❌ LLM Wrapper no disponible - AGI no puede funcionar sin wrapper")
     raise RuntimeError("LLM Wrapper es obligatorio para AGI. Verificar instalación de agi_core/llm_wrapper.py")
@@ -1239,40 +1233,202 @@ def enviar_mensaje_telegram(chat_id, text, enviar_audio: bool = False):
         logger.error(f"Error enviando mensaje: {e}")
         return False
 
+
+# ── GOAT Trading Signal helpers ──────────────────────────────────────────────
+
+def _init_goat_table():
+    """Crea tabla de señales pendientes de GOAT en memoria SQLite."""
+    try:
+        conn = sqlite3.connect(memoria.db_path)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS goat_pendientes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                senal_id INTEGER,
+                direccion TEXT,
+                score INTEGER,
+                precio REAL,
+                timestamp_envio TEXT,
+                chat_message_id INTEGER,
+                status TEXT DEFAULT 'pendiente',
+                respuesta TEXT,
+                timestamp_respuesta TEXT
+            )
+        """)
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logger.error(f"Error creando tabla goat_pendientes: {e}")
+
+
+def _guardar_goat_pendiente(senal_id: int, direccion: str, score: int, precio: float,
+                            chat_message_id: int) -> int:
+    conn = sqlite3.connect(memoria.db_path)
+    cursor = conn.execute(
+        """INSERT INTO goat_pendientes
+           (senal_id, direccion, score, precio, timestamp_envio, chat_message_id, status)
+           VALUES (?, ?, ?, ?, ?, ?, 'pendiente')""",
+        (senal_id, direccion, score, precio,
+         datetime.now().isoformat(), chat_message_id),
+    )
+    conn.commit()
+    row_id = cursor.lastrowid
+    conn.close()
+    return row_id
+
+
+def _obtener_goat_pendiente(pendiente_id: int) -> Optional[dict]:
+    conn = sqlite3.connect(memoria.db_path)
+    conn.row_factory = sqlite3.Row
+    row = conn.execute(
+        "SELECT * FROM goat_pendientes WHERE id = ?", (pendiente_id,)
+    ).fetchone()
+    conn.close()
+    if row:
+        return dict(row)
+    return None
+
+
+def _actualizar_goat_pendiente(pendiente_id: int, status: str, respuesta: str = ""):
+    conn = sqlite3.connect(memoria.db_path)
+    conn.execute(
+        """UPDATE goat_pendientes
+           SET status = ?, respuesta = ?, timestamp_respuesta = ?
+           WHERE id = ?""",
+        (status, respuesta, datetime.now().isoformat(), pendiente_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def enviar_senal_con_inline_keyboard(chat_id, senal_id: int, direccion: str, score: int,
+                                     precio: float, clasificacion: str = "",
+                                     confluencias: list = None) -> Optional[int]:
+    """Envía señal de trading con inline buttons ✅/❌ y devuelve chat_message_id."""
+    try:
+        emoji = "🟢" if direccion.upper() == "LONG" else "🔴"
+        confluencias_str = ", ".join(confluencias) if confluencias else "Ninguna"
+        text = (
+            f"<b>⚡ SEÑAL DE TRADING ⚡</b>\n\n"
+            f"{emoji} <b>{direccion.upper()}</b>\n"
+            f"💰 Precio: ${precio:,.0f}\n"
+            f"📊 Score: {score}/100\n"
+            f"📋 Clasificación: {clasificacion or 'N/A'}\n"
+            f"🔍 Confluencias: {confluencias_str}\n\n"
+            f"<i>¿Ejecutar esta señal?</i>"
+        )
+        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+        payload = {
+            'chat_id': chat_id,
+            'text': text,
+            'parse_mode': 'HTML',
+            'reply_markup': {
+                'inline_keyboard': [
+                    [
+                        {'text': '✅ Confirmar', 'callback_data': f"goat_ok_{senal_id}"},
+                        {'text': '❌ Rechazar', 'callback_data': f"goat_no_{senal_id}"},
+                    ]
+                ]
+            }
+        }
+        response = requests.post(url, json=payload, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            message_id = data['result']['message_id']
+            logger.info(f"Señal {senal_id} enviada a chat {chat_id}, msg_id={message_id}")
+            return message_id
+        logger.error(f"Error enviando señal: {response.text}")
+        return None
+    except Exception as e:
+        logger.error(f"Error enviando señal inline: {e}")
+        return None
+
+
 @app.route('/webhook/telegram', methods=['POST'])
 def telegram_webhook():
-    """Webhook para recibir mensajes de Telegram."""
-    logger.info(f"DIAG WEBHOOK: POST recibido en /webhook/telegram, content_type={request.content_type}, content_length={request.content_length}")
+    """Webhook para recibir mensajes de Telegram y callbacks de inline buttons."""
     try:
         data = request.json
-        logger.info(f"DIAG WEBHOOK: payload completo={json.dumps(data, default=str, ensure_ascii=False)}")
-        
         if data is None:
-            logger.error("DIAG WEBHOOK: request.json es None — cuerpo vacío o no JSON")
             return jsonify({'status': 'no data'}), 200
-        
-        logger.info(f"DIAG WEBHOOK: keys de data={list(data.keys())}")
-        
+
+        # ── Callback Query (inline buttons) ─────────────────────
+        if 'callback_query' in data:
+            cq = data['callback_query']
+            callback_data = cq.get('data', '')
+            chat_id = cq['message']['chat']['id']
+            message_id = cq['message']['message_id']
+            user_id = str(cq['from']['id'])
+
+            # Solo el admin (USER_TELEGRAM_ID) puede responder
+            if USER_TELEGRAM_ID and user_id != USER_TELEGRAM_ID:
+                logger.warning(f"Callback ignorado: user_id={user_id} no es admin")
+                url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/answerCallbackQuery"
+                requests.post(url, json={
+                    'callback_query_id': cq['id'],
+                    'text': 'No autorizado. Solo el admin puede confirmar señales.',
+                    'show_alert': True,
+                }, timeout=5)
+                return jsonify({'status': 'unauthorized'}), 200
+
+            # Procesar callback: goat_ok_<senal_id> o goat_no_<senal_id>
+            if callback_data.startswith('goat_ok_') or callback_data.startswith('goat_no_'):
+                accion = 'ok' if callback_data.startswith('goat_ok_') else 'no'
+                try:
+                    senal_id = int(callback_data.split('_')[-1])
+                except (ValueError, IndexError):
+                    logger.error(f"Callback data inválida: {callback_data}")
+                    return jsonify({'status': 'invalid'}), 200
+
+                status_final = 'ejecutada' if accion == 'ok' else 'rechazada'
+                texto_respuesta = '✅ Señal CONFIRMADA' if accion == 'ok' else '❌ Señal RECHAZADA'
+
+                # Actualizar goat_pendientes en SQLite local
+                conn = sqlite3.connect(memoria.db_path)
+                conn.execute(
+                    """UPDATE goat_pendientes
+                       SET status = ?, respuesta = ?, timestamp_respuesta = ?
+                       WHERE senal_id = ?""",
+                    (status_final, texto_respuesta, datetime.now().isoformat(), senal_id),
+                )
+                conn.commit()
+                conn.close()
+
+                logger.info(f"GOAT señal {senal_id}: {status_final} por admin")
+
+                # Editar mensaje original para reflejar respuesta
+                edit_url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/editMessageText"
+                edit_payload = {
+                    'chat_id': chat_id,
+                    'message_id': message_id,
+                    'text': f"{texto_respuesta}\n\nSeñal #{senal_id}",
+                    'parse_mode': 'HTML',
+                }
+                requests.post(edit_url, json=edit_payload, timeout=5)
+
+                # Responder callback (quita el reloj de carga)
+                answer_url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/answerCallbackQuery"
+                requests.post(answer_url, json={
+                    'callback_query_id': cq['id'],
+                    'text': texto_respuesta,
+                }, timeout=5)
+
+                return jsonify({'status': 'ok', 'senal_id': senal_id, 'accion': accion}), 200
+
+            logger.info(f"Callback query ignorado: {callback_data}")
+            return jsonify({'status': 'ignored'}), 200
+
+        # ── Message ─────────────────────────────────────────────
         if 'message' in data:
             message = data['message']
-            logger.info(f"DIAG WEBHOOK: keys de message={list(message.keys())}")
-            logger.info(f"DIAG WEBHOOK: tiene_texto={'text' in message} | tiene_voice={'voice' in message} | tiene_photo={'photo' in message} | tiene_video={'video' in message}")
-            
             chat_id = message['chat']['id']
-            
-            # Procesar mensaje y detectar si usuario envió audio
             respuesta, usuario_envio_audio = procesar_mensaje(message)
-            
-            # Enviar respuesta con audio solo si usuario envió audio (respuesta simétrica)
             enviar_mensaje_telegram(chat_id, respuesta, enviar_audio=usuario_envio_audio)
-            
             return jsonify({'status': 'ok'}), 200
-        
-        logger.info(f"DIAG WEBHOOK: payload no contiene 'message', ignorando")
+
         return jsonify({'status': 'no message'}), 200
-        
+
     except Exception as e:
-        logger.error(f"DIAG WEBHOOK: excepción: {e}", exc_info=True)
+        logger.error(f"WEBHOOK excepción: {e}", exc_info=True)
         return jsonify({'status': 'error'}), 500
 
 @app.route('/', methods=['GET'])
@@ -1315,6 +1471,80 @@ def set_webhook():
             
     except Exception as e:
         logger.error(f"Error configurando webhook: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+# ── GOAT Trading Signal Endpoints ────────────────────────────────────────────
+
+_goat_pendientes_lock = threading.Lock()
+
+@app.route('/goat/senal', methods=['POST'])
+def recibir_senal_goat():
+    """Recibe señal de GOAT BTC y la reenvía al admin con inline buttons."""
+    try:
+        data = request.json
+        if not data:
+            return jsonify({'error': 'payload vacío'}), 400
+
+        senal_id = data.get('senal_id')
+        direccion = data.get('direccion', '')
+        score = data.get('score', 0)
+        precio = data.get('precio', 0)
+        clasificacion = data.get('clasificacion', '')
+        confluencias = data.get('confluencias', [])
+
+        if not senal_id or not direccion:
+            return jsonify({'error': 'senal_id y direccion requeridos'}), 400
+
+        if not USER_TELEGRAM_ID:
+            logger.error("USER_TELEGRAM_ID no configurado, no se puede enviar señal")
+            return jsonify({'error': 'admin chat_id no configurado'}), 500
+
+        _init_goat_table()
+
+        message_id = enviar_senal_con_inline_keyboard(
+            USER_TELEGRAM_ID, senal_id, direccion, score, precio,
+            clasificacion, confluencias,
+        )
+        if message_id is None:
+            return jsonify({'error': 'fallo al enviar mensaje Telegram'}), 500
+
+        pendiente_id = _guardar_goat_pendiente(
+            senal_id, direccion, score, precio, message_id,
+        )
+
+        return jsonify({
+            'status': 'enviada',
+            'pendiente_id': pendiente_id,
+            'senal_id': senal_id,
+            'message_id': message_id,
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error en /goat/senal: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/goat/senal/<int:pendiente_id>/status', methods=['GET'])
+def status_senal_goat(pendiente_id: int):
+    """Endpoint para que GOAT BTC consulte el estado de una señal enviada."""
+    try:
+        _init_goat_table()
+        pendiente = _obtener_goat_pendiente(pendiente_id)
+        if pendiente is None:
+            return jsonify({'error': 'pendiente_id no encontrado'}), 404
+
+        return jsonify({
+            'pendiente_id': pendiente['id'],
+            'senal_id': pendiente['senal_id'],
+            'status': pendiente['status'],
+            'respuesta': pendiente['respuesta'] or '',
+            'timestamp_envio': pendiente['timestamp_envio'],
+            'timestamp_respuesta': pendiente['timestamp_respuesta'] or '',
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error en /goat/senal/status: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 
@@ -1584,5 +1814,6 @@ if __name__ == '__main__':
     logger.info(f"Telegram Token: {TELEGRAM_TOKEN[:10]}..." if TELEGRAM_TOKEN else "Telegram Token: NO CONFIGURADO")
     logger.info(f"User Telegram ID: {USER_TELEGRAM_ID}" if USER_TELEGRAM_ID else "User Telegram ID: NO CONFIGURADO")
     logger.info(f"Motor LLM actual: {get_llm_engine()}")
+    _init_goat_table()
     
     app.run(host='0.0.0.0', port=5000, debug=True)

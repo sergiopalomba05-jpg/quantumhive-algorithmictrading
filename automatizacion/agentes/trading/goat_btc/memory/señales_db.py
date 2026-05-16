@@ -106,6 +106,35 @@ class SeñalesDB:
                 result.append(d)
             return result
 
+    def actualizar_resultado_agi(self, senal_id: int, resultado: str, comentario: str = ""):
+        """Actualiza resultado desde confirmación AGI Telegram."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                """UPDATE goat_señales
+                   SET resultado = ?, comentario_trader = ?
+                   WHERE id = ?""",
+                (resultado, comentario, senal_id),
+            )
+            conn.commit()
+            logger.info(f"Resultado AGI ID {senal_id}: {resultado}")
+
+    def obtener_pendiente_agi(self, senal_id: int) -> Optional[dict]:
+        """Obtiene una señal pendiente de confirmación AGI."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            row = conn.execute(
+                "SELECT * FROM goat_señales WHERE id = ?", (senal_id,)
+            ).fetchone()
+            if row is None:
+                return None
+            d = dict(row)
+            if d.get("confluencias"):
+                try:
+                    d["confluencias"] = json.loads(d["confluencias"])
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            return d
+
     def obtener_estadisticas(self) -> dict:
         with sqlite3.connect(self.db_path) as conn:
             total = conn.execute("SELECT COUNT(*) FROM goat_señales").fetchone()[0]
