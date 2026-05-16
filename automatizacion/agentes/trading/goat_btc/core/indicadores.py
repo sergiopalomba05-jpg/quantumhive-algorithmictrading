@@ -200,6 +200,29 @@ def calcular_imbalance_book(bids: list, asks: list, top_n: int = 10) -> float:
     return (bid_vol - ask_vol) / total
 
 
+def calcular_atr(highs: list, lows: list, closes: list, periodo: int = 14) -> float:
+    """Calcula ATR (Average True Range) de Wilder.
+    TR = max(high - low, abs(high - prev_close), abs(low - prev_close))
+    ATR = EMA suavizada de TR con periodo 14.
+    Retorna 0.0 si no hay suficientes datos.
+    """
+    if not highs or not lows or not closes:
+        return 0.0
+    n = len(closes)
+    if n < periodo + 1:
+        return 0.0
+    tr_values = []
+    for i in range(1, n):
+        tr = max(highs[i] - lows[i], abs(highs[i] - closes[i-1]), abs(lows[i] - closes[i-1]))
+        tr_values.append(tr)
+    if not tr_values:
+        return 0.0
+    atr = sum(tr_values[:periodo]) / periodo
+    for tr in tr_values[periodo:]:
+        atr = (atr * (periodo - 1) + tr) / periodo
+    return atr
+
+
 def clasificar_imbalance(imbalance: float) -> str:
     """Clasifica el imbalance del libro.
     > 0.3 -> presion_compradora

@@ -56,6 +56,17 @@ except ImportError:
     from trading.goat_btc.core.scorer import calcular_score
 
 try:
+    from .core.signal_engine import (
+        calcular_score_scalper, verificar_bloqueos, SCORE_MINIMO_ENTRADA,
+        SCORE_MINIMO_CALIDAD, SCALPER_CONFIG, BLOQUEOS_SCALPER,
+    )
+except ImportError:
+    from trading.goat_btc.core.signal_engine import (
+        calcular_score_scalper, verificar_bloqueos, SCORE_MINIMO_ENTRADA,
+        SCORE_MINIMO_CALIDAD, SCALPER_CONFIG, BLOQUEOS_SCALPER,
+    )
+
+try:
     from .core.terminal_ui import TerminalUI
 except ImportError:
     from trading.goat_btc.core.terminal_ui import TerminalUI
@@ -79,15 +90,38 @@ except ImportError:
 
 BINANCE_EXECUTOR_AVAILABLE = False
 binance_executor = None
+_ejecutar_orden = None
+_cerrar_posicion = None
+_get_posicion_activa = None
+_get_balance = None
+_set_leverage = None
+_BINANCE_TESTNET = False
+_calcular_sl_tp = None
+_monitorear_sl_tp = None
+_get_precio_actual = None
 try:
     from .core.binance_executor import (
-        ejecutar_orden, cerrar_posicion, get_posicion_activa,
-        get_balance, set_leverage, BINANCE_TESTNET,
+        ejecutar_orden as _ejecutar_orden, cerrar_posicion as _cerrar_posicion,
+        get_posicion_activa as _get_posicion_activa, get_balance as _get_balance,
+        set_leverage as _set_leverage, BINANCE_TESTNET as _BINANCE_TESTNET,
+        calcular_sl_tp as _calcular_sl_tp, monitorear_sl_tp as _monitorear_sl_tp,
+        get_precio_actual as _get_precio_actual,
     )
     BINANCE_EXECUTOR_AVAILABLE = True
-    logger.info(f"Binance Executor disponible (Testnet: {BINANCE_TESTNET})")
-except Exception as e:
-    logger.warning(f"Binance Executor no disponible: {e}")
+    logger.info(f"Binance Executor disponible (Testnet: {_BINANCE_TESTNET})")
+except ImportError:
+    try:
+        from trading.goat_btc.core.binance_executor import (
+            ejecutar_orden as _ejecutar_orden, cerrar_posicion as _cerrar_posicion,
+            get_posicion_activa as _get_posicion_activa, get_balance as _get_balance,
+            set_leverage as _set_leverage, BINANCE_TESTNET as _BINANCE_TESTNET,
+            calcular_sl_tp as _calcular_sl_tp, monitorear_sl_tp as _monitorear_sl_tp,
+            get_precio_actual as _get_precio_actual,
+        )
+        BINANCE_EXECUTOR_AVAILABLE = True
+        logger.info(f"Binance Executor disponible (Testnet: {_BINANCE_TESTNET})")
+    except Exception as e:
+        logger.warning(f"Binance Executor no disponible: {e}")
 
 # ── Event Bus ────────────────────────────────────────────────────────────────
 
@@ -186,8 +220,8 @@ def _ejecutar_senal_automatica(senal_id: int, direccion: str, score: int, precio
     resultado_orden = None
     if BINANCE_EXECUTOR_AVAILABLE:
         try:
-            set_leverage()
-            resultado_orden = ejecutar_orden(direccion, precio)
+            _set_leverage()
+            resultado_orden = _ejecutar_orden(direccion, precio)
             logger.info(f"Orden ejecutada: {resultado_orden}")
         except Exception as e:
             logger.error(f"Error ejecutando orden #{senal_id}: {e}")
@@ -210,8 +244,7 @@ def _ejecutar_senal_automatica(senal_id: int, direccion: str, score: int, precio
     # 3. Calcular SL/TP si no vienen dados
     if sl is None or tp is None:
         try:
-            from .core.binance_executor import calcular_sl_tp
-            sl, tp = calcular_sl_tp(precio, direccion)
+            sl, tp = _calcular_sl_tp(precio, direccion)
         except Exception:
             logger.warning("No se pudieron calcular SL/TP, usando defaults")
             sl = round(precio * 0.997, 1) if direccion.upper() == 'LONG' else round(precio * 1.003, 1)
@@ -229,16 +262,17 @@ def _ejecutar_senal_automatica(senal_id: int, direccion: str, score: int, precio
         "confluencias": confluencias or [],
     })
 
-    # 4. Iniciar monitoreo de SL/TP en background
+    # 4. Iniciar monitoreo de SL/TP en background (scalper: 5s polling + breakeven)
     try:
-        from .core.binance_executor import monitorear_sl_tp
-        monitorear_sl_tp(
+        _monitorear_sl_tp(
             senal_id=senal_id,
             side=direccion,
             entry_price=precio,
             sl=sl,
             tp=tp,
             callback=lambda r: _on_cierre_posicion(r, senal_id, direccion, precio),
+            poll_interval=5,
+            breakeven_at_50pct=True,
         )
     except Exception as e:
         logger.error(f"Error iniciando monitoreo #{senal_id}: {e}")
@@ -248,8 +282,16 @@ def _on_cierre_posicion(resultado: dict, senal_id: int, direccion: str, precio_e
     """Callback cuando una posición se cierra por SL o TP."""
     logger.info(f"📩 Cierre recibido para #{senal_id}: {resultado}")
 
+    # Actualizar estado de trading scalper
+    global ESTADO_TRADING
+    ESTADO_TRADING["posicion_activa"] = False
+    pnl = resultado.get('pnl_usdt', 0)
+    ESTADO_TRADING["pnl_diario"] += pnl
+    if pnl < 0:
+        ESTADO_TRADING["perdida_diaria"] += abs(pnl)
+
     # Actualizar SQLite
-    es_ganancia = resultado.get('pnl_usdt', 0) > 0
+    es_ganancia = pnl > 0
     resultado_str = "ganadora" if es_ganancia else "perdedora"
     try:
         senales_db.actualizar_cierre(
@@ -302,13 +344,11 @@ def _recuperar_posiciones_activas():
     if not BINANCE_EXECUTOR_AVAILABLE:
         return
     try:
-        from .core.binance_executor import get_posicion_activa, get_precio_actual
-        from .core.binance_executor import monitorear_sl_tp, calcular_sl_tp
-        pos = get_posicion_activa()
+        pos = _get_posicion_activa()
         if pos:
             amt = float(pos.get('positionAmt', 0))
             if amt != 0:
-                precio_actual = get_precio_actual()
+                precio_actual = _get_precio_actual()
                 side = 'LONG' if amt > 0 else 'SHORT'
                 logger.info(f"🔄 Posición activa detectada: {side} {abs(amt)} BTC")
 
@@ -322,15 +362,29 @@ def _recuperar_posiciones_activas():
                     precio_entrada = ultima.get('precio_entrada', precio_actual)
                     logger.info(f"🔄 Reanudando monitoreo para señal #{senal_id}")
                     if sl is None or tp is None:
-                        sl, tp = calcular_sl_tp(precio_entrada, side)
-                    monitorear_sl_tp(
+                        sl, tp = _calcular_sl_tp(precio_entrada, side)
+                    _monitorear_sl_tp(
                         senal_id=senal_id, side=side,
                         entry_price=precio_entrada, sl=sl, tp=tp,
                         callback=lambda r: _on_cierre_posicion(r, senal_id, side, precio_entrada),
+                        poll_interval=5,
+                        breakeven_at_50pct=True,
                     )
     except Exception as e:
         logger.warning(f"Error recuperando posiciones: {e}")
 
+
+# ── Estado de trading scalper (global para callbacks) ────────────────────────
+
+ESTADO_TRADING = {
+    "posicion_activa": False,
+    "ultimo_trade_time": 0.0,
+    "trades_hora": 0,
+    "hora_actual": 0.0,
+    "perdida_diaria": 0.0,
+    "pnl_diario": 0.0,
+    "trades_hoy": 0,
+}
 
 # ── Signal handler ───────────────────────────────────────────────────────────
 
@@ -352,40 +406,47 @@ signal.signal(signal.SIGTERM, _signal_handler)
 
 def _main_processing():
     signal_ids = set()
-    last_signal_time = 0.0
     inicio_sesion = datetime.now(timezone.utc).isoformat()
+
+    global ESTADO_TRADING
+    ESTADO_TRADING["hora_actual"] = time.time()
 
     while not terminal.stop_event.is_set() and not _signal_received:
         try:
             # ── Get data from feed ─────────────────────────────────
             klines_1m = feed.get_klines("1m")
             klines_5m = feed.get_klines("5m")
-            klines_15m = feed.get_klines("15m")
             klines_1h = feed.get_klines("1h")
             trades = feed.get_trades()
             bids, asks = feed.get_book()
             precio = feed.get_last_price()
 
-            if precio is None or len(klines_15m) < 30 or len(klines_1h) < 30:
+            if precio is None or len(klines_1m) < 20 or len(klines_5m) < 20 or len(klines_1h) < 30:
                 time.sleep(1)
                 continue
 
             # ── Extract OHLCV ──────────────────────────────────────
-            _, highs_m15, lows_m15, closes_m15, vols_m15 = _extraer_ohlcv(klines_15m)
-            _, _, _, closes_h1, _ = _extraer_ohlcv(klines_1h)
-            _, _, _, closes_m5, vols_m5 = _extraer_ohlcv(klines_5m)
-            _, _, _, closes_m1, _ = _extraer_ohlcv(klines_1m)
+            _, highs_m5, lows_m5, closes_m5, vols_m5 = _extraer_ohlcv(klines_5m)
+            _, highs_m1, lows_m1, closes_m1, _ = _extraer_ohlcv(klines_1m)
+            _, highs_h1, lows_h1, closes_h1, _ = _extraer_ohlcv(klines_1h)
 
-            # ── Bollinger Bands ────────────────────────────────────
-            # M15
+            # ── Bollinger Bands M1 (20/2.0) ────────────────────────
             try:
-                bb_media_m15, bb_sup_m15, bb_inf_m15 = calcular_bb(closes_m15, 30, 3.0)
-                bbw_m15 = calcular_bbw(bb_media_m15, bb_sup_m15, bb_inf_m15) if bb_media_m15 else 0.0
+                bb_media_m1, bb_sup_m1, bb_inf_m1 = calcular_bb(closes_m1, 20, 2.0)
+                bbw_m1 = calcular_bbw(bb_media_m1, bb_sup_m1, bb_inf_m1) if bb_media_m1 else 0.0
             except Exception:
-                bb_media_m15 = bb_sup_m15 = bb_inf_m15 = None
-                bbw_m15 = 0.0
+                bb_media_m1 = bb_sup_m1 = bb_inf_m1 = None
+                bbw_m1 = 0.0
 
-            # H1
+            # ── Bollinger Bands M5 (20/2.0) ────────────────────────
+            try:
+                bb_media_m5, bb_sup_m5, bb_inf_m5 = calcular_bb(closes_m5, 20, 2.0)
+                bbw_m5 = calcular_bbw(bb_media_m5, bb_sup_m5, bb_inf_m5) if bb_media_m5 else 0.0
+            except Exception:
+                bb_media_m5 = bb_sup_m5 = bb_inf_m5 = None
+                bbw_m5 = 0.0
+
+            # ── Bollinger Bands H1 (30/3.0) ────────────────────────
             try:
                 bb_media_h1, bb_sup_h1, bb_inf_h1 = calcular_bb(closes_h1, 30, 3.0)
                 bbw_h1 = calcular_bbw(bb_media_h1, bb_sup_h1, bb_inf_h1) if bb_media_h1 else 0.0
@@ -393,56 +454,68 @@ def _main_processing():
                 bb_media_h1 = bb_sup_h1 = bb_inf_h1 = None
                 bbw_h1 = 0.0
 
-            # M5
+            # ── ADX M5 ──────────────────────────────────────────
             try:
-                bb_media_m5, bb_sup_m5, bb_inf_m5 = calcular_bb(closes_m5, 30, 3.0)
+                adx_m5 = calcular_adx(highs_m5, lows_m5, closes_m5, 14)
             except Exception:
-                bb_media_m5 = bb_sup_m5 = bb_inf_m5 = None
+                adx_m5 = 0.0
 
-            # M1
+            # ── ADX H1 ──────────────────────────────────────────
             try:
-                bb_media_m1, bb_sup_m1, bb_inf_m1 = calcular_bb(closes_m1, 30, 3.0)
+                adx_h1 = calcular_adx(highs_h1, lows_h1, closes_h1, 14)
             except Exception:
-                bb_media_m1 = bb_sup_m1 = bb_inf_m1 = None
+                adx_h1 = 0.0
 
-            # ── ADX M15 ──────────────────────────────────────────
-            try:
-                adx_m15 = calcular_adx(highs_m15, lows_m15, closes_m15, 14)
-            except Exception:
-                adx_m15 = 0.0
-
-            # ── CVD (Cumulative Volume Delta) ─────────────────────
+            # ── CVD ─────────────────────────────────────────────
             trades_list = list(trades)
             try:
                 cvd_largo = calcular_cvd_real(trades_list[-1000:]) if len(trades_list) >= 1000 else calcular_cvd_real(trades_list)
             except Exception:
                 cvd_largo = 0
             try:
-                cvd_medio = calcular_cvd_real(trades_list[-200:]) if len(trades_list) >= 200 else calcular_cvd_real(trades_list)
-            except Exception:
-                cvd_medio = 0
-            try:
                 cvd_corto = calcular_cvd_real(trades_list[-50:]) if len(trades_list) >= 50 else calcular_cvd_real(trades_list)
             except Exception:
                 cvd_corto = 0
 
-            # ── Delta última vela (M5) ───────────────────────────
+            # ── Delta última vela M1 ───────────────────────────
             try:
-                ultima_vela = klines_5m[-1] if klines_5m else None
-                if ultima_vela:
-                    delta_ultima = calcular_delta_vela(
-                        ultima_vela["open"], ultima_vela["high"],
-                        ultima_vela["low"], ultima_vela["close"],
-                        ultima_vela["volume"],
+                ultima_vela_m1 = klines_1m[-1] if klines_1m else None
+                if ultima_vela_m1:
+                    delta_ultima_m1 = calcular_delta_vela(
+                        ultima_vela_m1["open"], ultima_vela_m1["high"],
+                        ultima_vela_m1["low"], ultima_vela_m1["close"],
+                        ultima_vela_m1["volume"],
                     )
                 else:
-                    delta_ultima = 0.0
+                    delta_ultima_m1 = 0.0
             except Exception:
-                delta_ultima = 0.0
+                delta_ultima_m1 = 0.0
 
-            # ── Volumen relativo (M15) ───────────────────────────
+            # ── Vela rechazo M1 ──────────────────────────────
             try:
-                vol_relativo = calcular_volumen_relativo(vols_m15)
+                if ultima_vela_m1:
+                    from .core.signal_engine import _detectar_rechazo
+                    rechazo_m1 = _detectar_rechazo(
+                        ultima_vela_m1["open"], ultima_vela_m1["high"],
+                        ultima_vela_m1["low"], ultima_vela_m1["close"],
+                    )
+                else:
+                    rechazo_m1 = None
+            except ImportError:
+                from trading.goat_btc.core.signal_engine import _detectar_rechazo
+                if ultima_vela_m1:
+                    rechazo_m1 = _detectar_rechazo(
+                        ultima_vela_m1["open"], ultima_vela_m1["high"],
+                        ultima_vela_m1["low"], ultima_vela_m1["close"],
+                    )
+                else:
+                    rechazo_m1 = None
+            except Exception:
+                rechazo_m1 = None
+
+            # ── Volumen relativo (M5) ───────────────────────────
+            try:
+                vol_relativo = calcular_volumen_relativo(vols_m5)
             except Exception:
                 vol_relativo = 0.0
 
@@ -452,64 +525,59 @@ def _main_processing():
             except Exception:
                 imbalance = 0.0
 
-            # ── Velas tocando banda (últimas 5 M5) ───────────────
+            # ── Velas tocando banda M1 (últimas 3) ───────────────
             try:
-                velas_tocando, toco_sup_m5, toco_inf_m5 = _precios_tocaron_banda(
-                    klines_5m, bb_sup_m5, bb_inf_m5, 5
+                _, toco_sup_m1, toco_inf_m1 = _precios_tocaron_banda(
+                    klines_1m, bb_sup_m1, bb_inf_m1, 3
                 )
             except Exception:
-                velas_tocando = 0
-                toco_sup_m5 = False
-                toco_inf_m5 = False
+                toco_sup_m1 = False
+                toco_inf_m1 = False
 
-            # ── Últimas deltas de velas (M5) ─────────────────────
+            # ── Últimas deltas de velas M1 ─────────────────────
             try:
-                deltas_velas = _calcular_deltas_velas(klines_5m, 5)
+                deltas_velas_m1 = _calcular_deltas_velas(klines_1m, 5)
             except Exception:
-                deltas_velas = []
+                deltas_velas_m1 = []
 
-            # ── Build indicadores dict ────────────────────────────
+            # ── Build indicadores dict for M1 scalper ───────────
             indicadores_dict = {
                 "precio_actual": precio,
-                "bb_superior_m5": bb_sup_m5,
-                "bb_inferior_m5": bb_inf_m5,
-                "bb_media_m5": bb_media_m5,
-                "toco_bb_superior_m5": toco_sup_m5,
-                "toco_bb_inferior_m5": toco_inf_m5,
-                "precio_toco_superior": toco_sup_m5,
-                "precio_toco_inferior": toco_inf_m5,
-                "bbw_m15": bbw_m15,
-                "adx_m15": adx_m15,
-                "cvd_largo": cvd_largo,
-                "cvd_largo_H1": cvd_largo,
+                "bb_superior_m1": bb_sup_m1,
+                "bb_inferior_m1": bb_inf_m1,
+                "bb_media_m1": bb_media_m1,
+                "toco_bb_superior_m1": toco_sup_m1,
+                "toco_bb_inferior_m1": toco_inf_m1,
+                "bbw_m1": bbw_m1,
+                "bbw_m5": bbw_m5,
+                "adx_m5": adx_m5,
+                "adx_h1": adx_h1,
                 "cvd_corto": cvd_corto,
-                "vol_relativo": vol_relativo,
-                "vol_relativo_sostenido": vol_relativo > 1.3,
+                "cvd_largo_H1": cvd_largo,
+                "delta_ultima_vela": delta_ultima_m1,
+                "ultimas_5_deltas": deltas_velas_m1,
                 "imbalance_book": imbalance,
-                "delta_ultima_vela": delta_ultima,
-                "ultimas_5_deltas": deltas_velas,
-                "velas_tocando_banda": velas_tocando,
+                "rechazo_m1": rechazo_m1,
             }
 
-            # ── Classify and score ────────────────────────────────
+            # ── Score M1 scalper ──────────────────────────────────
             try:
-                clasificacion = clasificar_toque(indicadores_dict)
+                resultado_score = calcular_score_scalper(indicadores_dict)
             except Exception:
-                clasificacion = {"clasificacion": "error", "bloquear_senal": True, "confianza": 0.0}
+                resultado_score = {"score": 0, "direccion": None, "confluencias": [], "es_alerta": False, "es_premium": False}
 
-            try:
-                resultado_score = calcular_score(indicadores_dict, clasificacion)
-            except Exception:
-                resultado_score = {"score": 0, "direccion": None, "confluencias": [], "es_alerta": False}
-
-            # ── Score (must be before raz_lines to avoid NameError) ─
             score = resultado_score.get("score", 0)
-            bloquear = clasificacion.get("bloquear_senal", True)
             direccion = resultado_score.get("direccion")
 
+            # ── Verificar bloqueos ────────────────────────────────
+            try:
+                resultado_bloqueos = verificar_bloqueos(indicadores_dict, ESTADO_TRADING)
+            except Exception:
+                resultado_bloqueos = {"bloqueado": True, "bloqueos": ["error"], "puede_entrar": False}
+
             # ── Build terminal data ───────────────────────────────
+            regimen_m5 = clasificar_bbw(bbw_m5) if bbw_m5 else "\u2014"
             regimen_h1 = clasificar_bbw(bbw_h1) if bbw_h1 else "\u2014"
-            regimen_m15 = clasificar_bbw(bbw_m15) if bbw_m15 else "\u2014"
 
             dist_sup_h1 = ((bb_sup_h1 - precio) / precio * 100) if bb_sup_h1 and precio else 0.0
             dist_inf_h1 = ((precio - bb_inf_h1) / precio * 100) if bb_inf_h1 and precio else 0.0
@@ -528,14 +596,14 @@ def _main_processing():
 
             regimen_data = {
                 "precio": precio,
-                "bb_sup": bb_sup_m15,
-                "bb_media": bb_media_m15,
-                "bb_inf": bb_inf_m15,
-                "adx": adx_m15,
-                "bbw": bbw_m15,
-                "cvd_medio": cvd_medio,
-                "clasificacion": regimen_m15,
-                "senal_bloqueada": clasificacion.get("bloquear_senal", False),
+                "bb_sup": bb_sup_m5,
+                "bb_media": bb_media_m5,
+                "bb_inf": bb_inf_m5,
+                "adx": adx_m5,
+                "bbw": bbw_m5,
+                "cvd_medio": cvd_corto,
+                "clasificacion": regimen_m5,
+                "senal_bloqueada": resultado_bloqueos.get("bloqueado", False),
             }
 
             velas_m1 = []
@@ -553,26 +621,25 @@ def _main_processing():
                 "cvd_corto": cvd_corto,
                 "imbalance": imbalance,
                 "vol_relativo": vol_relativo,
+                "bbw_m1": bbw_m1,
             }
 
             # ── Reasoning lines ────────────────────────────────────
             raz_lines = []
-            if bb_media_m15:
-                raz_lines.append(f"Analizando BB 30/3.0 en M15 — Sup: ${bb_sup_m15:,.0f} Med: ${bb_media_m15:,.0f} Inf: ${bb_inf_m15:,.0f}")
-            raz_lines.append(f"CVD acumulado: {cvd_largo:+,d} {'— presion compradora' if cvd_largo > 0 else '— presion vendedora' if cvd_largo < 0 else '— neutral'}")
-            raz_lines.append(f"ADX {adx_m15:.1f} — {'tendencia fuerte activa' if adx_m15 > 25 else 'sin tendencia clara' if adx_m15 < 20 else 'tendencia debil'}")
-            if clasificacion.get("clasificacion") == "surfeo":
-                raz_lines.append("Clasificando regimen: TENDENCIA — rebotes bloqueados")
-            elif clasificacion.get("clasificacion") == "rebote":
-                raz_lines.append("Clasificando regimen: RANGO — rebotes habilitados")
-            else:
-                raz_lines.append("Clasificando regimen: modo conservador — esperando confirmacion")
+            if bb_media_m1:
+                raz_lines.append(f"SCALPER M1 — BB 20/2.0 Sup: ${bb_sup_m1:,.0f} Med: ${bb_media_m1:,.0f} Inf: ${bb_inf_m1:,.0f}")
+            raz_lines.append(f"BBW M1: {bbw_m1:.4f} | BBW M5: {bbw_m5:.4f} | ADX M5: {adx_m5:.1f}")
+            raz_lines.append(f"CVD corto: {cvd_corto:+,d} | CVD largo: {cvd_largo:+,d}")
+            if rechazo_m1:
+                raz_lines.append(f"Rechazo M1 detectado: {rechazo_m1}")
             if resultado_score.get("es_alerta"):
-                raz_lines.append(f"Senal detectada: {resultado_score.get('direccion', 'N/A')} | Score: {resultado_score['score']}/100")
+                raz_lines.append(f"Senal M1: {resultado_score.get('direccion', 'N/A')} | Score: {resultado_score['score']}/100")
+                if resultado_bloqueos.get("bloqueado"):
+                    raz_lines.append(f"BLOQUEADO: {', '.join(resultado_bloqueos['bloqueos'])}")
             else:
-                raz_lines.append("Monitoreando M1 para cambio de momentum...")
-                if score > 0 and score < 65:
-                    raz_lines.append(f"Score parcial: {score} — esperando convergencia de factores")
+                if score > 0:
+                    raz_lines.append(f"Score parcial M1: {score} — esperando confluencias")
+                raz_lines.append("Monitoreando M1...")
             for rl in raz_lines:
                 terminal.agregar_razonamiento(rl)
 
@@ -584,45 +651,44 @@ def _main_processing():
                     senales_hoy = stats.get("total_senales", 0)
                 except Exception:
                     pass
+
+                cooldown_restante = max(0, SCALPER_CONFIG['cooldown_entre_trades'] - (time.time() - ESTADO_TRADING["ultimo_trade_time"]))
+
                 header_data = {
                     "precio": precio,
                     "cambio_24h": 0.0,
-                    "regimen": regimen_m15,
+                    "regimen": regimen_m5,
                 }
                 status_data = {
                     "precio": precio,
                     "cvd_largo": cvd_largo,
-                    "adx": adx_m15,
-                    "regimen": regimen_m15.upper(),
+                    "adx": adx_m5,
+                    "regimen": regimen_m5.upper(),
                     "senales_hoy": senales_hoy,
+                    "trades_hoy": ESTADO_TRADING["trades_hoy"],
+                    "pnl_diario": ESTADO_TRADING["pnl_diario"],
+                    "cooldown": int(cooldown_restante),
+                    "bbw_m1": bbw_m1,
                 }
                 terminal.actualizar(macro_data, regimen_data, flujo_data, status_data=status_data, header_data=header_data)
             except Exception:
                 pass
 
-            # ── Signal detection ──────────────────────────────────
+            # ── Signal detection (M1 scalper) ─────────────────────
 
-            if score >= 65 and direccion and not bloquear:
-                ahora = time.time()
-                signal_key = f"{direccion}_{precio:.2f}"
-
-                if signal_key not in signal_ids and (ahora - last_signal_time) >= 30:
-                    signal_ids.add(signal_key)
-                    last_signal_time = ahora
-
-                    if len(signal_ids) > 1000:
-                        signal_ids.clear()
-
+            if score >= SCORE_MINIMO_ENTRADA and direccion:
+                if not resultado_bloqueos.get("bloqueado", True):
+                    ahora = time.time()
                     direccion_up = direccion.upper()
-                    logger.info(f"\u26a1 SEÑAL DETECTADA: {direccion_up} | Score: {score}/100 | Precio: ${precio:,.0f}")
+                    logger.info(f"\u26a1 SEÑAL SCALPER: {direccion_up} | Score: {score}/100 | Precio: ${precio:,.0f}")
 
                     senal_info = {
                         "tipo": direccion_up,
                         "score": score,
                         "precio": precio,
-                        "bb_inf": bb_inf_m5,
+                        "bb_inf": bb_inf_m1,
                         "confluencias": resultado_score.get("confluencias", []),
-                        "clasificacion": clasificacion.get("clasificacion", ""),
+                        "clasificacion": "scalper_m1",
                         "timestamp": datetime.now(timezone.utc).isoformat(),
                     }
                     terminal.mostrar_senal(senal_info)
@@ -637,7 +703,7 @@ def _main_processing():
                                 "score": score,
                                 "precio": precio,
                                 "timestamp": datetime.now(timezone.utc).isoformat(),
-                                "clasificacion": clasificacion.get("clasificacion", ""),
+                                "clasificacion": "scalper_m1",
                                 "confluencias": resultado_score.get("confluencias", []),
                             }
                             event_bus.publicar("señal_trading", "G.O.A.T", payload=event_data)
@@ -646,8 +712,7 @@ def _main_processing():
 
                     # Save to SQLite con SL/TP calculados
                     try:
-                        from .core.binance_executor import calcular_sl_tp
-                        _sl, _tp = calcular_sl_tp(precio, direccion)
+                        _sl, _tp = _calcular_sl_tp(precio, direccion)
                     except Exception:
                         _sl = round(precio * 0.997, 1) if direccion.upper() == 'LONG' else round(precio * 1.003, 1)
                         _tp = round(precio * 1.007, 1) if direccion.upper() == 'LONG' else round(precio * 0.993, 1)
@@ -656,14 +721,14 @@ def _main_processing():
                         "direccion": direccion,
                         "score": score,
                         "precio_entrada": precio,
-                        "bb_superior": bb_sup_m5,
-                        "bb_media": bb_media_m5,
-                        "bb_inferior": bb_inf_m5,
+                        "bb_superior": bb_sup_m1,
+                        "bb_media": bb_media_m1,
+                        "bb_inferior": bb_inf_m1,
                         "cvd_corto": cvd_corto,
                         "cvd_largo": cvd_largo,
-                        "adx": adx_m15,
-                        "bbw": bbw_m15,
-                        "clasificacion": clasificacion.get("clasificacion", ""),
+                        "adx": adx_m5,
+                        "bbw": bbw_m1,
+                        "clasificacion": "scalper_m1",
                         "confluencias": resultado_score.get("confluencias", []),
                         "sl": _sl,
                         "tp": _tp,
@@ -674,20 +739,34 @@ def _main_processing():
                     except Exception as e:
                         logger.warning(f"Error guardando señal: {e}")
 
+                    # Actualizar estado de trading
+                    ESTADO_TRADING["posicion_activa"] = True
+                    ESTADO_TRADING["ultimo_trade_time"] = ahora
+                    ESTADO_TRADING["trades_hoy"] += 1
+                    ESTADO_TRADING["trades_hora"] += 1
+
                     # ── Autonomous execution ────────────────────────
                     _ejecutar_senal_automatica(
                         senal_id=senal_id,
                         direccion=direccion_up,
                         score=score,
                         precio=precio,
-                        clasificacion=clasificacion.get("clasificacion", ""),
+                        clasificacion="scalper_m1",
                         confluencias=resultado_score.get("confluencias", []),
                     )
+                else:
+                    if resultado_bloqueos.get("bloqueos"):
+                        logger.info(f"Señal bloqueada: {', '.join(resultado_bloqueos['bloqueos'])}")
+
+            # ── Reset conteo por hora ──────────────────────────────
+            if time.time() - ESTADO_TRADING["hora_actual"] >= 3600:
+                ESTADO_TRADING["trades_hora"] = 0
+                ESTADO_TRADING["hora_actual"] = time.time()
 
         except Exception as e:
             logger.warning(f"Error en ciclo principal: {e}", exc_info=True)
 
-        time.sleep(3)
+        time.sleep(1)
 
     logger.info("Ciclo principal finalizado")
 
@@ -715,7 +794,7 @@ def ejecutar():
 if __name__ == "__main__":
     try:
         logger.info("=" * 60)
-        logger.info("G.O.A.T PROTOCOL BTC/USD v1.0 — Iniciando...")
+        logger.info("G.O.A.T PROTOCOL BTC/USD v2.0 — SCALPER M1")
         logger.info("=" * 60)
         ejecutar()
     except KeyboardInterrupt:

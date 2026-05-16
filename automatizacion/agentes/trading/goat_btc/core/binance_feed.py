@@ -2,6 +2,7 @@ import json
 import logging
 import threading
 import time
+import urllib.request
 from collections import deque
 from typing import Optional
 
@@ -13,11 +14,11 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 BASE_URL = "wss://stream.binance.com:9443/ws"
+REST_URL = "https://api.binance.com/api/v3/klines"
 
 STREAMS = {
     "btcusdt@kline_1m": "klines_1m",
     "btcusdt@kline_5m": "klines_5m",
-    "btcusdt@kline_15m": "klines_15m",
     "btcusdt@kline_1h": "klines_1h",
     "btcusdt@depth20": "depth20",
     "btcusdt@aggTrade": "aggTrade",
@@ -37,7 +38,6 @@ class BinanceFeed:
         self.buffers = {
             "klines_1m": deque(maxlen=KLINE_BUFFER_MAX),
             "klines_5m": deque(maxlen=KLINE_BUFFER_MAX),
-            "klines_15m": deque(maxlen=KLINE_BUFFER_MAX),
             "klines_1h": deque(maxlen=KLINE_BUFFER_MAX),
             "trades": deque(maxlen=TRADES_BUFFER_MAX),
             "bids": [],
@@ -113,6 +113,26 @@ class BinanceFeed:
         logger.info("[%s] WebSocket connected", stream_name)
         self._retry_counts[stream_name] = 0
 
+    def _fetch_historical_klines(self, interval: str, limit: int = 50) -> list[dict]:
+        try:
+            url = f"{REST_URL}?symbol=BTCUSDT&interval={interval}&limit={limit}"
+            resp = urllib.request.urlopen(url, timeout=10)
+            raw = json.loads(resp.read().decode())
+            parsed = []
+            for k in raw:
+                parsed.append({
+                    "time": float(k[0]) / 1000.0,
+                    "open": float(k[1]),
+                    "high": float(k[2]),
+                    "low": float(k[3]),
+                    "close": float(k[4]),
+                    "volume": float(k[5]),
+                })
+            return parsed
+        except Exception as e:
+            logger.warning("Error fetching historical klines for %s: %s", interval, e)
+            return []
+
     def iniciar(self):
         if websocket is None:
             logger.error("No WebSocket library available (websocket-client not installed)")
@@ -120,6 +140,15 @@ class BinanceFeed:
 
         self.running = True
         self.conns.clear()
+
+        logger.info("Fetching historical klines from Binance REST API...")
+        HISTORICAL_MAP = {"1m": "1m", "5m": "5m", "1h": "1h"}
+        for buf_key, interval in HISTORICAL_MAP.items():
+            historical = self._fetch_historical_klines(interval, 50)
+            key = f"klines_{buf_key}"
+            if key in self.buffers and historical:
+                self.buffers[key].extend(historical)
+                logger.info("Loaded %d historical klines for %s", len(historical), buf_key)
 
         for stream_name, buffer_key in STREAMS.items():
             url = f"{BASE_URL}/{stream_name}"

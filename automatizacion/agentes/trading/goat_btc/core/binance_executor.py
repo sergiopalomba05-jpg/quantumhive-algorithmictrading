@@ -188,15 +188,18 @@ def calcular_pnl(entry_price: float, exit_price: float, side: str, qty: float = 
 
 
 def monitorear_sl_tp(senal_id: int, side: str, entry_price: float, sl: float, tp: float,
-                     callback=None, poll_interval: int = 30):
+                     callback=None, poll_interval: int = 5, breakeven_at_50pct: bool = True):
     """
-    Monitorea precio cada `poll_interval` segundos.
+    Monitorea precio cada `poll_interval` segundos (default 5s para scalper).
     Si toca SL o TP → cierra posición y llama callback con resultado.
+    Si breakeven_at_50pct=True, mueve SL a breakeven cuando precio avanza 50% hacia TP.
     Corre en su propio thread.
     """
     def _loop():
-        logger.info(f"[{senal_id}] Monitoreando SL={sl} TP={tp} cada {poll_interval}s")
+        logger.info(f"[{senal_id}] Monitoreando SL={sl} TP={tp} cada {poll_interval}s (breakeven={breakeven_at_50pct})")
         inicio = time.time()
+        sl_actual = sl
+        breakeven_activado = False
         while True:
             time.sleep(poll_interval)
             precio = get_precio_actual()
@@ -204,7 +207,24 @@ def monitorear_sl_tp(senal_id: int, side: str, entry_price: float, sl: float, tp
                 logger.warning(f"[{senal_id}] No se pudo obtener precio, reintentando...")
                 continue
 
-            tocado_sl = (side.upper() == 'LONG' and precio <= sl) or (side.upper() == 'SHORT' and precio >= sl)
+            # ── SL dinámico: breakeven al 50% del TP ──────────────
+            if breakeven_at_50pct and not breakeven_activado:
+                if side.upper() == 'LONG':
+                    distancia_total = tp - entry_price
+                    avance = precio - entry_price
+                    if distancia_total > 0 and avance >= distancia_total * 0.5:
+                        sl_actual = entry_price
+                        breakeven_activado = True
+                        logger.info(f"[{senal_id}] Breakeven activado — SL movido a ${entry_price:,.1f}")
+                else:  # SHORT
+                    distancia_total = entry_price - tp
+                    avance = entry_price - precio
+                    if distancia_total > 0 and avance >= distancia_total * 0.5:
+                        sl_actual = entry_price
+                        breakeven_activado = True
+                        logger.info(f"[{senal_id}] Breakeven activado — SL movido a ${entry_price:,.1f}")
+
+            tocado_sl = (side.upper() == 'LONG' and precio <= sl_actual) or (side.upper() == 'SHORT' and precio >= sl_actual)
             tocado_tp = (side.upper() == 'LONG' and precio >= tp) or (side.upper() == 'SHORT' and precio <= tp)
 
             if tocado_sl or tocado_tp:
@@ -239,5 +259,5 @@ def monitorear_sl_tp(senal_id: int, side: str, entry_price: float, sl: float, tp
 
     thread = threading.Thread(target=_loop, daemon=True, name=f"monitor_{senal_id}")
     thread.start()
-    logger.info(f"[{senal_id}] Thread de monitoreo iniciado")
+    logger.info(f"[{senal_id}] Thread de monitoreo iniciado (scalper: {poll_interval}s)")
     return thread
