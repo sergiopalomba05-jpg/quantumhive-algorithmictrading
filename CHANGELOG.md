@@ -1,6 +1,30 @@
 # CHANGELOG
 
 Todos los cambios notables del proyecto.
+## [2026-05-16] - FEAT
+**Commit:** f795d74d
+**Módulo:** goat_btc
+- ninjatrader_executor.py creado — OIF files para NT8 AT Interface. goat_btc.py migrado de Binance a NT executor con monitoreo SL/TP y precio via Binance public API
+
+
+## [2026-05-16] - FIX
+**Commit:** 8966ba59
+**Módulo:** general
+- BRIEF 2: migrado testnet.binancefuture.com + actualizado test script
+
+
+## [2026-05-16] - FIX
+**Commit:** 16ad527b
+**Módulo:** general
+- BRIEF 1+2: Gemini default engine + fix ejecucion Binance Testnet + test conexion
+
+
+## [2026-05-16] - REFACTOR
+**Commit:** 5dfdb019
+**Módulo:** general
+- SCALPER M1: goat_btc migrado a M1 (20/2.0) + signal_engine.py + fix import executor + ATR + monitoreo 5s + breakeven + contador trades/P&L/cooldown
+
+
 ## [2026-05-14] - FEAT
 **Commit:** 8c7090b2
 **Módulo:** goat_btc

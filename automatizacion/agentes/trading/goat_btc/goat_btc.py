@@ -86,42 +86,40 @@ try:
 except ImportError:
     from trading.goat_btc.conversacion.claude_chat import ChatBTC
 
-# ── Binance Executor ────────────────────────────────────────────────────────
+# ── NinjaTrader Executor (OIF) ──────────────────────────────────────────────
 
-BINANCE_EXECUTOR_AVAILABLE = False
-binance_executor = None
+NT_EXECUTOR_AVAILABLE = False
 _ejecutar_orden = None
 _cerrar_posicion = None
 _get_posicion_activa = None
 _get_balance = None
 _set_leverage = None
-_BINANCE_TESTNET = False
 _calcular_sl_tp = None
 _monitorear_sl_tp = None
 _get_precio_actual = None
 try:
-    from .core.binance_executor import (
+    from .core.ninjatrader_executor import (
         ejecutar_orden as _ejecutar_orden, cerrar_posicion as _cerrar_posicion,
         get_posicion_activa as _get_posicion_activa, get_balance as _get_balance,
-        set_leverage as _set_leverage, BINANCE_TESTNET as _BINANCE_TESTNET,
+        set_leverage as _set_leverage,
         calcular_sl_tp as _calcular_sl_tp, monitorear_sl_tp as _monitorear_sl_tp,
         get_precio_actual as _get_precio_actual,
     )
-    BINANCE_EXECUTOR_AVAILABLE = True
-    logger.info(f"Binance Executor disponible (Testnet: {_BINANCE_TESTNET})")
+    NT_EXECUTOR_AVAILABLE = True
+    logger.info("NinjaTrader Executor (OIF) disponible")
 except ImportError:
     try:
-        from trading.goat_btc.core.binance_executor import (
+        from trading.goat_btc.core.ninjatrader_executor import (
             ejecutar_orden as _ejecutar_orden, cerrar_posicion as _cerrar_posicion,
             get_posicion_activa as _get_posicion_activa, get_balance as _get_balance,
-            set_leverage as _set_leverage, BINANCE_TESTNET as _BINANCE_TESTNET,
+            set_leverage as _set_leverage,
             calcular_sl_tp as _calcular_sl_tp, monitorear_sl_tp as _monitorear_sl_tp,
             get_precio_actual as _get_precio_actual,
         )
-        BINANCE_EXECUTOR_AVAILABLE = True
-        logger.info(f"Binance Executor disponible (Testnet: {_BINANCE_TESTNET})")
+        NT_EXECUTOR_AVAILABLE = True
+        logger.info("NinjaTrader Executor (OIF) disponible")
     except Exception as e:
-        logger.warning(f"Binance Executor no disponible: {e}")
+        logger.warning(f"NinjaTrader Executor no disponible: {e}")
 
 # ── Event Bus ────────────────────────────────────────────────────────────────
 
@@ -218,9 +216,8 @@ def _ejecutar_senal_automatica(senal_id: int, direccion: str, score: int, precio
 
     # 1. Ejecutar orden
     resultado_orden = None
-    if BINANCE_EXECUTOR_AVAILABLE:
+    if NT_EXECUTOR_AVAILABLE:
         try:
-            _set_leverage()
             resultado_orden = _ejecutar_orden(direccion, precio)
             logger.info(f"Orden ejecutada: {resultado_orden}")
         except Exception as e:
@@ -340,36 +337,28 @@ def _on_cierre_posicion(resultado: dict, senal_id: int, direccion: str, precio_e
 
 
 def _recuperar_posiciones_activas():
-    """Al iniciar, verifica si hay posiciones abiertas en Binance y reanuda monitoreo."""
-    if not BINANCE_EXECUTOR_AVAILABLE:
-        return
+    """Recupera señales activas desde SQLite y reanuda monitoreo."""
     try:
-        pos = _get_posicion_activa()
-        if pos:
-            amt = float(pos.get('positionAmt', 0))
-            if amt != 0:
-                precio_actual = _get_precio_actual()
-                side = 'LONG' if amt > 0 else 'SHORT'
-                logger.info(f"🔄 Posición activa detectada: {side} {abs(amt)} BTC")
-
-                # Buscar la última señal ejecutada sin cierre
-                activas = senales_db.obtener_ejecutadas_activas()
-                if activas:
-                    ultima = activas[0]
-                    senal_id = ultima['id']
-                    sl = ultima.get('sl')
-                    tp = ultima.get('tp')
-                    precio_entrada = ultima.get('precio_entrada', precio_actual)
-                    logger.info(f"🔄 Reanudando monitoreo para señal #{senal_id}")
-                    if sl is None or tp is None:
-                        sl, tp = _calcular_sl_tp(precio_entrada, side)
-                    _monitorear_sl_tp(
-                        senal_id=senal_id, side=side,
-                        entry_price=precio_entrada, sl=sl, tp=tp,
-                        callback=lambda r: _on_cierre_posicion(r, senal_id, side, precio_entrada),
-                        poll_interval=5,
-                        breakeven_at_50pct=True,
-                    )
+        activas = senales_db.obtener_ejecutadas_activas()
+        if activas:
+            ultima = activas[0]
+            senal_id = ultima['id']
+            side = ultima.get('direccion', 'LONG').upper()
+            precio_entrada = ultima.get('precio_entrada', 0)
+            sl = ultima.get('sl')
+            tp = ultima.get('tp')
+            logger.info(f"Señal activa detectada en SQLite: #{senal_id} {side}")
+            if precio_entrada == 0:
+                precio_entrada = _get_precio_actual()
+            if sl is None or tp is None:
+                sl, tp = _calcular_sl_tp(precio_entrada, side)
+            _monitorear_sl_tp(
+                senal_id=senal_id, side=side,
+                entry_price=precio_entrada, sl=sl, tp=tp,
+                callback=lambda r: _on_cierre_posicion(r, senal_id, side, precio_entrada),
+                poll_interval=5,
+                breakeven_at_50pct=True,
+            )
     except Exception as e:
         logger.warning(f"Error recuperando posiciones: {e}")
 
