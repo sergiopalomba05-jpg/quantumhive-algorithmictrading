@@ -10,6 +10,7 @@ import hmac
 import json
 import time
 import logging
+import threading
 import requests
 from decimal import Decimal, ROUND_DOWN
 from dotenv import load_dotenv
@@ -158,3 +159,85 @@ def get_balance() -> float:
             if asset['asset'] == 'USDT':
                 return float(asset['walletBalance'])
     return 0.0
+
+
+# ── SL/TP Monitoring ────────────────────────────────────────────────────────
+
+def calcular_sl_tp(entry_price: float, side: str) -> tuple:
+    """Calcula SL y TP basado en porcentaje. LONG: SL -0.3%, TP +0.7%."""
+    if side.upper() == 'LONG':
+        sl = round(entry_price * 0.997, 1)
+        tp = round(entry_price * 1.007, 1)
+    else:
+        sl = round(entry_price * 1.003, 1)
+        tp = round(entry_price * 0.993, 1)
+    return sl, tp
+
+
+def calcular_pnl(entry_price: float, exit_price: float, side: str, qty: float = None) -> dict:
+    """Calcula P&L en USD y porcentaje."""
+    if qty is None:
+        qty = AMOUNT_USDT / entry_price
+    if side.upper() == 'LONG':
+        pnl_usdt = round((exit_price - entry_price) * qty, 2)
+        pnl_pct = round((exit_price - entry_price) / entry_price * 100, 2)
+    else:
+        pnl_usdt = round((entry_price - exit_price) * qty, 2)
+        pnl_pct = round((entry_price - exit_price) / entry_price * 100, 2)
+    return {"pnl_usdt": pnl_usdt, "pnl_pct": pnl_pct, "exit_price": exit_price}
+
+
+def monitorear_sl_tp(senal_id: int, side: str, entry_price: float, sl: float, tp: float,
+                     callback=None, poll_interval: int = 30):
+    """
+    Monitorea precio cada `poll_interval` segundos.
+    Si toca SL o TP → cierra posición y llama callback con resultado.
+    Corre en su propio thread.
+    """
+    def _loop():
+        logger.info(f"[{senal_id}] Monitoreando SL={sl} TP={tp} cada {poll_interval}s")
+        inicio = time.time()
+        while True:
+            time.sleep(poll_interval)
+            precio = get_precio_actual()
+            if precio == 0:
+                logger.warning(f"[{senal_id}] No se pudo obtener precio, reintentando...")
+                continue
+
+            tocado_sl = (side.upper() == 'LONG' and precio <= sl) or (side.upper() == 'SHORT' and precio >= sl)
+            tocado_tp = (side.upper() == 'LONG' and precio >= tp) or (side.upper() == 'SHORT' and precio <= tp)
+
+            if tocado_sl or tocado_tp:
+                tipo_salida = "Stop Loss" if tocado_sl else "Take Profit"
+                logger.info(f"[{senal_id}] {tipo_salida} tocado en ${precio:,.1f}")
+
+                # Cerrar posición
+                cierre = cerrar_posicion()
+                if cierre is None and BINANCE_TESTNET:
+                    cierre = {"orderId": f"sim_close_{int(time.time())}", "status": "SIMULATED"}
+
+                duracion = int((time.time() - inicio) / 60)
+                qty = AMOUNT_USDT / entry_price
+                pnl = calcular_pnl(entry_price, precio, side, qty)
+
+                resultado = {
+                    "senal_id": senal_id,
+                    "tipo_salida": tipo_salida,
+                    "precio_cierre": precio,
+                    "pnl_usdt": pnl["pnl_usdt"],
+                    "pnl_pct": pnl["pnl_pct"],
+                    "duracion_minutos": duracion,
+                    "order_id": cierre.get("orderId", "unknown") if cierre else "unknown",
+                }
+                logger.info(f"[{senal_id}] Cerrada: {resultado}")
+                if callback:
+                    try:
+                        callback(resultado)
+                    except Exception as e:
+                        logger.error(f"[{senal_id}] Error en callback: {e}")
+                return
+
+    thread = threading.Thread(target=_loop, daemon=True, name=f"monitor_{senal_id}")
+    thread.start()
+    logger.info(f"[{senal_id}] Thread de monitoreo iniciado")
+    return thread

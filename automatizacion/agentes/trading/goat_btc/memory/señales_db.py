@@ -42,11 +42,110 @@ class SeñalesDB:
                     confluencias TEXT,
                     resultado TEXT NULL,
                     comentario_trader TEXT NULL,
-                    score_real_posterior REAL NULL
+                    score_real_posterior REAL NULL,
+                    sl REAL NULL,
+                    tp REAL NULL,
+                    precio_cierre REAL NULL,
+                    pnl_real REAL NULL,
+                    pnl_usdt REAL NULL,
+                    duracion_minutos INTEGER NULL
                 )
             """)
             conn.commit()
+            # Migración: agregar columnas si no existen (para bases existentes)
+            try:
+                conn.execute("ALTER TABLE goat_señales ADD COLUMN sl REAL NULL")
+            except Exception:
+                pass
+            try:
+                conn.execute("ALTER TABLE goat_señales ADD COLUMN tp REAL NULL")
+            except Exception:
+                pass
+            try:
+                conn.execute("ALTER TABLE goat_señales ADD COLUMN precio_cierre REAL NULL")
+            except Exception:
+                pass
+            try:
+                conn.execute("ALTER TABLE goat_señales ADD COLUMN pnl_real REAL NULL")
+            except Exception:
+                pass
+            try:
+                conn.execute("ALTER TABLE goat_señales ADD COLUMN pnl_usdt REAL NULL")
+            except Exception:
+                pass
+            try:
+                conn.execute("ALTER TABLE goat_señales ADD COLUMN duracion_minutos INTEGER NULL")
+            except Exception:
+                pass
+            conn.commit()
         logger.info("Tabla goat_señales lista")
+
+    def guardar_senal_con_sl_tp(self, senal: dict) -> int:
+        """Guarda señal con SL, TP y datos de ejecución autónoma."""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute(
+                """INSERT INTO goat_señales
+                   (timestamp, direccion, score, precio_entrada,
+                    bb_superior, bb_media, bb_inferior,
+                    cvd_corto, cvd_largo, adx, bbw,
+                    clasificacion, confluencias, resultado,
+                    sl, tp)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    senal.get("timestamp", datetime.now().isoformat()),
+                    senal.get("direccion"),
+                    senal.get("score"),
+                    senal.get("precio_entrada"),
+                    senal.get("bb_superior"),
+                    senal.get("bb_media"),
+                    senal.get("bb_inferior"),
+                    senal.get("cvd_corto"),
+                    senal.get("cvd_largo"),
+                    senal.get("adx"),
+                    senal.get("bbw"),
+                    senal.get("clasificacion"),
+                    json.dumps(senal.get("confluencias", [])),
+                    "ejecutada",
+                    senal.get("sl"),
+                    senal.get("tp"),
+                ),
+            )
+            conn.commit()
+            row_id = cursor.lastrowid
+            logger.info(f"Señal autónoma guardada ID {row_id}")
+            return row_id
+
+    def actualizar_cierre(self, senal_id: int, precio_cierre: float, pnl_usdt: float,
+                          duracion_minutos: int, resultado: str = "ganadora"):
+        """Actualiza datos de cierre de una señal."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                """UPDATE goat_señales
+                   SET precio_cierre = ?, pnl_usdt = ?,
+                       duracion_minutos = ?, resultado = ?
+                   WHERE id = ?""",
+                (precio_cierre, pnl_usdt, duracion_minutos, resultado, senal_id),
+            )
+            conn.commit()
+            logger.info(f"Cierre actualizado ID {senal_id}: {resultado} PnL=${pnl_usdt:.2f}")
+
+    def obtener_ejecutadas_activas(self) -> list[dict]:
+        """Obtiene señales ejecutadas que aún no tienen cierre."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                "SELECT * FROM goat_señales WHERE resultado = 'ejecutada' AND precio_cierre IS NULL ORDER BY id DESC"
+            ).fetchall()
+            result = []
+            for row in rows:
+                d = dict(row)
+                if d.get("confluencias"):
+                    try:
+                        d["confluencias"] = json.loads(d["confluencias"])
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+                result.append(d)
+            return result
 
     def guardar_senal(self, senal: dict) -> int:
         with sqlite3.connect(self.db_path) as conn:

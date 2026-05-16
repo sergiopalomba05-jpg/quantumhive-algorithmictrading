@@ -75,11 +75,6 @@ try:
 except ImportError:
     from trading.goat_btc.conversacion.claude_chat import ChatBTC
 
-# ── AGI Telegram client ─────────────────────────────────────────────────────
-
-AGI_TELEGRAM_URL = os.getenv('AGI_TELEGRAM_URL', 'https://quantumhive-agi-telegram.onrender.com')
-AGI_TELEGRAM_TIMEOUT = 180  # 3 minutos máximo esperando confirmación
-
 # ── Binance Executor ────────────────────────────────────────────────────────
 
 BINANCE_EXECUTOR_AVAILABLE = False
@@ -155,53 +150,157 @@ def _calcular_deltas_velas(klines, n=5):
     return deltas
 
 
-# ── AGI Telegram helpers ────────────────────────────────────────────────────
+# ── Autonomous execution ─────────────────────────────────────────────────────
 
-def _enviar_senal_a_agi(senal_id: int, direccion: str, score: int, precio: float,
-                        clasificacion: str = "", confluencias: list = None) -> Optional[int]:
-    """Envía señal a AGI Telegram, devuelve pendiente_id o None si falla."""
+AGI_TELEGRAM_URL = os.getenv('AGI_TELEGRAM_URL', 'https://quantumhive-agi-telegram.onrender.com')
+
+
+def _notificar_agi(payload: dict):
+    """Envía notificación a AGI Telegram (best-effort, no bloquea)."""
     try:
         import requests as req
-        payload = {
-            "senal_id": senal_id,
-            "direccion": direccion,
-            "score": score,
-            "precio": precio,
-            "clasificacion": clasificacion,
-            "confluencias": confluencias or [],
-        }
-        resp = req.post(f"{AGI_TELEGRAM_URL}/goat/senal", json=payload, timeout=10)
-        if resp.status_code == 200:
-            data = resp.json()
-            logger.info(f"Señal {senal_id} enviada a AGI Telegram, pendiente_id={data.get('pendiente_id')}")
-            return data.get('pendiente_id')
-        logger.warning(f"AGI Telegram respondió {resp.status_code}: {resp.text}")
-        return None
-    except Exception as e:
-        logger.warning(f"Error enviando señal a AGI Telegram: {e}")
-        return None
+        req.post(f"{AGI_TELEGRAM_URL}/goat/senal", json=payload, timeout=5)
+    except Exception:
+        pass
 
 
-def _esperar_confirmacion_agi(pendiente_id: int, timeout: int = AGI_TELEGRAM_TIMEOUT) -> str:
-    """Espera confirmación de AGI Telegram hasta timeout. Devuelve status."""
+def _ejecutar_senal_automatica(senal_id: int, direccion: str, score: int, precio: float,
+                                clasificacion: str = "", confluencias: list = None,
+                                sl: float = None, tp: float = None):
+    """Ejecuta orden inmediatamente y lanza monitoreo de posición."""
+    logger.info(f"🚀 Ejecutando señal autónoma #{senal_id}: {direccion} @ ${precio:,.0f}")
+
+    # 1. Ejecutar orden
+    resultado_orden = None
+    if BINANCE_EXECUTOR_AVAILABLE:
+        try:
+            set_leverage()
+            resultado_orden = ejecutar_orden(direccion, precio)
+            logger.info(f"Orden ejecutada: {resultado_orden}")
+        except Exception as e:
+            logger.error(f"Error ejecutando orden #{senal_id}: {e}")
+            try:
+                senales_db.actualizar_resultado_agi(senal_id, "error_ejecucion", str(e))
+            except Exception:
+                pass
+            return
+    else:
+        logger.info(f"[SIMULACIÓN] Orden {direccion} no ejecutada (sin executor)")
+        resultado_orden = {"orderId": f"sim_{int(time.time())}", "status": "SIMULATED"}
+
+    # 2. Calcular SL/TP si no vienen dados
+    if sl is None or tp is None:
+        try:
+            from .core.binance_executor import calcular_sl_tp
+            sl, tp = calcular_sl_tp(precio, direccion)
+        except Exception:
+            logger.warning("No se pudieron calcular SL/TP, usando defaults")
+            sl = round(precio * 0.997, 1) if direccion.upper() == 'LONG' else round(precio * 1.003, 1)
+            tp = round(precio * 1.007, 1) if direccion.upper() == 'LONG' else round(precio * 0.993, 1)
+
+    # 3. Notificar entrada a AGI
+    _notificar_agi({
+        "tipo": "entrada",
+        "senal_id": senal_id,
+        "direccion": direccion,
+        "precio": precio,
+        "sl": sl,
+        "tp": tp,
+        "score": score,
+        "confluencias": confluencias or [],
+    })
+
+    # 4. Iniciar monitoreo de SL/TP en background
     try:
-        import requests as req
-        import time as _time
-        inicio = _time.time()
-        while _time.time() - inicio < timeout:
-            resp = req.get(f"{AGI_TELEGRAM_URL}/goat/senal/{pendiente_id}/status", timeout=5)
-            if resp.status_code == 200:
-                data = resp.json()
-                status = data.get('status', 'pendiente')
-                if status != 'pendiente':
-                    logger.info(f"AGI confirmación recibida: {status}")
-                    return status
-            _time.sleep(3)
-        logger.info(f"AGI timeout {timeout}s para pendiente_id={pendiente_id}")
-        return 'expirada'
+        from .core.binance_executor import monitorear_sl_tp
+        monitorear_sl_tp(
+            senal_id=senal_id,
+            side=direccion,
+            entry_price=precio,
+            sl=sl,
+            tp=tp,
+            callback=lambda r: _on_cierre_posicion(r, senal_id, direccion, precio),
+        )
     except Exception as e:
-        logger.warning(f"Error esperando confirmación AGI: {e}")
-        return 'error'
+        logger.error(f"Error iniciando monitoreo #{senal_id}: {e}")
+
+
+def _on_cierre_posicion(resultado: dict, senal_id: int, direccion: str, precio_entrada: float):
+    """Callback cuando una posición se cierra por SL o TP."""
+    logger.info(f"📩 Cierre recibido para #{senal_id}: {resultado}")
+
+    # Actualizar SQLite
+    es_ganancia = resultado.get('pnl_usdt', 0) > 0
+    resultado_str = "ganadora" if es_ganancia else "perdedora"
+    try:
+        senales_db.actualizar_cierre(
+            senal_id=senal_id,
+            precio_cierre=resultado['precio_cierre'],
+            pnl_usdt=resultado['pnl_usdt'],
+            duracion_minutos=resultado['duracion_minutos'],
+            resultado=resultado_str,
+        )
+    except Exception as e:
+        logger.warning(f"Error actualizando cierre #{senal_id}: {e}")
+
+    # Notificar cierre a AGI
+    _notificar_agi({
+        "tipo": "cierre",
+        "senal_id": senal_id,
+        "direccion": direccion,
+        "precio_entrada": precio_entrada,
+        "precio_cierre": resultado['precio_cierre'],
+        "pnl_usdt": resultado['pnl_usdt'],
+        "pnl_pct": resultado.get('pnl_pct', 0),
+        "duracion_minutos": resultado['duracion_minutos'],
+        "tipo_salida": resultado.get('tipo_salida', ''),
+    })
+
+    # Mostrar en terminal
+    try:
+        emoji = "✅" if es_ganancia else "🛡️"
+        terminal.agregar_razonamiento(
+            f"{emoji} Posición #{senal_id} cerrada: "
+            f"{'Ganancia' if es_ganancia else 'Stop Loss'} "
+            f"${resultado['pnl_usdt']:+.2f} en {resultado['duracion_minutos']}min"
+        )
+    except Exception:
+        pass
+
+
+def _recuperar_posiciones_activas():
+    """Al iniciar, verifica si hay posiciones abiertas en Binance y reanuda monitoreo."""
+    if not BINANCE_EXECUTOR_AVAILABLE:
+        return
+    try:
+        from .core.binance_executor import get_posicion_activa, get_precio_actual
+        from .core.binance_executor import monitorear_sl_tp, calcular_sl_tp
+        pos = get_posicion_activa()
+        if pos:
+            amt = float(pos.get('positionAmt', 0))
+            if amt != 0:
+                precio_actual = get_precio_actual()
+                side = 'LONG' if amt > 0 else 'SHORT'
+                logger.info(f"🔄 Posición activa detectada: {side} {abs(amt)} BTC")
+
+                # Buscar la última señal ejecutada sin cierre
+                activas = senales_db.obtener_ejecutadas_activas()
+                if activas:
+                    ultima = activas[0]
+                    senal_id = ultima['id']
+                    sl = ultima.get('sl')
+                    tp = ultima.get('tp')
+                    precio_entrada = ultima.get('precio_entrada', precio_actual)
+                    logger.info(f"🔄 Reanudando monitoreo para señal #{senal_id}")
+                    if sl is None or tp is None:
+                        sl, tp = calcular_sl_tp(precio_entrada, side)
+                    monitorear_sl_tp(
+                        senal_id=senal_id, side=side,
+                        entry_price=precio_entrada, sl=sl, tp=tp,
+                        callback=lambda r: _on_cierre_posicion(r, senal_id, side, precio_entrada),
+                    )
+    except Exception as e:
+        logger.warning(f"Error recuperando posiciones: {e}")
 
 
 # ── Signal handler ───────────────────────────────────────────────────────────
@@ -516,7 +615,13 @@ def _main_processing():
                         except Exception as e:
                             logger.warning(f"Error publicando evento: {e}")
 
-                    # Save to SQLite
+                    # Save to SQLite con SL/TP calculados
+                    try:
+                        from .core.binance_executor import calcular_sl_tp
+                        _sl, _tp = calcular_sl_tp(precio, direccion)
+                    except Exception:
+                        _sl = round(precio * 0.997, 1) if direccion.upper() == 'LONG' else round(precio * 1.003, 1)
+                        _tp = round(precio * 1.007, 1) if direccion.upper() == 'LONG' else round(precio * 0.993, 1)
                     senal_data = {
                         "timestamp": datetime.now(timezone.utc).isoformat(),
                         "direccion": direccion,
@@ -531,73 +636,24 @@ def _main_processing():
                         "bbw": bbw_m15,
                         "clasificacion": clasificacion.get("clasificacion", ""),
                         "confluencias": resultado_score.get("confluencias", []),
+                        "sl": _sl,
+                        "tp": _tp,
                     }
                     senal_id = None
                     try:
-                        senal_id = senales_db.guardar_senal(senal_data)
+                        senal_id = senales_db.guardar_senal_con_sl_tp(senal_data)
                     except Exception as e:
                         logger.warning(f"Error guardando señal: {e}")
 
-                    # ── AGI Telegram confirmation ──────────────────
-                    pendiente_id = _enviar_senal_a_agi(
-                        senal_id, direccion_up, score, precio,
-                        clasificacion.get("clasificacion", ""),
-                        resultado_score.get("confluencias", []),
+                    # ── Autonomous execution ────────────────────────
+                    _ejecutar_senal_automatica(
+                        senal_id=senal_id,
+                        direccion=direccion_up,
+                        score=score,
+                        precio=precio,
+                        clasificacion=clasificacion.get("clasificacion", ""),
+                        confluencias=resultado_score.get("confluencias", []),
                     )
-
-                    if pendiente_id is not None:
-                        print(f"\n⚡ Señal {direccion_up} enviada a Telegram — esperando confirmación...")
-                        resultado_agi = _esperar_confirmacion_agi(pendiente_id)
-
-                        if resultado_agi == 'ejecutada':
-                            print(f"✅ Señal CONFIRMADA por Telegram: {direccion_up} @ ${precio:,.0f}")
-                            logger.info(f"Señal CONFIRMADA vía AGI: {direccion_up} @ {precio}")
-                            try:
-                                if senal_id:
-                                    senales_db.actualizar_resultado_agi(senal_id, "confirmada", "✅ Confirmada vía Telegram")
-                            except Exception:
-                                pass
-
-                            # Ejecutar orden si binance_executor disponible
-                            if BINANCE_EXECUTOR_AVAILABLE:
-                                try:
-                                    set_leverage()
-                                    resultado_orden = ejecutar_orden(direccion_up, precio)
-                                    logger.info(f"Orden ejecutada: {resultado_orden}")
-                                except Exception as e:
-                                    logger.warning(f"Error ejecutando orden: {e}")
-                            else:
-                                logger.info(f"[SIMULACIÓN] Orden {direccion_up} no ejecutada (sin executor)")
-
-                        elif resultado_agi == 'rechazada':
-                            print(f"❌ Señal RECHAZADA por Telegram: {direccion_up} @ ${precio:,.0f}")
-                            logger.info(f"Señal RECHAZADA vía AGI: {direccion_up} @ {precio}")
-                            try:
-                                if senal_id:
-                                    senales_db.actualizar_resultado_agi(senal_id, "saltada", "❌ Rechazada vía Telegram")
-                            except Exception:
-                                pass
-
-                        else:
-                            print(f"⏰ Timeout — señal {direccion_up} simulada para tracking")
-                            logger.info(f"Señal expirada (timeout): {direccion_up} @ {precio}")
-                            try:
-                                if senal_id:
-                                    senales_db.actualizar_resultado_agi(senal_id, "no_ejecutada", "⏰ Timeout AGI")
-                            except Exception:
-                                pass
-
-                    else:
-                        # AGI Telegram no disponible → registrar sin bloquear
-                        logger.warning(f"AGI Telegram no disponible, señal {senal_id} registrada para tracking")
-                        try:
-                            if senal_id:
-                                senales_db.actualizar_resultado_agi(
-                                    senal_id, "pendiente",
-                                    "AGI no disponible, pendiente de revisión"
-                                )
-                        except Exception:
-                            pass
 
         except Exception as e:
             logger.warning(f"Error en ciclo principal: {e}", exc_info=True)
@@ -613,6 +669,9 @@ def ejecutar():
     feed.iniciar()
     logger.info("Feed Binance iniciado, esperando datos iniciales...")
     time.sleep(3)
+
+    # Recuperar posiciones activas (si el proceso se reinició)
+    _recuperar_posiciones_activas()
 
     logger.info("Iniciando terminal visual...")
     processing_thread = threading.Thread(target=_main_processing, daemon=True)

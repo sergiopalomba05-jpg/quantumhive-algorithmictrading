@@ -1629,49 +1629,84 @@ def set_webhook():
 
 # ── GOAT Trading Signal Endpoints ────────────────────────────────────────────
 
-_goat_pendientes_lock = threading.Lock()
-
 @app.route('/goat/senal', methods=['POST'])
-def recibir_senal_goat():
-    """Recibe señal de GOAT BTC y la reenvía al admin con inline buttons."""
+def recibir_notificacion_goat():
+    """Recibe notificación autónoma de GOAT BTC y la muestra al admin.
+    tipo=entrada → notifica ejecución de orden.
+    tipo=cierre → notifica resultado (Stop Loss / Take Profit)."""
     try:
         data = request.json
         if not data:
             return jsonify({'error': 'payload vacío'}), 400
 
+        tipo = data.get('tipo', 'entrada')
         senal_id = data.get('senal_id')
-        direccion = data.get('direccion', '')
-        score = data.get('score', 0)
-        precio = data.get('precio', 0)
-        clasificacion = data.get('clasificacion', '')
-        confluencias = data.get('confluencias', [])
 
-        if not senal_id or not direccion:
-            return jsonify({'error': 'senal_id y direccion requeridos'}), 400
+        if not senal_id:
+            return jsonify({'error': 'senal_id requerido'}), 400
 
         if not USER_TELEGRAM_ID:
-            logger.error("USER_TELEGRAM_ID no configurado, no se puede enviar señal")
+            logger.error("USER_TELEGRAM_ID no configurado")
             return jsonify({'error': 'admin chat_id no configurado'}), 500
 
-        _init_goat_table()
+        # Traducir dirección a español
+        direccion_raw = data.get('direccion', 'LONG')
+        es_compra = direccion_raw.upper() == 'LONG'
+        accion = 'COMPRA' if es_compra else 'VENTA'
 
-        message_id = enviar_senal_con_inline_keyboard(
-            USER_TELEGRAM_ID, senal_id, direccion, score, precio,
-            clasificacion, confluencias,
-        )
-        if message_id is None:
-            return jsonify({'error': 'fallo al enviar mensaje Telegram'}), 500
+        if tipo == 'entrada':
+            score = data.get('score', 0)
+            precio = data.get('precio', 0)
+            sl = data.get('sl', 0)
+            tp = data.get('tp', 0)
+            confluencias = data.get('confluencias', [])
+            confluencias_str = ', '.join(confluencias) if confluencias else '—'
 
-        pendiente_id = _guardar_goat_pendiente(
-            senal_id, direccion, score, precio, message_id,
-        )
+            texto = (
+                f"⚡ <b>goat_btc — {accion} ejecutada</b>\n"
+                f"💰 Precio: ${precio:,.0f}\n"
+                f"🛡️ Stop Loss: ${sl:,.0f}\n"
+                f"🎯 Take Profit: ${tp:,.0f}\n"
+                f"📊 Score: {score}/100\n"
+                f"🔗 Confluencias: {confluencias_str}"
+            )
 
-        return jsonify({
-            'status': 'enviada',
-            'pendiente_id': pendiente_id,
-            'senal_id': senal_id,
-            'message_id': message_id,
-        }), 200
+        elif tipo == 'cierre':
+            precio_entrada = data.get('precio_entrada', 0)
+            precio_cierre = data.get('precio_cierre', 0)
+            pnl_usdt = data.get('pnl_usdt', 0)
+            duracion = data.get('duracion_minutos', 0)
+            tipo_salida = data.get('tipo_salida', '')
+
+            if 'Stop Loss' in tipo_salida:
+                emoji = '🛡️'
+                encabezado = f'{emoji} goat_btc — {accion} cerrada por Stop Loss'
+                pnl_texto = f'📉 Resultado: ${pnl_usdt:.2f}'
+            else:
+                emoji_s = '✅' if pnl_usdt > 0 else '⚠️'
+                encabezado = f'{emoji_s} goat_btc — {accion} cerrada'
+                pnl_texto = f'📈 Resultado: {"+" if pnl_usdt > 0 else ""}${pnl_usdt:.2f}'
+
+            texto = (
+                f"{encabezado}\n"
+                f"💰 Entrada: ${precio_entrada:,.0f} → Cierre: ${precio_cierre:,.0f}\n"
+                f"{pnl_texto}\n"
+                f"⏱️ Duración: {duracion} minutos"
+            )
+
+        else:
+            return jsonify({'error': f'tipo desconocido: {tipo}'}), 400
+
+        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+        payload = {'chat_id': USER_TELEGRAM_ID, 'text': texto, 'parse_mode': 'HTML'}
+        response = requests.post(url, json=payload, timeout=10)
+
+        if response.status_code == 200:
+            logger.info(f"Notificación goat {tipo} #{senal_id} enviada")
+            return jsonify({'status': 'enviada', 'senal_id': senal_id}), 200
+
+        logger.error(f"Error enviando notificación: {response.text}")
+        return jsonify({'error': 'fallo telegram'}), 500
 
     except Exception as e:
         logger.error(f"Error en /goat/senal: {e}", exc_info=True)
@@ -1967,6 +2002,5 @@ if __name__ == '__main__':
     logger.info(f"Telegram Token: {TELEGRAM_TOKEN[:10]}..." if TELEGRAM_TOKEN else "Telegram Token: NO CONFIGURADO")
     logger.info(f"User Telegram ID: {USER_TELEGRAM_ID}" if USER_TELEGRAM_ID else "User Telegram ID: NO CONFIGURADO")
     logger.info(f"Motor LLM actual: {get_llm_engine()}")
-    _init_goat_table()
     
     app.run(host='0.0.0.0', port=5000, debug=True)
