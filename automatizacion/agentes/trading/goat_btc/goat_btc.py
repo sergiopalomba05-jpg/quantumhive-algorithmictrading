@@ -588,79 +588,16 @@ def _main_processing():
                                 pass
 
                     else:
-                        # ── Fallback: terminal input ────────────────
-                        print(f"\n{'='*50}")
-                        print(f"\u26a1 SEÑAL {direccion_up} | Score: {score}/100")
-                        print(f"Precio: ${precio:,.0f}")
-                        print(f"BB Inf: ${bb_inf_m5:,.0f}" if bb_inf_m5 else "BB Inf: N/A")
-                        print(f"BB Sup: ${bb_sup_m5:,.0f}" if bb_sup_m5 else "BB Sup: N/A")
-                        print(f"Clasificación: {clasificacion.get('clasificacion', '')}")
-                        print(f"Confianza: {clasificacion.get('confianza', 0):.1%}")
-                        print(f"Confluencias: {', '.join(resultado_score.get('confluencias', []))}")
-                        print(f"{'='*50}")
-                        print("[S] Confirmar señal | [N] Saltar | [texto] Preguntar a IA")
-
-                        entrada = terminal.esperar_input().strip()
-
-                        if entrada.upper() == "S":
-                            logger.info(f"Señal CONFIRMADA por trader: {direccion_up} @ {precio}")
-                            try:
-                                if senal_id:
-                                    senales_db.actualizar_resultado(senal_id, "confirmada", "Confirmada por trader")
-                            except Exception:
-                                pass
-                            if BINANCE_EXECUTOR_AVAILABLE:
-                                try:
-                                    set_leverage()
-                                    ejecutar_orden(direccion_up, precio)
-                                except Exception as e:
-                                    logger.warning(f"Error ejecutando orden: {e}")
-                        elif entrada.upper() == "N":
-                            logger.info(f"Señal SALTADA por trader: {direccion_up} @ {precio}")
-                            try:
-                                if senal_id:
-                                    senales_db.actualizar_resultado(senal_id, "saltada", "Saltada por trader")
-                            except Exception:
-                                pass
-                        else:
-                            if entrada and chat_btc is not None and chat_btc.disponible:
-                                try:
-                                    snapshot_mercado = {
-                                        "precio": precio,
-                                        "bb_superior": bb_sup_m5,
-                                        "bb_media": bb_media_m5,
-                                        "bb_inferior": bb_inf_m5,
-                                        "bbw": bbw_m15,
-                                        "adx_m15": adx_m15,
-                                        "cvd_corto": cvd_corto,
-                                        "cvd_largo": cvd_largo,
-                                        "regimen": regimen_m15,
-                                        "ultima_senal": f"{direccion_up} Score:{score}",
-                                        "score": score,
-                                        "clasificacion": clasificacion.get("clasificacion", ""),
-                                        "confluencias": resultado_score.get("confluencias", []),
-                                        "vol_relativo": vol_relativo,
-                                        "imbalance_book": imbalance,
-                                        "delta_vela": delta_ultima,
-                                        "historial_reciente": [],
-                                    }
-                                    respuesta = chat_btc.preguntar(entrada, snapshot_mercado)
-                                    terminal.agregar_mensaje(entrada, respuesta)
-                                    logger.info(f"IA responde: {respuesta}")
-                                except Exception as e:
-                                    logger.warning(f"Error consultando IA: {e}")
-                                    terminal.agregar_mensaje(entrada, "Error al consultar IA")
-                            elif entrada:
-                                terminal.agregar_mensaje(entrada, "ChatBTC no disponible")
-
+                        # AGI Telegram no disponible → registrar sin bloquear
+                        logger.warning(f"AGI Telegram no disponible, señal {senal_id} registrada para tracking")
+                        try:
                             if senal_id:
-                                try:
-                                    senales_db.actualizar_resultado(
-                                        senal_id, "pendiente",
-                                        f"Input trader: {entrada[:100]}"
-                                    )
-                                except Exception:
-                                    pass
+                                senales_db.actualizar_resultado_agi(
+                                    senal_id, "pendiente",
+                                    "AGI no disponible, pendiente de revisión"
+                                )
+                        except Exception:
+                            pass
 
         except Exception as e:
             logger.warning(f"Error en ciclo principal: {e}", exc_info=True)
