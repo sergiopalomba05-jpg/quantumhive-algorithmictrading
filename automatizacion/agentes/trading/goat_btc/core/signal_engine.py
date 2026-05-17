@@ -119,21 +119,6 @@ def calcular_score_scalper(indicadores: dict) -> dict:
                 score += 5
                 confluencias.append("delta_negativo")
 
-    # ── Fallback: precio cerca de banda ──
-    if direccion is None and bb_inf_m1 and bb_sup_m1:
-        dist_inf = (precio - bb_inf_m1) / bb_inf_m1 * 100
-        dist_sup = (bb_sup_m1 - precio) / bb_sup_m1 * 100
-        if dist_inf < 0.05:
-            direccion = "long"
-            modo = "proximidad"
-            score = 30
-            confluencias.append(f"precio_cerca_inf ({dist_inf:.3f}%)")
-        elif dist_sup < 0.05:
-            direccion = "short"
-            modo = "proximidad"
-            score = 30
-            confluencias.append(f"precio_cerca_sup ({dist_sup:.3f}%)")
-
     if direccion is None or score == 0:
         return {"score": 0, "direccion": None, "confluencias": [], "es_alerta": False, "es_premium": False, "modo": None}
 
