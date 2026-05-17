@@ -697,6 +697,7 @@ def _main_processing():
                     "bbw_m1": bbw_m1,
                     "rsi_7": rsi_7,
                     "modo_entrada": resultado_score.get("modo", ""),
+                    "score": score,
                 }
                 terminal.actualizar(macro_data, regimen_data, flujo_data, status_data=status_data, header_data=header_data)
             except Exception:

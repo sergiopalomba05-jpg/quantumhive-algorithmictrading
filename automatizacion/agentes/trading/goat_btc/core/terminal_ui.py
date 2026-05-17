@@ -34,6 +34,10 @@ class TerminalUI:
 
         self._pulse_counter = 0
         self._start_time = time.time()
+        self._last_price = None
+        self._last_score = None
+        self._last_signal = None
+        self._update_counter = 0
 
     @staticmethod
     def _hex_encriptado():
@@ -402,13 +406,33 @@ class TerminalUI:
             sd["rsi_7"] = sd.get("rsi_7", 50)
             sd["modo_entrada"] = sd.get("modo_entrada", "")
 
-            self.layout["header"].update(self.render_header(hd))
-            self.layout["macro"].update(self.render_macro_h1(macro_data))
-            self.layout["regimen"].update(self.render_regimen_m15(regimen_data))
-            self.layout["flujo"].update(self.render_flujo_m1(flujo_data))
+            precio_actual = sd.get("precio", 0)
+            score_actual = status_data.get("score", 0) if status_data else 0
+            signal_actual = self.ultima_senal
+
+            precio_changed = precio_actual != self._last_price
+            score_changed = score_actual != self._last_score
+            signal_changed = signal_actual != self._last_signal
+            time_changed = self._update_counter % 10 == 0
+
+            if not (precio_changed or score_changed or signal_changed or time_changed):
+                return
+
+            self._last_price = precio_actual
+            self._last_score = score_actual
+            self._last_signal = signal_actual
+            self._update_counter += 1
+
+            if precio_changed or time_changed:
+                self.layout["header"].update(self.render_header(hd))
+                self.layout["macro"].update(self.render_macro_h1(macro_data))
+                self.layout["status_bar"].update(self.render_status_bar(sd))
+            if score_changed or time_changed:
+                self.layout["regimen"].update(self.render_regimen_m15(regimen_data))
+                self.layout["flujo"].update(self.render_flujo_m1(flujo_data))
             self.layout["razonamiento"].update(self.render_razonamiento())
-            self.layout["senales"].update(self.render_senales())
-            self.layout["status_bar"].update(self.render_status_bar(sd))
+            if signal_changed:
+                self.layout["senales"].update(self.render_senales())
             self.live.update(self.layout)
         except Exception:
             pass
