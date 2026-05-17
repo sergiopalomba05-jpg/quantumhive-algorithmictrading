@@ -46,66 +46,9 @@ BLOQUEOS_SCALPER = [
 ]
 
 
-def detectar_mecha_rechazo(open_p, high, low, close, bb_inf, bb_sup):
-    """Detecta vela con mecha de rechazo que toca banda.
-    Retorna: 'long', 'short', o None
-    """
-    cuerpo = abs(close - open_p)
-    if cuerpo == 0:
-        return None
-    mecha_inf = min(open_p, close) - low
-    mecha_sup = high - max(open_p, close)
-    
-    ratio_inf = mecha_inf / cuerpo if cuerpo > 0 else 0
-    ratio_sup = mecha_sup / cuerpo if cuerpo > 0 else 0
-    
-    # LONG: mecha inferior toca banda inferior, mecha >= 2x cuerpo
-    if low <= bb_inf and ratio_inf >= 2.0 and close > bb_inf:
-        return "long"
-    
-    # SHORT: mecha superior toca banda superior, mecha >= 2x cuerpo
-    if high >= bb_sup and ratio_sup >= 2.0 and close < bb_sup:
-        return "short"
-    
-    return None
-
-
-def detectar_pendiente_bandas(sma_values, n=5):
-    """Detecta si las bandas están apuntando arriba o abajo.
-    Compara el promedio de los últimos n valores con los n anteriores.
-    Retorna: 'up', 'down', 'flat'
-    """
-    if not sma_values or len(sma_values) < n * 2:
-        return "flat"
-    
-    recientes = sma_values[-n:]
-    anteriores = sma_values[-n*2:-n]
-    
-    prom_reciente = sum(recientes) / len(recientes)
-    prom_anterior = sum(anteriores) / len(anteriores)
-    
-    diff = (prom_reciente - prom_anterior) / prom_anterior if prom_anterior else 0
-    
-    if diff > 0.0001:
-        return "up"
-    elif diff < -0.0001:
-        return "down"
-    return "flat"
-
-
-def detectar_retorno_media(precio, sma, bb_sup, bb_inf):
-    """Detecta si el precio está retornando a la banda media.
-    Retorna: True si el precio está cerca de la media (dentro de 0.1%)
-    """
-    if not sma or not precio:
-        return False
-    dist_pct = abs(precio - sma) / sma
-    return dist_pct < 0.0015
-
-
 def calcular_score_scalper(indicadores: dict) -> dict:
     """Evalua condiciones M1 con 3 modos de entrada.
-    
+
     Modo A (Reversión): Precio sale de banda + mecha rechazo + RSI
     Modo B (Rebote media): Tendencia + retorno a media + confirmación
     Modo C (Surf): Precio fuera de bandas + momentum + CVD
@@ -121,48 +64,41 @@ def calcular_score_scalper(indicadores: dict) -> dict:
     bb_media_m1 = indicadores.get("bb_media_m1")
     toco_sup_m1 = indicadores.get("toco_bb_superior_m1", False)
     toco_inf_m1 = indicadores.get("toco_bb_inferior_m1", False)
-    
+
     bbw_m5 = indicadores.get("bbw_m5", 99)
-    adx_m5 = indicadores.get("adx_m5", 0)
     cvd_corto = indicadores.get("cvd_corto", 0)
     deltas = indicadores.get("ultimas_5_deltas", [])
     delta_vela = indicadores.get("delta_ultima_vela", 0)
     imbalance = indicadores.get("imbalance_book", 0)
-    
+
     cvd_largo_h1 = indicadores.get("cvd_largo_H1", 0)
     adx_h1 = indicadores.get("adx_h1", 0)
-    
-    rechazo = indicadores.get("rechazo_m1")
+
     mecha_rechazo = indicadores.get("mecha_rechazo_m1")
     pendiente_bandas = indicadores.get("pendiente_bandas_m1", "flat")
     retorno_media = indicadores.get("retorno_media_m1", False)
     rsi_7 = indicadores.get("rsi_7", 50)
-    sma_m1_values = indicadores.get("sma_m1_values", [])
 
-    # ── Modo A: Reversión en bandas ──
+    # Modo A: Reversión en bandas
     if mecha_rechazo in ("long", "short"):
         direccion = mecha_rechazo
         modo = "reversion"
-        
         if direccion == "long":
             score += SCORING_SCALPER_M1['precio_en_bb_inf_m1']
             confluencias.append("toco_bb_inferior_m1")
             score += SCORING_SCALPER_M1['vela_rechazo_m1']
             confluencias.append("mecha_rechazo_long")
-            
             if rsi_7 < 35:
                 score += SCORING_SCALPER_M1['rsi_confirmacion']
                 confluencias.append("rsi_sobreventa")
             elif rsi_7 < 45:
                 score += 4
                 confluencias.append("rsi_bajo")
-                
         elif direccion == "short":
             score += SCORING_SCALPER_M1['precio_en_bb_sup_m1']
             confluencias.append("toco_bb_superior_m1")
             score += SCORING_SCALPER_M1['vela_rechazo_m1']
             confluencias.append("mecha_rechazo_short")
-            
             if rsi_7 > 65:
                 score += SCORING_SCALPER_M1['rsi_confirmacion']
                 confluencias.append("rsi_sobrecompra")
@@ -170,7 +106,7 @@ def calcular_score_scalper(indicadores: dict) -> dict:
                 score += 4
                 confluencias.append("rsi_alto")
 
-    # ── Modo B: Rebote en media (tendencia) ──
+    # Modo B: Rebote en media (tendencia)
     elif retorno_media and pendiente_bandas != "flat":
         if pendiente_bandas == "up":
             direccion = "long"
@@ -179,14 +115,12 @@ def calcular_score_scalper(indicadores: dict) -> dict:
             confluencias.append("rebote_media_up")
             score += SCORING_SCALPER_M1['pendiente_bandas']
             confluencias.append("bandas_pendiente_up")
-            
             if delta_vela > 0:
                 score += SCORING_SCALPER_M1['delta_confirma_m1']
                 confluencias.append("delta_positivo")
             if rsi_7 > 45:
                 score += 5
                 confluencias.append("rsi_neutro_alcista")
-                
         elif pendiente_bandas == "down":
             direccion = "short"
             modo = "rebote_media"
@@ -194,7 +128,6 @@ def calcular_score_scalper(indicadores: dict) -> dict:
             confluencias.append("rebote_media_down")
             score += SCORING_SCALPER_M1['pendiente_bandas']
             confluencias.append("bandas_pendiente_down")
-            
             if delta_vela < 0:
                 score += SCORING_SCALPER_M1['delta_confirma_m1']
                 confluencias.append("delta_negativo")
@@ -202,7 +135,7 @@ def calcular_score_scalper(indicadores: dict) -> dict:
                 score += 5
                 confluencias.append("rsi_neutro_bajista")
 
-    # ── Modo C: Surf de momentum ──
+    # Modo C: Surf de momentum
     elif toco_inf_m1 or toco_sup_m1:
         if toco_inf_m1 and cvd_corto > 0 and delta_vela > 0:
             direccion = "long"
@@ -211,7 +144,6 @@ def calcular_score_scalper(indicadores: dict) -> dict:
             confluencias.append("surf_long_cvd")
             score += SCORING_SCALPER_M1['cvd_alineado_m1']
             confluencias.append("cvd_alfavor")
-            
         elif toco_sup_m1 and cvd_corto < 0 and delta_vela < 0:
             direccion = "short"
             modo = "surf"
@@ -220,7 +152,7 @@ def calcular_score_scalper(indicadores: dict) -> dict:
             score += SCORING_SCALPER_M1['cvd_alineado_m1']
             confluencias.append("cvd_en_contra")
 
-    # ── Fallback: lógica original si ningún modo activó ──
+    # Fallback: lógica original si ningún modo activó
     if direccion is None:
         if toco_inf_m1 and not toco_sup_m1:
             direccion = "long"
@@ -234,7 +166,7 @@ def calcular_score_scalper(indicadores: dict) -> dict:
     if direccion is None or score == 0:
         return {"score": 0, "direccion": None, "confluencias": [], "es_alerta": False, "es_premium": False, "modo": None}
 
-    # ── Momentum adicional ──
+    # Momentum adicional
     if direccion == "long" and cvd_corto > 0 and modo != "reversion":
         score += SCORING_SCALPER_M1['cvd_alineado_m1']
         confluencias.append("cvd_alineado_long")
@@ -257,7 +189,7 @@ def calcular_score_scalper(indicadores: dict) -> dict:
         score += SCORING_SCALPER_M1['imbalance_favor']
         confluencias.append("imbalance_favorable_short")
 
-    # ── Régimen M5 ──
+    # Régimen M5
     if bbw_m5 < 0.025:
         score += SCORING_SCALPER_M1['regimen_favorable']
         confluencias.append("regimen_m5_rango")
@@ -269,7 +201,7 @@ def calcular_score_scalper(indicadores: dict) -> dict:
             score += 8
             confluencias.append("regimen_m5_tendencia_surf")
 
-    # ── Penalidad H1 en contra ──
+    # Penalidad H1 en contra
     if adx_h1 > 40:
         if (direccion == "long" and cvd_largo_h1 < 0) or (direccion == "short" and cvd_largo_h1 > 0):
             score = max(0, score - 15)
@@ -294,10 +226,9 @@ def verificar_bloqueos(indicadores: dict, estado_trading: dict) -> dict:
     bloqueos = []
     bbw_m1 = indicadores.get("bbw_m1", 0)
 
-    # Solo bloquear por volatilidad extrema real (BBW > 0.08)
     if bbw_m1 > 0.08:
         bloqueos.append("bbw_m1_extremo")
-    
+
     if estado_trading.get("posicion_activa", False):
         bloqueos.append("posicion_activa")
 

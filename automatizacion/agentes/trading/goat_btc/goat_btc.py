@@ -34,15 +34,15 @@ except ImportError:
 
 try:
     from .core.indicadores import (
-        calcular_bb, calcular_bbw, clasificar_bbw, calcular_cvd_real,
+        calcular_bb, clasificar_bbw, calcular_cvd_real,
         calcular_delta_vela, calcular_adx, calcular_volumen_relativo,
-        calcular_imbalance_book, clasificar_imbalance,
+        calcular_imbalance_book,
     )
 except ImportError:
     from trading.goat_btc.core.indicadores import (
-        calcular_bb, calcular_bbw, clasificar_bbw, calcular_cvd_real,
+        calcular_bb, clasificar_bbw, calcular_cvd_real,
         calcular_delta_vela, calcular_adx, calcular_volumen_relativo,
-        calcular_imbalance_book, clasificar_imbalance,
+        calcular_imbalance_book,
     )
 
 try:
@@ -421,24 +421,21 @@ def _main_processing():
 
             # ── Bollinger Bands M1 (30/3.0) ────────────────────────
             try:
-                bb_media_m1, bb_sup_m1, bb_inf_m1 = calcular_bb(closes_m1, 30, 3.0)
-                bbw_m1 = calcular_bbw(bb_media_m1, bb_sup_m1, bb_inf_m1) if bb_media_m1 else 0.0
+                bb_sup_m1, bb_inf_m1, bb_media_m1, bbw_m1 = calcular_bb(closes_m1, 30, 3.0)
             except Exception:
                 bb_media_m1 = bb_sup_m1 = bb_inf_m1 = None
                 bbw_m1 = 0.0
 
             # ── Bollinger Bands M5 (20/2.0) ────────────────────────
             try:
-                bb_media_m5, bb_sup_m5, bb_inf_m5 = calcular_bb(closes_m5, 20, 2.0)
-                bbw_m5 = calcular_bbw(bb_media_m5, bb_sup_m5, bb_inf_m5) if bb_media_m5 else 0.0
+                bb_sup_m5, bb_inf_m5, bb_media_m5, bbw_m5 = calcular_bb(closes_m5, 20, 2.0)
             except Exception:
                 bb_media_m5 = bb_sup_m5 = bb_inf_m5 = None
                 bbw_m5 = 0.0
 
             # ── Bollinger Bands H1 (30/3.0) ────────────────────────
             try:
-                bb_media_h1, bb_sup_h1, bb_inf_h1 = calcular_bb(closes_h1, 30, 3.0)
-                bbw_h1 = calcular_bbw(bb_media_h1, bb_sup_h1, bb_inf_h1) if bb_media_h1 else 0.0
+                bb_sup_h1, bb_inf_h1, bb_media_h1, bbw_h1 = calcular_bb(closes_h1, 30, 3.0)
             except Exception:
                 bb_media_h1 = bb_sup_h1 = bb_inf_h1 = None
                 bbw_h1 = 0.0
@@ -480,7 +477,29 @@ def _main_processing():
             except Exception:
                 delta_ultima_m1 = 0.0
 
-            # ── Rechazo M1 (legacy, mantener compatibilidad) ─────
+            # ── Mecha rechazo M1 ──────────────────────────────
+            mecha_rechazo = None
+            try:
+                if ultima_vela_m1:
+                    from .core.indicadores import detectar_mecha
+                    mecha_rechazo = detectar_mecha(
+                        ultima_vela_m1["open"], ultima_vela_m1["high"],
+                        ultima_vela_m1["low"], ultima_vela_m1["close"],
+                    )
+            except ImportError:
+                try:
+                    from trading.goat_btc.core.indicadores import detectar_mecha
+                    if ultima_vela_m1:
+                        mecha_rechazo = detectar_mecha(
+                            ultima_vela_m1["open"], ultima_vela_m1["high"],
+                            ultima_vela_m1["low"], ultima_vela_m1["close"],
+                        )
+                except Exception:
+                    pass
+            except Exception:
+                pass
+
+            # ── Rechazo M1 (compatibilidad) ──────────────────
             rechazo_m1 = mecha_rechazo
 
             # ── Volumen relativo (M5) ───────────────────────────
@@ -494,28 +513,6 @@ def _main_processing():
                 imbalance = calcular_imbalance_book(bids, asks, 10)
             except Exception:
                 imbalance = 0.0
-
-            # ── Mecha rechazo M1 ──────────────────────────────
-            try:
-                if ultima_vela_m1:
-                    from .core.indicadores import detectar_mecha
-                    mecha_rechazo = detectar_mecha(
-                        ultima_vela_m1["open"], ultima_vela_m1["high"],
-                        ultima_vela_m1["low"], ultima_vela_m1["close"],
-                    )
-                else:
-                    mecha_rechazo = None
-            except ImportError:
-                    from trading.goat_btc.core.indicadores import detectar_mecha
-                    if ultima_vela_m1:
-                        mecha_rechazo = detectar_mecha(
-                            ultima_vela_m1["open"], ultima_vela_m1["high"],
-                            ultima_vela_m1["low"], ultima_vela_m1["close"],
-                        )
-                    else:
-                        mecha_rechazo = None
-            except Exception:
-                mecha_rechazo = None
 
             # ── RSI 7 M1 ─────────────────────────────────────
             try:

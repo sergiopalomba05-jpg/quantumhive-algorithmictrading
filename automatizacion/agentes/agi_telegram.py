@@ -391,6 +391,19 @@ class MemoriaSQLite:
             )
         """)
 
+        # 10. ERRORES DE PROCESOS (lectura para contexto de realidad)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS errores_procesos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                proceso TEXT NOT NULL,
+                error TEXT NOT NULL,
+                modulo TEXT,
+                severidad TEXT DEFAULT 'media',
+                resuelto BOOLEAN DEFAULT FALSE
+            )
+        """)
+
         conn.commit()
         conn.close()
         logger.info("Base de datos SQLite inicializada con esquema completo")

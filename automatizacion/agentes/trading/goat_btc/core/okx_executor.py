@@ -366,7 +366,7 @@ def monitorear_sl_tp(senal_id: int, side: str, entry_price: float, sl: float, tp
                     cierre = {"orderId": f"okx_close_{int(time.time())}", "status": "CLOSED"}
 
                 duracion = int((time.time() - inicio) / 60)
-                pnl = calcular_pnl(entry_price, precio, side, AMOUNT_CONTRACTS)
+                pnl = calcular_pnl(entry_price, precio, side)
 
                 resultado = {
                     "senal_id": senal_id,
