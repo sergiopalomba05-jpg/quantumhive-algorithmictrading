@@ -86,9 +86,9 @@ try:
 except ImportError:
     from trading.goat_btc.conversacion.claude_chat import ChatBTC
 
-# ── NinjaTrader Executor (OIF) ──────────────────────────────────────────────
+# ── OKX Executor (BTC-USDT-SWAP Demo) ────────────────────────────────────────
 
-NT_EXECUTOR_AVAILABLE = False
+OKX_EXECUTOR_AVAILABLE = False
 _ejecutar_orden = None
 _cerrar_posicion = None
 _get_posicion_activa = None
@@ -98,28 +98,28 @@ _calcular_sl_tp = None
 _monitorear_sl_tp = None
 _get_precio_actual = None
 try:
-    from .core.ninjatrader_executor import (
+    from .core.okx_executor import (
         ejecutar_orden as _ejecutar_orden, cerrar_posicion as _cerrar_posicion,
         get_posicion_activa as _get_posicion_activa, get_balance as _get_balance,
         set_leverage as _set_leverage,
         calcular_sl_tp as _calcular_sl_tp, monitorear_sl_tp as _monitorear_sl_tp,
         get_precio_actual as _get_precio_actual,
     )
-    NT_EXECUTOR_AVAILABLE = True
-    logger.info("NinjaTrader Executor (OIF) disponible")
+    OKX_EXECUTOR_AVAILABLE = True
+    logger.info("OKX Executor (BTC-USDT-SWAP Demo) disponible")
 except ImportError:
     try:
-        from trading.goat_btc.core.ninjatrader_executor import (
+        from trading.goat_btc.core.okx_executor import (
             ejecutar_orden as _ejecutar_orden, cerrar_posicion as _cerrar_posicion,
             get_posicion_activa as _get_posicion_activa, get_balance as _get_balance,
             set_leverage as _set_leverage,
             calcular_sl_tp as _calcular_sl_tp, monitorear_sl_tp as _monitorear_sl_tp,
             get_precio_actual as _get_precio_actual,
         )
-        NT_EXECUTOR_AVAILABLE = True
-        logger.info("NinjaTrader Executor (OIF) disponible")
+        OKX_EXECUTOR_AVAILABLE = True
+        logger.info("OKX Executor (BTC-USDT-SWAP Demo) disponible")
     except Exception as e:
-        logger.warning(f"NinjaTrader Executor no disponible: {e}")
+        logger.warning(f"OKX Executor no disponible: {e}")
 
 # ── Event Bus ────────────────────────────────────────────────────────────────
 
@@ -216,7 +216,7 @@ def _ejecutar_senal_automatica(senal_id: int, direccion: str, score: int, precio
 
     # 1. Ejecutar orden
     resultado_orden = None
-    if NT_EXECUTOR_AVAILABLE:
+    if OKX_EXECUTOR_AVAILABLE:
         try:
             resultado_orden = _ejecutar_orden(direccion, precio)
             logger.info(f"Orden ejecutada: {resultado_orden}")
