@@ -1,9 +1,6 @@
-"""signal_engine.py — GOAT BTC Multi-Mode Signal Engine
-3 modos de entrada:
-  Modo A: Reversión en bandas (precio sale de banda + mecha rechazo)
-  Modo B: Rebote en media (tendencia + retorno a banda media)
-  Modo C: Surf de momentum (precio fuera de bandas, momentum)
-Cooldown: 30s | Risk: $5/trade | Target: $10 (1:2)
+"""signal_engine.py — GOAT BTC Signal Engine
+Estrategia: Bollinger Bands 30/3.0 — tocar banda = entrada
+Score mínimo: 25 (tocar banda solo = 40 puntos, entra directo)
 """
 
 import time
@@ -12,21 +9,17 @@ import logging
 logger = logging.getLogger('signal_engine')
 
 SCORING_SCALPER_M1 = {
-    'precio_en_bb_inf_m1': 15,
-    'precio_en_bb_sup_m1': 15,
+    'precio_en_bb_inf_m1': 40,
+    'precio_en_bb_sup_m1': 40,
     'precio_en_media_m1': 10,
     'vela_rechazo_m1': 15,
-    'cvd_alineado_m1': 10,
-    'cvd_divergencia_m1': 8,
-    'delta_confirma_m1': 6,
-    'imbalance_favor': 5,
-    'rsi_confirmacion': 8,
-    'regimen_favorable': 12,
-    'pendiente_bandas': 10,
+    'cvd_alineado_m1': 5,
+    'rsi_confirmacion': 5,
+    'regimen_favorable': 5,
 }
 
-SCORE_MINIMO_ENTRADA = 35
-SCORE_MINIMO_CALIDAD = 55
+SCORE_MINIMO_ENTRADA = 25
+SCORE_MINIMO_CALIDAD = 50
 
 SCALPER_CONFIG = {
     'sl_multiplicador_atr': 0.3,
@@ -47,12 +40,7 @@ BLOQUEOS_SCALPER = [
 
 
 def calcular_score_scalper(indicadores: dict) -> dict:
-    """Evalua condiciones M1 con 3 modos de entrada.
-
-    Modo A (Reversión): Precio sale de banda + mecha rechazo + RSI
-    Modo B (Rebote media): Tendencia + retorno a media + confirmación
-    Modo C (Surf): Precio fuera de bandas + momentum + CVD
-    """
+    """Evalua condiciones M1. Tocar banda = entrada directa."""
     score = 0
     confluencias = []
     direccion = None
@@ -67,145 +55,92 @@ def calcular_score_scalper(indicadores: dict) -> dict:
 
     bbw_m5 = indicadores.get("bbw_m5", 99)
     cvd_corto = indicadores.get("cvd_corto", 0)
-    deltas = indicadores.get("ultimas_5_deltas", [])
     delta_vela = indicadores.get("delta_ultima_vela", 0)
-    imbalance = indicadores.get("imbalance_book", 0)
-
-    cvd_largo_h1 = indicadores.get("cvd_largo_H1", 0)
-    adx_h1 = indicadores.get("adx_h1", 0)
-
+    rsi_7 = indicadores.get("rsi_7", 50)
     mecha_rechazo = indicadores.get("mecha_rechazo_m1")
     pendiente_bandas = indicadores.get("pendiente_bandas_m1", "flat")
     retorno_media = indicadores.get("retorno_media_m1", False)
-    rsi_7 = indicadores.get("rsi_7", 50)
 
-    # Modo A: Reversión en bandas
-    if mecha_rechazo in ("long", "short"):
-        direccion = mecha_rechazo
+    # ── PRIORIDAD 1: Tocar banda = entrada directa ──
+    if toco_inf_m1:
+        direccion = "long"
         modo = "reversion"
-        if direccion == "long":
-            score += SCORING_SCALPER_M1['precio_en_bb_inf_m1']
-            confluencias.append("toco_bb_inferior_m1")
+        score += SCORING_SCALPER_M1['precio_en_bb_inf_m1']
+        confluencias.append("toco_bb_inferior_m1")
+
+        if mecha_rechazo == "long":
             score += SCORING_SCALPER_M1['vela_rechazo_m1']
             confluencias.append("mecha_rechazo_long")
-            if rsi_7 < 35:
-                score += SCORING_SCALPER_M1['rsi_confirmacion']
-                confluencias.append("rsi_sobreventa")
-            elif rsi_7 < 45:
-                score += 4
-                confluencias.append("rsi_bajo")
-        elif direccion == "short":
-            score += SCORING_SCALPER_M1['precio_en_bb_sup_m1']
-            confluencias.append("toco_bb_superior_m1")
+        if rsi_7 < 35:
+            score += SCORING_SCALPER_M1['rsi_confirmacion']
+            confluencias.append("rsi_sobreventa")
+        elif rsi_7 < 45:
+            score += 3
+            confluencias.append("rsi_bajo")
+        if cvd_corto > 0:
+            score += SCORING_SCALPER_M1['cvd_alineado_m1']
+            confluencias.append("cvd_comprador")
+
+    elif toco_sup_m1:
+        direccion = "short"
+        modo = "reversion"
+        score += SCORING_SCALPER_M1['precio_en_bb_sup_m1']
+        confluencias.append("toco_bb_superior_m1")
+
+        if mecha_rechazo == "short":
             score += SCORING_SCALPER_M1['vela_rechazo_m1']
             confluencias.append("mecha_rechazo_short")
-            if rsi_7 > 65:
-                score += SCORING_SCALPER_M1['rsi_confirmacion']
-                confluencias.append("rsi_sobrecompra")
-            elif rsi_7 > 55:
-                score += 4
-                confluencias.append("rsi_alto")
+        if rsi_7 > 65:
+            score += SCORING_SCALPER_M1['rsi_confirmacion']
+            confluencias.append("rsi_sobrecompra")
+        elif rsi_7 > 55:
+            score += 3
+            confluencias.append("rsi_alto")
+        if cvd_corto < 0:
+            score += SCORING_SCALPER_M1['cvd_alineado_m1']
+            confluencias.append("cvd_vendedor")
 
-    # Modo B: Rebote en media (tendencia)
+    # ── PRIORIDAD 2: Rebote en media (si no tocó banda) ──
     elif retorno_media and pendiente_bandas != "flat":
         if pendiente_bandas == "up":
             direccion = "long"
             modo = "rebote_media"
             score += SCORING_SCALPER_M1['precio_en_media_m1']
             confluencias.append("rebote_media_up")
-            score += SCORING_SCALPER_M1['pendiente_bandas']
-            confluencias.append("bandas_pendiente_up")
             if delta_vela > 0:
-                score += SCORING_SCALPER_M1['delta_confirma_m1']
-                confluencias.append("delta_positivo")
-            if rsi_7 > 45:
                 score += 5
-                confluencias.append("rsi_neutro_alcista")
+                confluencias.append("delta_positivo")
         elif pendiente_bandas == "down":
             direccion = "short"
             modo = "rebote_media"
             score += SCORING_SCALPER_M1['precio_en_media_m1']
             confluencias.append("rebote_media_down")
-            score += SCORING_SCALPER_M1['pendiente_bandas']
-            confluencias.append("bandas_pendiente_down")
             if delta_vela < 0:
-                score += SCORING_SCALPER_M1['delta_confirma_m1']
-                confluencias.append("delta_negativo")
-            if rsi_7 < 55:
                 score += 5
-                confluencias.append("rsi_neutro_bajista")
+                confluencias.append("delta_negativo")
 
-    # Modo C: Surf de momentum
-    elif toco_inf_m1 or toco_sup_m1:
-        if toco_inf_m1 and cvd_corto > 0 and delta_vela > 0:
+    # ── Fallback: precio cerca de banda ──
+    if direccion is None and bb_inf_m1 and bb_sup_m1:
+        dist_inf = (precio - bb_inf_m1) / bb_inf_m1 * 100
+        dist_sup = (bb_sup_m1 - precio) / bb_sup_m1 * 100
+        if dist_inf < 0.05:
             direccion = "long"
-            modo = "surf"
-            score += SCORING_SCALPER_M1['precio_en_bb_inf_m1']
-            confluencias.append("surf_long_cvd")
-            score += SCORING_SCALPER_M1['cvd_alineado_m1']
-            confluencias.append("cvd_alfavor")
-        elif toco_sup_m1 and cvd_corto < 0 and delta_vela < 0:
+            modo = "proximidad"
+            score = 30
+            confluencias.append(f"precio_cerca_inf ({dist_inf:.3f}%)")
+        elif dist_sup < 0.05:
             direccion = "short"
-            modo = "surf"
-            score += SCORING_SCALPER_M1['precio_en_bb_sup_m1']
-            confluencias.append("surf_short_cvd")
-            score += SCORING_SCALPER_M1['cvd_alineado_m1']
-            confluencias.append("cvd_en_contra")
-
-    # Fallback: lógica original si ningún modo activó
-    if direccion is None:
-        if toco_inf_m1 and not toco_sup_m1:
-            direccion = "long"
-        elif toco_sup_m1 and not toco_inf_m1:
-            direccion = "short"
-        elif toco_inf_m1 and toco_sup_m1:
-            dist_sup = abs(precio - bb_sup_m1) if bb_sup_m1 else 999
-            dist_inf = abs(precio - bb_inf_m1) if bb_inf_m1 else 999
-            direccion = "short" if dist_sup < dist_inf else "long"
+            modo = "proximidad"
+            score = 30
+            confluencias.append(f"precio_cerca_sup ({dist_sup:.3f}%)")
 
     if direccion is None or score == 0:
         return {"score": 0, "direccion": None, "confluencias": [], "es_alerta": False, "es_premium": False, "modo": None}
 
-    # Momentum adicional
-    if direccion == "long" and cvd_corto > 0 and modo != "reversion":
-        score += SCORING_SCALPER_M1['cvd_alineado_m1']
-        confluencias.append("cvd_alineado_long")
-    elif direccion == "short" and cvd_corto < 0 and modo != "reversion":
-        score += SCORING_SCALPER_M1['cvd_alineado_m1']
-        confluencias.append("cvd_alineado_short")
-
-    if len(deltas) >= 3:
-        if direccion == "long" and deltas[-1] > deltas[-3]:
-            score += SCORING_SCALPER_M1['cvd_divergencia_m1']
-            confluencias.append("divergencia_cvd_alcista")
-        elif direccion == "short" and deltas[-1] < deltas[-3]:
-            score += SCORING_SCALPER_M1['cvd_divergencia_m1']
-            confluencias.append("divergencia_cvd_bajista")
-
-    if direccion == "long" and imbalance > 0.2:
-        score += SCORING_SCALPER_M1['imbalance_favor']
-        confluencias.append("imbalance_favorable_long")
-    elif direccion == "short" and imbalance < -0.2:
-        score += SCORING_SCALPER_M1['imbalance_favor']
-        confluencias.append("imbalance_favorable_short")
-
-    # Régimen M5
+    # Bonus régimen
     if bbw_m5 < 0.025:
         score += SCORING_SCALPER_M1['regimen_favorable']
-        confluencias.append("regimen_m5_rango")
-    elif bbw_m5 < 0.035:
-        score += 5
-        confluencias.append("regimen_m5_transicion")
-    else:
-        if modo == "surf":
-            score += 8
-            confluencias.append("regimen_m5_tendencia_surf")
-
-    # Penalidad H1 en contra
-    if adx_h1 > 40:
-        if (direccion == "long" and cvd_largo_h1 < 0) or (direccion == "short" and cvd_largo_h1 > 0):
-            score = max(0, score - 15)
-            confluencias.append("penalidad_h1_contra")
+        confluencias.append("regimen_rango")
 
     score = min(100, max(0, score))
 
@@ -220,9 +155,7 @@ def calcular_score_scalper(indicadores: dict) -> dict:
 
 
 def verificar_bloqueos(indicadores: dict, estado_trading: dict) -> dict:
-    """Verifica condiciones de bloqueo.
-    Eliminado bloqueo ADX > 50 — ahora se opera en tendencia.
-    """
+    """Verifica condiciones de bloqueo."""
     bloqueos = []
     bbw_m1 = indicadores.get("bbw_m1", 0)
 
