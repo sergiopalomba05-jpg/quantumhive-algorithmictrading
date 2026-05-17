@@ -286,9 +286,6 @@ def _on_cierre_posicion(resultado: dict, senal_id: int, direccion: str, precio_e
     """Callback cuando una posición se cierra por SL o TP."""
     logger.info(f"📩 Cierre recibido para #{senal_id}: {resultado}")
 
-    # Actualizar estado de trading scalper
-    global ESTADO_TRADING
-    ESTADO_TRADING["posicion_activa"] = False
     pnl = resultado.get('pnl_usdt', 0)
     ESTADO_TRADING["pnl_diario"] += pnl
     if pnl < 0:
@@ -599,26 +596,11 @@ def _main_processing():
             score = resultado_score.get("score", 0)
             direccion = resultado_score.get("direccion")
 
-            # ── Sync posición real con OKX (evita estado trabado) ──
-            if OKX_EXECUTOR_AVAILABLE:
-                try:
-                    pos_okx = _get_posicion_activa()
-                    hay_posicion_real = pos_okx is not None and pos_okx.get('size', 0) != 0
-                    logger.info(f"SYNC OKX: posicion_activa={ESTADO_TRADING['posicion_activa']} | OKX tiene posición={hay_posicion_real} | pos_okx={pos_okx}")
-                    if ESTADO_TRADING["posicion_activa"] and not hay_posicion_real:
-                        logger.warning("SYNC: Reset posicion_activa a False (OKX no tiene posición)")
-                        ESTADO_TRADING["posicion_activa"] = False
-                    elif not ESTADO_TRADING["posicion_activa"] and hay_posicion_real:
-                        logger.warning("SYNC: Set posicion_activa a True (OKX tiene posición)")
-                        ESTADO_TRADING["posicion_activa"] = True
-                except Exception as e:
-                    logger.warning(f"SYNC OKX falló: {e}")
-
             # ── Verificar bloqueos ────────────────────────────────
             try:
                 resultado_bloqueos = verificar_bloqueos(indicadores_dict, ESTADO_TRADING)
                 if resultado_bloqueos.get("bloqueado"):
-                    logger.info(f"BLOQUEOS: {resultado_bloqueos['bloqueos']} | ESTADO={ESTADO_TRADING}")
+                    logger.info(f"BLOQUEOS: {resultado_bloqueos['bloqueos']}")
             except Exception:
                 resultado_bloqueos = {"bloqueado": True, "bloqueos": ["error"], "puede_entrar": False}
 
@@ -802,15 +784,14 @@ def _main_processing():
                         confluencias=resultado_score.get("confluencias", []),
                     )
 
-                    # SOLO actualizar estado si la orden realmente se ejecutó
+                    # SOLO actualizar contadores si la orden realmente se ejecutó
                     if orden_exitosa:
-                        ESTADO_TRADING["posicion_activa"] = True
                         ESTADO_TRADING["ultimo_trade_time"] = ahora
                         ESTADO_TRADING["trades_hoy"] += 1
                         ESTADO_TRADING["trades_hora"] += 1
-                        logger.info(f"✅ Trade #{senal_id} registrado en estado (hora={ESTADO_TRADING['trades_hora']}, hoy={ESTADO_TRADING['trades_hoy']})")
+                        logger.info(f"✅ Trade #{senal_id} ejecutado (hora={ESTADO_TRADING['trades_hora']}, hoy={ESTADO_TRADING['trades_hoy']})")
                     else:
-                        logger.warning(f"❌ Trade #{senal_id} NO se ejecutó en OKX — estado NO actualizado")
+                        logger.warning(f"❌ Trade #{senal_id} NO se ejecutó en OKX — contadores NO actualizados")
                 else:
                     if resultado_bloqueos.get("bloqueos"):
                         logger.info(f"Señal bloqueada: {', '.join(resultado_bloqueos['bloqueos'])}")

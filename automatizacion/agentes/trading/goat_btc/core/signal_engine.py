@@ -155,15 +155,14 @@ def calcular_score_scalper(indicadores: dict) -> dict:
 
 
 def verificar_bloqueos(indicadores: dict, estado_trading: dict) -> dict:
-    """Verifica condiciones de bloqueo."""
+    """Verifica condiciones de bloqueo.
+    Sin bloqueo por posición activa — opera independiente de trades manuales.
+    """
     bloqueos = []
     bbw_m1 = indicadores.get("bbw_m1", 0)
 
     if bbw_m1 > 0.12:
         bloqueos.append("bbw_m1_extremo")
-
-    if estado_trading.get("posicion_activa", False):
-        bloqueos.append("posicion_activa")
 
     ahora = time.time()
     cooldown = SCALPER_CONFIG['cooldown_entre_trades']
@@ -178,5 +177,5 @@ def verificar_bloqueos(indicadores: dict, estado_trading: dict) -> dict:
     return {
         "bloqueado": len(bloqueos) > 0,
         "bloqueos": bloqueos,
-        "puede_entrar": not any(b in bloqueos for b in ["posicion_activa", "cooldown_activo", "max_trades_hora", "drawdown_diario"]),
+        "puede_entrar": not any(b in bloqueos for b in ["cooldown_activo", "max_trades_hora", "drawdown_diario"]),
     }
