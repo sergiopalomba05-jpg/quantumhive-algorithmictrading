@@ -597,18 +597,21 @@ def _main_processing():
                 try:
                     pos_okx = _get_posicion_activa()
                     hay_posicion_real = pos_okx is not None and pos_okx.get('size', 0) != 0
+                    logger.info(f"SYNC OKX: posicion_activa={ESTADO_TRADING['posicion_activa']} | OKX tiene posición={hay_posicion_real} | pos_okx={pos_okx}")
                     if ESTADO_TRADING["posicion_activa"] and not hay_posicion_real:
-                        logger.warning("Sync: posicion_activa=True pero OKX dice que no hay posición. Reseteando.")
+                        logger.warning("SYNC: Reset posicion_activa a False (OKX no tiene posición)")
                         ESTADO_TRADING["posicion_activa"] = False
                     elif not ESTADO_TRADING["posicion_activa"] and hay_posicion_real:
-                        logger.warning("Sync: OKX tiene posición abierta pero estado dice que no. Corrigiendo.")
+                        logger.warning("SYNC: Set posicion_activa a True (OKX tiene posición)")
                         ESTADO_TRADING["posicion_activa"] = True
                 except Exception as e:
-                    logger.debug(f"Sync posición OKX falló: {e}")
+                    logger.warning(f"SYNC OKX falló: {e}")
 
             # ── Verificar bloqueos ────────────────────────────────
             try:
                 resultado_bloqueos = verificar_bloqueos(indicadores_dict, ESTADO_TRADING)
+                if resultado_bloqueos.get("bloqueado"):
+                    logger.info(f"BLOQUEOS: {resultado_bloqueos['bloqueos']} | ESTADO={ESTADO_TRADING}")
             except Exception:
                 resultado_bloqueos = {"bloqueado": True, "bloqueos": ["error"], "puede_entrar": False}
 
