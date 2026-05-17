@@ -25,9 +25,9 @@ SCALPER_CONFIG = {
     'sl_multiplicador_atr': 0.3,
     'tp_multiplicador_atr': 0.6,
     'max_posiciones_simultaneas': 1,
-    'cooldown_entre_trades': 15,
-    'max_trades_por_hora': 12,
-    'max_perdida_diaria': 20,
+    'cooldown_entre_trades': 10,
+    'max_trades_por_hora': 999,
+    'max_perdida_diaria': 50,
 }
 
 BLOQUEOS_SCALPER = [
