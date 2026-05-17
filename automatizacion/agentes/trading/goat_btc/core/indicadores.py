@@ -1,236 +1,158 @@
-"""Cálculos de indicadores técnicos para GOAT BTC Trading Agent.
-Funciones puras sin dependencias del proyecto. Solo math, statistics, typing, collections.
+"""indicadores.py — GOAT BTC Indicadores Técnicos Mejorados
+BB 30/3.0 (reemplaza 20/2.0) | RSI 7 | Detección de mechas
+Pendiente de bandas | Retorno a media
 """
 
-import math
-import statistics
-from typing import Any
-from collections import deque
+import numpy as np
+import logging
+
+logger = logging.getLogger('indicadores')
 
 
-def calcular_bb(precios: list, periodo: int = 30, desviacion: float = 3.0) -> tuple:
-    """Calcula Bollinger Bands: media, superior, inferior.
-    media = SMA de precios (últimos `periodo`)
-    desviacion_std = desviación estándar poblacional de los últimos `periodo` precios
-    superior = media + desviacion * desviacion_std
-    inferior = media - desviacion * desviacion_std
-    Si len(precios) < periodo, retorna (None, None, None)
+def calcular_bb(precios, periodo=30, desviaciones=3.0):
+    """Bollinger Bands M1 — período 30, desviación 3.0"""
+    if len(precios) < periodo:
+        return None, None, None, None
+    sma = np.mean(precios[-periodo:])
+    std = np.std(precios[-periodo:])
+    bb_sup = sma + (desviaciones * std)
+    bb_inf = sma - (desviaciones * std)
+    bbw = (bb_sup - bb_inf) / sma if sma else 0
+    return bb_sup, bb_inf, sma, bbw
+
+
+def calcular_rsi(precios, periodo=7):
+    """RSI período 7 — más sensible para scalping M1"""
+    if len(precios) < periodo + 1:
+        return 50
+    deltas = np.diff(precios[-periodo-1:])
+    ganancias = np.where(deltas > 0, deltas, 0)
+    perdidas = np.where(deltas < 0, -deltas, 0)
+    avg_gain = np.mean(ganancias)
+    avg_loss = np.mean(perdidas)
+    if avg_loss == 0:
+        return 100
+    rs = avg_gain / avg_loss
+    return 100 - (100 / (1 + rs))
+
+
+def detectar_mecha(open_p, high, low, close):
+    """Detecta tipo de mecha: long_wick, short_wick, o None.
+    Mecha debe ser >= 2x el cuerpo.
     """
-    if not precios or len(precios) < periodo:
-        return (None, None, None)
-    ventana = precios[-periodo:]
-    media = statistics.mean(ventana)
-    std = statistics.pstdev(ventana)
-    superior = media + desviacion * std
-    inferior = media - desviacion * std
-    return (media, superior, inferior)
+    cuerpo = abs(close - open_p)
+    if cuerpo == 0:
+        return None
+    mecha_inf = min(open_p, close) - low
+    mecha_sup = high - max(open_p, close)
+    
+    ratio_inf = mecha_inf / cuerpo if cuerpo > 0 else 0
+    ratio_sup = mecha_sup / cuerpo if cuerpo > 0 else 0
+    
+    if ratio_inf >= 2.0:
+        return "long_wick"
+    if ratio_sup >= 2.0:
+        return "short_wick"
+    return None
 
 
-def calcular_bbw(media: float, superior: float, inferior: float) -> float:
-    """BBW = (superior - inferior) / media.
-    Si media es 0 o None, retorna 0.0
+def detectar_pendiente_bandas(sma_values, n=5):
+    """Detecta dirección de la banda media (SMA).
+    Retorna: 'up', 'down', 'flat'
     """
-    if media is None or media == 0.0:
-        return 0.0
-    if superior is None or inferior is None:
-        return 0.0
-    return (superior - inferior) / media
+    if not sma_values or len(sma_values) < n * 2:
+        return "flat"
+    recientes = sma_values[-n:]
+    anteriores = sma_values[-n*2:-n]
+    prom_reciente = sum(recientes) / len(recientes)
+    prom_anterior = sum(anteriores) / len(anteriores)
+    diff = (prom_reciente - prom_anterior) / prom_anterior if prom_anterior else 0
+    if diff > 0.0001:
+        return "up"
+    elif diff < -0.0001:
+        return "down"
+    return "flat"
 
 
-def clasificar_bbw(bbw: float) -> str:
-    """Clasifica el estado del mercado según el ancho de banda.
-    bbw < 0.025 -> rango
-    bbw > 0.035 -> tendencia
-    else -> transicion
+def detectar_retorno_media(precio, sma):
+    """Detecta si precio está retornando a la banda media.
+    Retorna True si está dentro de 0.15% de la media.
     """
-    if bbw < 0.025:
-        return "rango"
-    if bbw > 0.035:
-        return "tendencia"
-    return "transicion"
+    if not sma or not precio:
+        return False
+    dist_pct = abs(precio - sma) / sma
+    return dist_pct < 0.0015
 
 
-def calcular_cvd_real(trades: list) -> int:
-    """Calcula Cumulative Volume Delta real.
-    trades es lista de dicts con keys: price (float), quantity (float), is_buyer_maker (bool)
-    Agresivo comprador (is_buyer_maker=False): CVD += quantity
-    Agresivo vendedor (is_buyer_maker=True): CVD -= quantity
-    """
-    if not trades:
+def calcular_atr(highs, lows, closes, periodo=14):
+    """Average True Range — para SL/TP dinámico"""
+    if len(closes) < periodo + 1:
         return 0
-    cvd = 0.0
-    for t in trades:
-        if not isinstance(t, dict):
-            continue
-        qty = t.get("quantity", 0.0)
-        if not t.get("is_buyer_maker", True):
-            cvd += qty
-        else:
-            cvd -= qty
-    return int(round(cvd))
-
-
-def calcular_delta_vela(open: float, high: float, low: float, close: float, volume: float) -> float:
-    """Calcula delta de una vela.
-    Si high == low: retorna 0.0
-    delta_ratio = (close - open) / (high - low)
-    delta = delta_ratio * volume
-    """
-    if high == low:
-        return 0.0
-    delta_ratio = (close - open) / (high - low)
-    return delta_ratio * volume
-
-
-def calcular_adx(highs: list, lows: list, closes: list, periodo: int = 14) -> float:
-    """Calcula ADX (Average Directional Index) de Wilder.
-    TR = max(high - low, abs(high - prev_close), abs(low - prev_close))
-    +DM = high - prev_high si es positivo y > prev_low - low, sino 0
-    -DM = prev_low - low si es positivo y > high - prev_high, sino 0
-    Suavizado exponencial de TR, +DM, -DM por periodo.
-    DX = abs(+DI - -DI) / (+DI + -DI) * 100
-    ADX = SMA(DX, periodo)
-    Si no hay suficientes datos, retorna 0.0
-    """
-    if not highs or not lows or not closes:
-        return 0.0
-    n = len(closes)
-    if n < periodo + 1:
-        return 0.0
-
-    tr_values = []
-    plus_dm_values = []
-    minus_dm_values = []
-
-    for i in range(1, n):
+    trs = []
+    for i in range(-periodo, 0):
         high = highs[i]
         low = lows[i]
-        prev_high = highs[i - 1]
-        prev_low = lows[i - 1]
-        prev_close = closes[i - 1]
-
+        prev_close = closes[i-1]
         tr = max(high - low, abs(high - prev_close), abs(low - prev_close))
-        tr_values.append(tr)
-
-        up_move = high - prev_high
-        down_move = prev_low - low
-
-        if up_move > down_move and up_move > 0:
-            plus_dm_values.append(up_move)
-        else:
-            plus_dm_values.append(0.0)
-
-        if down_move > up_move and down_move > 0:
-            minus_dm_values.append(down_move)
-        else:
-            minus_dm_values.append(0.0)
-
-    tr_smooth = _ema_wilder(tr_values, periodo)
-    plus_smooth = _ema_wilder(plus_dm_values, periodo)
-    minus_smooth = _ema_wilder(minus_dm_values, periodo)
-
-    dx_values = []
-    for tr_s, p_s, m_s in zip(tr_smooth, plus_smooth, minus_smooth):
-        if tr_s == 0.0:
-            continue
-        plus_di = 100.0 * p_s / tr_s
-        minus_di = 100.0 * m_s / tr_s
-        di_sum = plus_di + minus_di
-        if di_sum == 0.0:
-            dx_values.append(0.0)
-        else:
-            dx = abs(plus_di - minus_di) / di_sum * 100.0
-            dx_values.append(dx)
-
-    if len(dx_values) < periodo:
-        return 0.0
-
-    adx = statistics.mean(dx_values[-periodo:])
-    return adx
+        trs.append(tr)
+    return np.mean(trs)
 
 
-def _ema_wilder(valores: list, periodo: int) -> list:
-    """Suavizado exponencial estilo Wilder (alpha = 1/periodo)."""
-    if not valores:
-        return []
-    alpha = 1.0 / periodo
-    ema = []
-    # Wilder usa SMA inicial
-    if len(valores) >= periodo:
-        ema.append(statistics.mean(valores[:periodo]))
-    else:
-        ema.append(valores[0])
-    for v in valores[periodo:]:
-        ema.append(v * alpha + ema[-1] * (1 - alpha))
-    return ema
-
-
-def calcular_volumen_relativo(volumenes: list, indice_actual: int = -1) -> float:
-    """Volumen actual / promedio de últimos 20 volúmenes antes del actual.
-    Retorna 0.0 si el promedio es 0.
-    """
-    if not volumenes:
-        return 0.0
-    idx = indice_actual if indice_actual >= 0 else len(volumenes) - 1
-    if idx < 0 or idx >= len(volumenes):
-        return 0.0
-    volumen_actual = volumenes[idx]
-    antes = volumenes[max(0, idx - 20):idx]
-    if not antes:
-        return 0.0
-    promedio = statistics.mean(antes)
-    if promedio == 0.0:
-        return 0.0
-    return volumen_actual / promedio
-
-
-def calcular_imbalance_book(bids: list, asks: list, top_n: int = 10) -> float:
-    """Calcula imbalance del libro de órdenes.
-    bids y asks son listas de (precio, cantidad)
-    imbalance = (bid_vol - ask_vol) / (bid_vol + ask_vol)
-    Rango -1 a 1. Retorna 0.0 si suma es 0.
-    """
-    if not bids or not asks:
-        return 0.0
-    bid_vol = sum(qty for _, qty in bids[:top_n])
-    ask_vol = sum(qty for _, qty in asks[:top_n])
-    total = bid_vol + ask_vol
-    if total == 0.0:
-        return 0.0
-    return (bid_vol - ask_vol) / total
-
-
-def calcular_atr(highs: list, lows: list, closes: list, periodo: int = 14) -> float:
-    """Calcula ATR (Average True Range) de Wilder.
-    TR = max(high - low, abs(high - prev_close), abs(low - prev_close))
-    ATR = EMA suavizada de TR con periodo 14.
-    Retorna 0.0 si no hay suficientes datos.
-    """
-    if not highs or not lows or not closes:
-        return 0.0
-    n = len(closes)
-    if n < periodo + 1:
-        return 0.0
-    tr_values = []
-    for i in range(1, n):
-        tr = max(highs[i] - lows[i], abs(highs[i] - closes[i-1]), abs(lows[i] - closes[i-1]))
-        tr_values.append(tr)
-    if not tr_values:
-        return 0.0
-    atr = sum(tr_values[:periodo]) / periodo
-    for tr in tr_values[periodo:]:
-        atr = (atr * (periodo - 1) + tr) / periodo
-    return atr
-
-
-def clasificar_imbalance(imbalance: float) -> str:
-    """Clasifica el imbalance del libro.
-    > 0.3 -> presion_compradora
-    < -0.3 -> presion_vendedora
-    else -> neutro
-    """
-    if imbalance > 0.3:
-        return "presion_compradora"
-    if imbalance < -0.3:
-        return "presion_vendedora"
-    return "neutro"
+def calcular_indicadores_m1(velas, bb_sup_prev=None, bb_inf_prev=None, sma_values=None):
+    """Calcula todos los indicadores M1 con BB 30/3.0"""
+    if not velas or len(velas) < 30:
+        return {}
+    
+    closes = [v['close'] for v in velas]
+    highs = [v['high'] for v in velas]
+    lows = [v['low'] for v in velas]
+    opens = [v['open'] for v in velas]
+    
+    precio_actual = closes[-1]
+    
+    # BB 30/3.0
+    bb_sup, bb_inf, bb_media, bbw = calcular_bb(closes, periodo=30, desviaciones=3.0)
+    
+    # RSI 7
+    rsi_7 = calcular_rsi(closes, periodo=7)
+    
+    # ATR
+    atr = calcular_atr(highs, lows, closes)
+    
+    # Mecha última vela
+    mecha = detectar_mecha(opens[-1], highs[-1], lows[-1], closes[-1])
+    
+    # Toco bandas
+    toco_sup = False
+    toco_inf = False
+    if bb_sup and bb_inf:
+        toco_sup = highs[-1] >= bb_sup
+        toco_inf = lows[-1] <= bb_inf
+    
+    # Pendiente de bandas
+    if sma_values is None:
+        sma_values = []
+    if bb_media:
+        sma_values.append(bb_media)
+        if len(sma_values) > 100:
+            sma_values = sma_values[-100:]
+    pendiente = detectar_pendiente_bandas(sma_values)
+    
+    # Retorno a media
+    retorno = detectar_retorno_media(precio_actual, bb_media)
+    
+    return {
+        'bb_superior_m1': bb_sup,
+        'bb_inferior_m1': bb_inf,
+        'bb_media_m1': bb_media,
+        'bbw_m1': bbw,
+        'rsi_7': rsi_7,
+        'atr_m1': atr,
+        'mecha_rechazo_m1': mecha,
+        'toco_bb_superior_m1': toco_sup,
+        'toco_bb_inferior_m1': toco_inf,
+        'pendiente_bandas_m1': pendiente,
+        'retorno_media_m1': retorno,
+        'sma_m1_values': sma_values,
+        'precio_actual': precio_actual,
+    }

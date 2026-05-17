@@ -419,9 +419,9 @@ def _main_processing():
             _, highs_m1, lows_m1, closes_m1, _ = _extraer_ohlcv(klines_1m)
             _, highs_h1, lows_h1, closes_h1, _ = _extraer_ohlcv(klines_1h)
 
-            # ── Bollinger Bands M1 (20/2.0) ────────────────────────
+            # ── Bollinger Bands M1 (30/3.0) ────────────────────────
             try:
-                bb_media_m1, bb_sup_m1, bb_inf_m1 = calcular_bb(closes_m1, 20, 2.0)
+                bb_media_m1, bb_sup_m1, bb_inf_m1 = calcular_bb(closes_m1, 30, 3.0)
                 bbw_m1 = calcular_bbw(bb_media_m1, bb_sup_m1, bb_inf_m1) if bb_media_m1 else 0.0
             except Exception:
                 bb_media_m1 = bb_sup_m1 = bb_inf_m1 = None
@@ -480,27 +480,8 @@ def _main_processing():
             except Exception:
                 delta_ultima_m1 = 0.0
 
-            # ── Vela rechazo M1 ──────────────────────────────
-            try:
-                if ultima_vela_m1:
-                    from .core.signal_engine import _detectar_rechazo
-                    rechazo_m1 = _detectar_rechazo(
-                        ultima_vela_m1["open"], ultima_vela_m1["high"],
-                        ultima_vela_m1["low"], ultima_vela_m1["close"],
-                    )
-                else:
-                    rechazo_m1 = None
-            except ImportError:
-                from trading.goat_btc.core.signal_engine import _detectar_rechazo
-                if ultima_vela_m1:
-                    rechazo_m1 = _detectar_rechazo(
-                        ultima_vela_m1["open"], ultima_vela_m1["high"],
-                        ultima_vela_m1["low"], ultima_vela_m1["close"],
-                    )
-                else:
-                    rechazo_m1 = None
-            except Exception:
-                rechazo_m1 = None
+            # ── Rechazo M1 (legacy, mantener compatibilidad) ─────
+            rechazo_m1 = mecha_rechazo
 
             # ── Volumen relativo (M5) ───────────────────────────
             try:
@@ -513,6 +494,57 @@ def _main_processing():
                 imbalance = calcular_imbalance_book(bids, asks, 10)
             except Exception:
                 imbalance = 0.0
+
+            # ── Mecha rechazo M1 ──────────────────────────────
+            try:
+                if ultima_vela_m1:
+                    from .core.indicadores import detectar_mecha
+                    mecha_rechazo = detectar_mecha(
+                        ultima_vela_m1["open"], ultima_vela_m1["high"],
+                        ultima_vela_m1["low"], ultima_vela_m1["close"],
+                    )
+                else:
+                    mecha_rechazo = None
+            except ImportError:
+                    from trading.goat_btc.core.indicadores import detectar_mecha
+                    if ultima_vela_m1:
+                        mecha_rechazo = detectar_mecha(
+                            ultima_vela_m1["open"], ultima_vela_m1["high"],
+                            ultima_vela_m1["low"], ultima_vela_m1["close"],
+                        )
+                    else:
+                        mecha_rechazo = None
+            except Exception:
+                mecha_rechazo = None
+
+            # ── RSI 7 M1 ─────────────────────────────────────
+            try:
+                from .core.indicadores import calcular_rsi
+                rsi_7 = calcular_rsi(closes_m1, periodo=7)
+            except ImportError:
+                from trading.goat_btc.core.indicadores import calcular_rsi
+                rsi_7 = calcular_rsi(closes_m1, periodo=7)
+            except Exception:
+                rsi_7 = 50
+
+            # ── Pendiente de bandas M1 ───────────────────────
+            try:
+                from .core.indicadores import detectar_pendiente_bandas
+                # Usar bb_media_m1 histórico si disponible
+                sma_values = []
+                if bb_media_m1:
+                    sma_values = list(closes_m1[-60:])  # approximar con closes
+                pendiente_bandas = detectar_pendiente_bandas(sma_values)
+            except Exception:
+                pendiente_bandas = "flat"
+                sma_values = []
+
+            # ── Retorno a media M1 ──────────────────────────
+            try:
+                from .core.indicadores import detectar_retorno_media
+                retorno_media = detectar_retorno_media(precio, bb_media_m1)
+            except Exception:
+                retorno_media = False
 
             # ── Velas tocando banda M1 (últimas 3) ───────────────
             try:
@@ -547,6 +579,11 @@ def _main_processing():
                 "ultimas_5_deltas": deltas_velas_m1,
                 "imbalance_book": imbalance,
                 "rechazo_m1": rechazo_m1,
+                "mecha_rechazo_m1": mecha_rechazo,
+                "rsi_7": rsi_7,
+                "pendiente_bandas_m1": pendiente_bandas,
+                "retorno_media_m1": retorno_media,
+                "sma_m1_values": sma_values,
             }
 
             # ── Score M1 scalper ──────────────────────────────────
@@ -616,11 +653,14 @@ def _main_processing():
             # ── Reasoning lines ────────────────────────────────────
             raz_lines = []
             if bb_media_m1:
-                raz_lines.append(f"SCALPER M1 — BB 20/2.0 Sup: ${bb_sup_m1:,.0f} Med: ${bb_media_m1:,.0f} Inf: ${bb_inf_m1:,.0f}")
+                raz_lines.append(f"SCALPER M1 — BB 30/3.0 Sup: ${bb_sup_m1:,.0f} Med: ${bb_media_m1:,.0f} Inf: ${bb_inf_m1:,.0f}")
+            modo_entrada = resultado_score.get("modo", "")
+            if modo_entrada:
+                raz_lines.append(f"Modo: {modo_entrada.upper()} | RSI(7): {rsi_7:.1f}")
             raz_lines.append(f"BBW M1: {bbw_m1:.4f} | BBW M5: {bbw_m5:.4f} | ADX M5: {adx_m5:.1f}")
             raz_lines.append(f"CVD corto: {cvd_corto:+,d} | CVD largo: {cvd_largo:+,d}")
-            if rechazo_m1:
-                raz_lines.append(f"Rechazo M1 detectado: {rechazo_m1}")
+            if mecha_rechazo:
+                raz_lines.append(f"Mecha rechazo: {mecha_rechazo}")
             if resultado_score.get("es_alerta"):
                 raz_lines.append(f"Senal M1: {resultado_score.get('direccion', 'N/A')} | Score: {resultado_score['score']}/100")
                 if resultado_bloqueos.get("bloqueado"):
@@ -658,6 +698,8 @@ def _main_processing():
                     "pnl_diario": ESTADO_TRADING["pnl_diario"],
                     "cooldown": int(cooldown_restante),
                     "bbw_m1": bbw_m1,
+                    "rsi_7": rsi_7,
+                    "modo_entrada": resultado_score.get("modo", ""),
                 }
                 terminal.actualizar(macro_data, regimen_data, flujo_data, status_data=status_data, header_data=header_data)
             except Exception:

@@ -361,18 +361,24 @@ class TerminalUI:
         trades_hoy = data.get("trades_hoy", 0)
         pnl_diario = data.get("pnl_diario", 0)
         cooldown = data.get("cooldown", 0)
+        rsi = data.get("rsi_7", 50)
+        modo = data.get("modo_entrada", "")
         uptime_secs = int(time.time() - self._start_time)
         uptime_str = f"{uptime_secs // 3600:02d}:{(uptime_secs % 3600) // 60:02d}:{uptime_secs % 60:02d}"
 
         precio_str = f"${precio:,.0f}" if precio else "$--"
         cvd_str = f"{cvd:+,.0f}" if cvd else "--"
         adx_str = f"{adx:.1f}" if adx else "--"
+        rsi_color = G if 40 <= rsi <= 60 else (Y if 30 <= rsi <= 70 else R)
+        modo_str = f"| Modo: {modo.upper()} " if modo else ""
 
         texto = Text.assemble(
             ("BTCUSDT ", "bold white"),
             (f"{precio_str} ", Y),
             ("| CVD:", "dim white"), (f"{cvd_str} ", G if (cvd or 0) >= 0 else R),
             ("| ADX:", "dim white"), (f"{adx_str} ", "white"),
+            ("| RSI(7):", "dim white"), (f"{rsi:.0f} ", rsi_color),
+            modo_str if modo else ("", ""),
             ("| ", "dim white"),
             (f"{regimen}", G if regimen == "RANGO" else (Y if regimen == "TRANSICI\u00d3N" else R)),
             ("| Trades: ", "dim white"), (f"{trades_hoy} ", Y),
@@ -393,6 +399,8 @@ class TerminalUI:
             sd["cvd_largo"] = sd.get("cvd_largo") or macro_data.get("cvd_largo")
             sd["adx"] = sd.get("adx") or regimen_data.get("adx")
             sd["regimen"] = sd.get("regimen") or regimen_data.get("clasificacion", "\u2014")
+            sd["rsi_7"] = sd.get("rsi_7", 50)
+            sd["modo_entrada"] = sd.get("modo_entrada", "")
 
             self.layout["header"].update(self.render_header(hd))
             self.layout["macro"].update(self.render_macro_h1(macro_data))

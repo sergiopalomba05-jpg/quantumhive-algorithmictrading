@@ -28,9 +28,31 @@ OKX_FLAG = os.getenv('OKX_FLAG', '1')
 OKX_BASE_URL = os.getenv('OKX_BASE_URL', 'https://www.okx.com')
 OKX_INSTRUMENT = os.getenv('OKX_INSTRUMENT', 'BTC-USDT-SWAP')
 
-AMOUNT_CONTRACTS = 1
+# Risk management
+RISK_PER_TRADE_USD = float(os.getenv('RISK_PER_TRADE_USD', '5'))  # USD a arriesgar por operacion
+SL_PERCENT = 0.003  # 0.3% stop loss (scalper M1)
+TP_PERCENT = 0.006  # 0.6% take profit (1:2 R:R = $10 target)
+
+# 1 contrato OKX BTC-USDT-SWAP = 0.001 BTC
+CONTRACT_SIZE_BTC = 0.001
 
 SYMBOL = OKX_INSTRUMENT
+
+
+def calcular_contratos(precio: float, riesgo_usd: float = None, sl_pct: float = None) -> int:
+    """
+    Calcula cantidad de contratos basado en riesgo fijo en USD.
+    Risk = Position Size × SL%
+    Position Size = Risk / SL%
+    Contracts = Position Size / (precio × CONTRACT_SIZE_BTC)
+    """
+    riesgo = riesgo_usd or RISK_PER_TRADE_USD
+    sl = sl_pct or SL_PERCENT
+    if precio <= 0:
+        return 1
+    position_size_usd = riesgo / sl
+    contracts = int(position_size_usd / (precio * CONTRACT_SIZE_BTC))
+    return max(1, contracts)
 
 
 class OKXExecutor:
@@ -44,6 +66,7 @@ class OKXExecutor:
         self.base_url = OKX_BASE_URL
         self.instrument = OKX_INSTRUMENT
         self._last_price = 0.0
+        self._last_contracts = 1  # Track last position size for PnL
 
     def _get_timestamp(self) -> str:
         """Timestamp ISO 8601 UTC requerido por OKX."""
@@ -103,7 +126,7 @@ class OKXExecutor:
         """
         Ejecuta market order en BTC-USDT-SWAP.
         side: 'buy' o 'sell' (o 'long'/'short')
-        Retorna: {'orderId': str, 'precio': float, 'status': str}
+        Retorna: {'orderId': str, 'precio': float, 'status': str, 'contracts': int}
         """
         side_up = side.upper()
         if side_up in ('BUY', 'LONG'):
@@ -114,25 +137,35 @@ class OKXExecutor:
             logger.error(f"Side inválido: {side}")
             return None
 
+        # Calcular contratos basado en riesgo fijo
+        entry_price = precio or self._last_price or self.get_precio_actual()
+        contracts = calcular_contratos(entry_price)
+        self._last_contracts = contracts
+
+        notional = contracts * CONTRACT_SIZE_BTC * entry_price
+        riesgo_calc = notional * SL_PERCENT
+        logger.info(f"Posicion: {contracts} contratos ({notional:.0f} USD notional) — Riesgo: ${riesgo_calc:.2f} (SL {SL_PERCENT*100:.1f}%)")
+
         body = {
             'instId': self.instrument,
             'tdMode': 'cross',
             'side': td_mode,
             'ordType': 'market',
-            'sz': str(AMOUNT_CONTRACTS),
+            'sz': str(contracts),
         }
 
         result = self._request('POST', '/api/v5/trade/order', body)
         if result and result.get('data'):
             order_data = result['data'][0]
             order_id = order_data.get('ordId', '')
-            logger.info(f"Orden ejecutada: {td_mode} {AMOUNT_CONTRACTS} {self.instrument} -> {order_id}")
+            logger.info(f"Orden ejecutada: {td_mode} {contracts} contratos {self.instrument} -> {order_id}")
             return {
                 'orderId': order_id,
-                'precio': precio or 0.0,
+                'precio': entry_price,
                 'status': order_data.get('sState', 'submitted'),
                 'side': side,
                 'symbol': self.instrument,
+                'contracts': contracts,
             }
         logger.error(f"Fallo ejecutando orden: {side}")
         return None
@@ -265,19 +298,21 @@ def get_balance() -> float:
 
 
 def calcular_sl_tp(entry_price: float, side: str) -> tuple:
-    """Calcula SL/TP basado en porcentaje (scalper M1)."""
+    """Calcula SL/TP basado en porcentaje (scalper M1).
+    SL: 0.3% | TP: 0.6% (1:2 R:R, target $10 con riesgo $5)
+    """
     if side.upper() == 'LONG':
-        sl = round(entry_price * 0.997, 1)
-        tp = round(entry_price * 1.007, 1)
+        sl = round(entry_price * (1 - SL_PERCENT), 1)
+        tp = round(entry_price * (1 + TP_PERCENT), 1)
     else:
-        sl = round(entry_price * 1.003, 1)
-        tp = round(entry_price * 0.993, 1)
+        sl = round(entry_price * (1 + SL_PERCENT), 1)
+        tp = round(entry_price * (1 - TP_PERCENT), 1)
     return sl, tp
 
 
 def calcular_pnl(entry_price: float, exit_price: float, side: str, qty: float = None) -> dict:
     if qty is None:
-        qty = AMOUNT_CONTRACTS
+        qty = _executor._last_contracts * CONTRACT_SIZE_BTC
     if side.upper() == 'LONG':
         pnl_usdt = round((exit_price - entry_price) * qty, 2)
         pnl_pct = round((exit_price - entry_price) / entry_price * 100, 2)
