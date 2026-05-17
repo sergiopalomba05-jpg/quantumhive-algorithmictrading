@@ -1,0 +1,15 @@
+[Unit]
+Description=QuantumHive Agente Cerebro
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/quantumhive
+Environment=PYTHONPATH=/home/ubuntu/quantumhive
+ExecStart=/home/ubuntu/quantumhive/venv/bin/python automatizacion/agentes/agente_cerebro.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
