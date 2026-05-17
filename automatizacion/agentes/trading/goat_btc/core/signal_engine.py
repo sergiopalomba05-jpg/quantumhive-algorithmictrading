@@ -25,14 +25,14 @@ SCORING_SCALPER_M1 = {
     'pendiente_bandas': 10,
 }
 
-SCORE_MINIMO_ENTRADA = 45
-SCORE_MINIMO_CALIDAD = 65
+SCORE_MINIMO_ENTRADA = 35
+SCORE_MINIMO_CALIDAD = 55
 
 SCALPER_CONFIG = {
     'sl_multiplicador_atr': 0.3,
     'tp_multiplicador_atr': 0.6,
     'max_posiciones_simultaneas': 1,
-    'cooldown_entre_trades': 30,
+    'cooldown_entre_trades': 15,
     'max_trades_por_hora': 12,
     'max_perdida_diaria': 20,
 }
@@ -226,7 +226,7 @@ def verificar_bloqueos(indicadores: dict, estado_trading: dict) -> dict:
     bloqueos = []
     bbw_m1 = indicadores.get("bbw_m1", 0)
 
-    if bbw_m1 > 0.08:
+    if bbw_m1 > 0.12:
         bloqueos.append("bbw_m1_extremo")
 
     if estado_trading.get("posicion_activa", False):

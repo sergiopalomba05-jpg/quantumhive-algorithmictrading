@@ -599,8 +599,8 @@ def _main_processing():
                 resultado_bloqueos = {"bloqueado": True, "bloqueos": ["error"], "puede_entrar": False}
 
             # ── Build terminal data ───────────────────────────────
-            regimen_m5 = clasificar_bbw(bbw_m5) if bbw_m5 else "\u2014"
-            regimen_h1 = clasificar_bbw(bbw_h1) if bbw_h1 else "\u2014"
+            regimen_m5 = clasificar_bbw(bbw_m5)
+            regimen_h1 = clasificar_bbw(bbw_h1)
 
             dist_sup_h1 = ((bb_sup_h1 - precio) / precio * 100) if bb_sup_h1 and precio else 0.0
             dist_inf_h1 = ((precio - bb_inf_h1) / precio * 100) if bb_inf_h1 and precio else 0.0

@@ -99,20 +99,20 @@ class TerminalUI:
         now = datetime.datetime.now(tz).strftime("%H:%M:%S")
         precio = data.get("precio", 0)
         cambio_24h = data.get("cambio_24h", 0)
-        regimen = data.get("regimen", "rango")
+        regimen = data.get("regimen", "RANGO").upper()
 
         self._pulse_counter += 1
         pulsating = "\u25cf" if (self._pulse_counter // 2) % 2 == 0 else "\u25cb"
 
-        if regimen == "rango":
+        if regimen == "RANGO":
             pulse_color = G
             estado = "OPERANDO"
-        elif regimen == "tendencia":
-            pulse_color = R
-            estado = "BLOQUEADO"
+        elif regimen == "TENDENCIA":
+            pulse_color = G
+            estado = "OPERANDO"
         else:
             pulse_color = Y
-            estado = "MONITOREANDO"
+            estado = "OPERANDO"
 
         precio_str = f"${precio:,.2f}" if precio else "$--,---.--"
 
@@ -380,7 +380,7 @@ class TerminalUI:
             ("| RSI(7):", "dim white"), (f"{rsi:.0f} ", rsi_color),
             modo_str if modo else ("", ""),
             ("| ", "dim white"),
-            (f"{regimen}", G if regimen == "RANGO" else (Y if regimen == "TRANSICI\u00d3N" else R)),
+            (f"{regimen.upper()}", G if regimen.upper() == "RANGO" else (Y if regimen.upper() == "TRANSICION" else G)),
             ("| Trades: ", "dim white"), (f"{trades_hoy} ", Y),
             ("| P&L: ", "dim white"), (f"${pnl_diario:+.2f} ", G if pnl_diario >= 0 else R),
             ("| CD: ", "dim white"), (f"{cooldown}s", Y if cooldown > 0 else G),
