@@ -210,35 +210,33 @@ def _notificar_agi(payload: dict):
 
 def _ejecutar_senal_automatica(senal_id: int, direccion: str, score: int, precio: float,
                                 clasificacion: str = "", confluencias: list = None,
-                                sl: float = None, tp: float = None):
-    """Ejecuta orden inmediatamente y lanza monitoreo de posición."""
+                                sl: float = None, tp: float = None) -> bool:
+    """Ejecuta orden inmediatamente y lanza monitoreo de posición.
+    Retorna True si la orden se ejecutó con éxito, False si falló.
+    """
     logger.info(f"🚀 Ejecutando señal autónoma #{senal_id}: {direccion} @ ${precio:,.0f}")
 
-    # 1. Ejecutar orden
+    # 1. Ejecutar orden en OKX
     resultado_orden = None
     if OKX_EXECUTOR_AVAILABLE:
         try:
             resultado_orden = _ejecutar_orden(direccion, precio)
-            logger.info(f"Orden ejecutada: {resultado_orden}")
+            if resultado_orden is None:
+                logger.error(f"❌ Orden #{senal_id} FALLÓ — OKX retornó None (credenciales o API error)")
+                return False
+            logger.info(f"✅ Orden ejecutada: {resultado_orden}")
         except Exception as e:
-            logger.error(f"Error ejecutando orden #{senal_id}: {e}")
+            logger.error(f"❌ Error ejecutando orden #{senal_id}: {e}")
             try:
                 senales_db.actualizar_resultado_agi(senal_id, "error_ejecucion", str(e))
             except Exception:
                 pass
-            return
+            return False
     else:
         logger.info(f"[SIMULACIÓN] Orden {direccion} no ejecutada (sin executor)")
         resultado_orden = {"orderId": f"sim_{int(time.time())}", "status": "SIMULATED"}
 
-    # 2. Publicar evento al Cerebro
-    _publicar_evento_cerebro("senal_detectada", {
-        "direccion": direccion, "score": score, "precio": precio,
-        "confluencias": confluencias or [], "senal_id": senal_id,
-        "order_id": resultado_orden.get("orderId", "sim") if resultado_orden else "sim",
-    })
-
-    # 3. Calcular SL/TP si no vienen dados
+    # 2. Calcular SL/TP
     if sl is None or tp is None:
         try:
             sl, tp = _calcular_sl_tp(precio, direccion)
@@ -247,7 +245,14 @@ def _ejecutar_senal_automatica(senal_id: int, direccion: str, score: int, precio
             sl = round(precio * 0.997, 1) if direccion.upper() == 'LONG' else round(precio * 1.003, 1)
             tp = round(precio * 1.007, 1) if direccion.upper() == 'LONG' else round(precio * 0.993, 1)
 
-    # 3. Notificar entrada a AGI
+    # 3. Publicar evento al Cerebro
+    _publicar_evento_cerebro("senal_detectada", {
+        "direccion": direccion, "score": score, "precio": precio,
+        "confluencias": confluencias or [], "senal_id": senal_id,
+        "order_id": resultado_orden.get("orderId", "sim"),
+    })
+
+    # 4. Notificar entrada a AGI
     _notificar_agi({
         "tipo": "entrada",
         "senal_id": senal_id,
@@ -259,7 +264,7 @@ def _ejecutar_senal_automatica(senal_id: int, direccion: str, score: int, precio
         "confluencias": confluencias or [],
     })
 
-    # 4. Iniciar monitoreo de SL/TP en background (scalper: 5s polling + breakeven)
+    # 5. Iniciar monitoreo de SL/TP en background
     try:
         _monitorear_sl_tp(
             senal_id=senal_id,
@@ -273,6 +278,8 @@ def _ejecutar_senal_automatica(senal_id: int, direccion: str, score: int, precio
         )
     except Exception as e:
         logger.error(f"Error iniciando monitoreo #{senal_id}: {e}")
+
+    return True
 
 
 def _on_cierre_posicion(resultado: dict, senal_id: int, direccion: str, precio_entrada: float):
@@ -785,14 +792,8 @@ def _main_processing():
                     except Exception as e:
                         logger.warning(f"Error guardando señal: {e}")
 
-                    # Actualizar estado de trading
-                    ESTADO_TRADING["posicion_activa"] = True
-                    ESTADO_TRADING["ultimo_trade_time"] = ahora
-                    ESTADO_TRADING["trades_hoy"] += 1
-                    ESTADO_TRADING["trades_hora"] += 1
-
-                    # ── Autonomous execution ────────────────────────
-                    _ejecutar_senal_automatica(
+                    # ── Autonomous execution (SOLO si OKX confirma) ──
+                    orden_exitosa = _ejecutar_senal_automatica(
                         senal_id=senal_id,
                         direccion=direccion_up,
                         score=score,
@@ -800,6 +801,16 @@ def _main_processing():
                         clasificacion="scalper_m1",
                         confluencias=resultado_score.get("confluencias", []),
                     )
+
+                    # SOLO actualizar estado si la orden realmente se ejecutó
+                    if orden_exitosa:
+                        ESTADO_TRADING["posicion_activa"] = True
+                        ESTADO_TRADING["ultimo_trade_time"] = ahora
+                        ESTADO_TRADING["trades_hoy"] += 1
+                        ESTADO_TRADING["trades_hora"] += 1
+                        logger.info(f"✅ Trade #{senal_id} registrado en estado (hora={ESTADO_TRADING['trades_hora']}, hoy={ESTADO_TRADING['trades_hoy']})")
+                    else:
+                        logger.warning(f"❌ Trade #{senal_id} NO se ejecutó en OKX — estado NO actualizado")
                 else:
                     if resultado_bloqueos.get("bloqueos"):
                         logger.info(f"Señal bloqueada: {', '.join(resultado_bloqueos['bloqueos'])}")
