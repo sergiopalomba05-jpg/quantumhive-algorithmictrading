@@ -28,9 +28,9 @@ logger = logging.getLogger('goat_btc')
 # ── Imports ──────────────────────────────────────────────────────────────────
 
 try:
-    from .core.binance_feed import BinanceFeed
+    from .core.okx_feed import OKXFeed
 except ImportError:
-    from trading.goat_btc.core.binance_feed import BinanceFeed
+    from trading.goat_btc.core.okx_feed import OKXFeed
 
 try:
     from .core.indicadores import (
@@ -133,7 +133,7 @@ except Exception:
 
 # ── Global instances ─────────────────────────────────────────────────────────
 
-feed = BinanceFeed()
+feed = OKXFeed()
 senales_db = SeñalesDB()
 session_summary = SessionSummary()
 try:
@@ -547,24 +547,11 @@ def _main_processing():
             except Exception:
                 retorno_media = False
 
-            # ── Velas tocando banda M1 (últimas 3) — VALIDADO con precio OKX ──
+            # ── Velas tocando banda M1 (últimas 3) ───────────────
             try:
                 _, toco_sup_m1, toco_inf_m1 = _precios_tocaron_banda(
                     klines_1m, bb_sup_m1, bb_inf_m1, 3
                 )
-                # Validación extra: el precio actual de OKX debe estar cerca de la banda
-                if OKX_EXECUTOR_AVAILABLE and bb_inf_m1 and bb_sup_m1:
-                    precio_okx = _get_precio_actual()
-                    if precio_okx > 0:
-                        dist_inf_okx = abs(precio_okx - bb_inf_m1) / bb_inf_m1 * 100
-                        dist_sup_okx = abs(precio_okx - bb_sup_m1) / bb_sup_m1 * 100
-                        # Si el precio de OKX está a más de 0.1% de la banda, no tocó
-                        if toco_inf_m1 and dist_inf_okx > 0.15:
-                            logger.warning(f"VALIDACIÓN OKX: toco_inf=True pero precio OKX está a {dist_inf_okx:.2f}% de la banda. Cancelando.")
-                            toco_inf_m1 = False
-                        if toco_sup_m1 and dist_sup_okx > 0.15:
-                            logger.warning(f"VALIDACIÓN OKX: toco_sup=True pero precio OKX está a {dist_sup_okx:.2f}% de la banda. Cancelando.")
-                            toco_sup_m1 = False
             except Exception:
                 toco_sup_m1 = False
                 toco_inf_m1 = False
