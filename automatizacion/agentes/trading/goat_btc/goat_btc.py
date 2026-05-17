@@ -592,6 +592,20 @@ def _main_processing():
             score = resultado_score.get("score", 0)
             direccion = resultado_score.get("direccion")
 
+            # ── Sync posición real con OKX (evita estado trabado) ──
+            if OKX_EXECUTOR_AVAILABLE:
+                try:
+                    pos_okx = _get_posicion_activa()
+                    hay_posicion_real = pos_okx is not None and pos_okx.get('size', 0) != 0
+                    if ESTADO_TRADING["posicion_activa"] and not hay_posicion_real:
+                        logger.warning("Sync: posicion_activa=True pero OKX dice que no hay posición. Reseteando.")
+                        ESTADO_TRADING["posicion_activa"] = False
+                    elif not ESTADO_TRADING["posicion_activa"] and hay_posicion_real:
+                        logger.warning("Sync: OKX tiene posición abierta pero estado dice que no. Corrigiendo.")
+                        ESTADO_TRADING["posicion_activa"] = True
+                except Exception as e:
+                    logger.debug(f"Sync posición OKX falló: {e}")
+
             # ── Verificar bloqueos ────────────────────────────────
             try:
                 resultado_bloqueos = verificar_bloqueos(indicadores_dict, ESTADO_TRADING)
