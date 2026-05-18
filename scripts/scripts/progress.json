@@ -1,0 +1,178 @@
+{
+  "version": "1.0",
+  "updated": "2026-04-26T17:55:00-03:00",
+  "fase_actual": "Fase 1: Fundación",
+  "progreso_pct": 45,
+  "divisiones": {
+    "D1_Trading_IA": {
+      "emoji": "🤖",
+      "nombre": "Trading IA",
+      "items": {
+        "Cerebro Unificado US30": {"status": "wip", "badge": "En progreso"},
+        "Entorno REV+CONT+SCALP": {"status": "ok", "badge": "Listo"},
+        "Dataset US30 M1–H1 (3 años)": {"status": "ok", "badge": "Listo"},
+        "EA MT5 ONNX loader": {"status": "wip", "badge": "En progreso"},
+        "Kill-switch STOP.txt": {"status": "warn", "badge": "Pendiente"}
+      }
+    },
+    "D2_Fondeo": {
+      "emoji": "💰",
+      "nombre": "Fondeo / Challenges",
+      "items": {
+        "Agente afiliaciones": {"status": "pend", "badge": "Futuro"},
+        "Gestor challenges": {"status": "pend", "badge": "Futuro"},
+        "Cuentas fondeadas": {"status": "pend", "badge": "Futuro"},
+        "Agente cobro comisiones": {"status": "pend", "badge": "Futuro"}
+      }
+    },
+    "D3_Señales": {
+      "emoji": "📡",
+      "nombre": "Señales / Telegram",
+      "items": {
+        "Formateador señales": {"status": "pend", "badge": "Futuro"},
+        "Gestor grupos Free/VIP": {"status": "pend", "badge": "Futuro"},
+        "Cobro suscripción auto": {"status": "pend", "badge": "Futuro"},
+        "Retención + A/B testing": {"status": "pend", "badge": "Futuro"}
+      }
+    },
+    "D4_Marketing": {
+      "emoji": "📢",
+      "nombre": "Marketing / Captación",
+      "items": {
+        "Instagram por división": {"status": "pend", "badge": "Futuro"},
+        "Generador contenido (IA)": {"status": "pend", "badge": "Futuro"},
+        "Publicador auto (Buffer)": {"status": "pend", "badge": "Futuro"},
+        "CRM clientes": {"status": "pend", "badge": "Futuro"}
+      }
+    },
+    "D5_Infoproductos": {
+      "emoji": "📚",
+      "nombre": "Infoproductos / EAs",
+      "items": {
+        "Creador contenido edu": {"status": "pend", "badge": "Futuro"},
+        "Publicador Hotmart/Gumroad": {"status": "pend", "badge": "Futuro"},
+        "Gestor afiliados": {"status": "pend", "badge": "Futuro"},
+        "Licencias EA por activo": {"status": "warn", "badge": "Pendiente"}
+      }
+    },
+    "D6_Enterprise": {
+      "emoji": "🏢",
+      "nombre": "Enterprise / High Ticket",
+      "items": {
+        "Licencias framework completo": {"status": "pend", "badge": "Futuro"},
+        "Contratos institucionales": {"status": "pend", "badge": "Futuro"},
+        "White label bots": {"status": "pend", "badge": "Futuro"}
+      }
+    },
+    "D7_PropFirm": {
+      "emoji": "🏦",
+      "nombre": "PropFirm Propio",
+      "items": {
+        "PropFirm propia (Fase 5)": {"status": "pend", "badge": "Futuro"},
+        "Broker propio (Fase 7)": {"status": "pend", "badge": "Futuro"}
+      }
+    },
+    "D8_Fábrica": {
+      "emoji": "🏭",
+      "nombre": "Fábrica de Bots",
+      "items": {
+        "Control de calidad ONNX": {"status": "warn", "badge": "Pendiente"},
+        "Catálogo por activo + RR": {"status": "warn", "badge": "Pendiente"},
+        "Pricing dinámico": {"status": "pend", "badge": "Futuro"},
+        "Soporte post-venta": {"status": "pend", "badge": "Futuro"},
+        "Ecosistemas por bot (EA+PDF+video)": {"status": "pend", "badge": "Futuro"}
+      }
+    },
+    "D9_Limpieza": {
+      "emoji": "🧹",
+      "nombre": "Limpieza / Mantenimiento",
+      "items": {
+        "Limpieza datos históricos": {"status": "warn", "badge": "Pendiente"},
+        "Limpieza modelos ONNX viejos": {"status": "warn", "badge": "Pendiente"},
+        "Rotación logs (7/30/90 días)": {"status": "warn", "badge": "Pendiente"},
+        "Limpieza prompts obsoletos": {"status": "pend", "badge": "Futuro"}
+      }
+    },
+    "D10_Web": {
+      "emoji": "🌐",
+      "nombre": "Web / SEO / Dashboard",
+      "items": {
+        "Analytics web (GA4)": {"status": "pend", "badge": "Futuro"},
+        "SEO técnico + contenido": {"status": "pend", "badge": "Futuro"},
+        "A/B testing landing pages": {"status": "pend", "badge": "Futuro"},
+        "Diseño contenido (Canva API)": {"status": "pend", "badge": "Futuro"},
+        "Next.js dashboard público": {"status": "pend", "badge": "Futuro"}
+      }
+    },
+    "D11_Ventas": {
+      "emoji": "💬",
+      "nombre": "Ventas / Atención",
+      "items": {
+        "Bot bienvenida + qualifying": {"status": "pend", "badge": "Futuro"},
+        "Especialistas por área": {"status": "pend", "badge": "Futuro"},
+        "Closer / cobro": {"status": "pend", "badge": "Futuro"},
+        "Onboarding ventas": {"status": "pend", "badge": "Futuro"},
+        "Retención + win-back": {"status": "pend", "badge": "Futuro"}
+      }
+    },
+    "D12_Crecimiento": {
+      "emoji": "📈",
+      "nombre": "Crecimiento / Optimización",
+      "items": {
+        "CEO estratégico (GPT-4)": {"status": "ok", "badge": "Listo"},
+        "Scout GitHub / estrategias": {"status": "warn", "badge": "Pendiente"},
+        "Clasificador equity curves (CNN)": {"status": "pend", "badge": "Futuro"},
+        "Entrenador bots automático": {"status": "pend", "badge": "Futuro"},
+        "Sistema premios / gamificación": {"status": "pend", "badge": "Futuro"}
+      }
+    },
+    "D13_Legal": {
+      "emoji": "⚖️",
+      "nombre": "Legal / Compliance",
+      "items": {
+        "Términos de servicio": {"status": "pend", "badge": "Futuro"},
+        "Contratos PDF auto-generados": {"status": "pend", "badge": "Futuro"},
+        "Regulaciones por jurisdicción": {"status": "pend", "badge": "Futuro"},
+        "Compliance PropFirms": {"status": "pend", "badge": "Futuro"},
+        "Privacidad GDPR / CCPA": {"status": "pend", "badge": "Futuro"}
+      }
+    },
+    "D14_DevOps": {
+      "emoji": "⚙️",
+      "nombre": "DevOps / Infraestructura",
+      "items": {
+        "Monitoreo sistema (Uptime)": {"status": "warn", "badge": "Pendiente"},
+        "Backup diario automático": {"status": "warn", "badge": "Pendiente"},
+        "Actualizaciones auto-rollback": {"status": "pend", "badge": "Futuro"},
+        "Performance alerts": {"status": "pend", "badge": "Futuro"},
+        "Alertas 5 niveles (Slack/Discord)": {"status": "pend", "badge": "Futuro"}
+      }
+    },
+    "D15_BI": {
+      "emoji": "📊",
+      "nombre": "BI / Business Intelligence",
+      "items": {
+        "Dashboard ejecutivo (este panel)": {"status": "ok", "badge": "Listo"},
+        "Métricas trading en vivo": {"status": "warn", "badge": "Pendiente"},
+        "Métricas negocio (LTV, CAC)": {"status": "pend", "badge": "Futuro"},
+        "Alertas KPIs automáticas": {"status": "pend", "badge": "Futuro"},
+        "Reporte inversores (Fase 4)": {"status": "pend", "badge": "Futuro"}
+      }
+    }
+  },
+  "pipeline": {
+    "entrenamiento": {"status": "wip", "kaggle_job_id": null, "started_at": null, "ended_at": null},
+    "validacion": {"status": "pend", "wr_threshold": 35, "pf_threshold": 1.2, "dd_max": 20},
+    "onnx_export": {"status": "pend", "file": null},
+    "deploy_mt5": {"status": "pend", "ea_compiled": false, "attached": false}
+  },
+  "metrics": {
+    "ultimo_modelo": null,
+    "ultimo_backtest": null,
+    "win_rate": null,
+    "profit_factor": null,
+    "max_drawdown_pct": null,
+    "trades_totales": null,
+    "fecha_ultimo_trade": null
+  }
+}

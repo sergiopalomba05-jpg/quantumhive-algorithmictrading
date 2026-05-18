@@ -1,0 +1,99 @@
+{
+  "plan_37048816": {
+    "plan_id": "plan_37048816",
+    "nivel": "completo",
+    "fecha": "2026-04-27T07:27:37.221549+00:00",
+    "semanas": 7,
+    "horas": 28,
+    "modulos": [
+      {
+        "modulo_id": "fundamentos",
+        "orden": 1,
+        "titulo": "Fundamentos Ventas Digitales",
+        "horas": 3,
+        "temas": [
+          "Psicologia del comprador",
+          "Vender resultado vs curso",
+          "Social proof en trading"
+        ]
+      },
+      {
+        "modulo_id": "copywriting",
+        "orden": 2,
+        "titulo": "Copywriting Landing Pages",
+        "horas": 4,
+        "temas": [
+          "Headlines PAS",
+          "Hero Section",
+          "CTAs",
+          "Garantia",
+          "Urgencia etica"
+        ]
+      },
+      {
+        "modulo_id": "email",
+        "orden": 3,
+        "titulo": "Email Marketing Lanzamientos",
+        "horas": 5,
+        "temas": [
+          "Secuencia bienvenida",
+          "Carrito abandonado",
+          "Launch 9 dias",
+          "Newsletter",
+          "Re-engagement"
+        ]
+      },
+      {
+        "modulo_id": "funnels",
+        "orden": 4,
+        "titulo": "Funnels de Venta",
+        "horas": 6,
+        "temas": [
+          "Lead Magnet",
+          "Tripwire",
+          "Core Offer",
+          "Upsell",
+          "Downsell",
+          "Order Bump"
+        ]
+      },
+      {
+        "modulo_id": "launch",
+        "orden": 5,
+        "titulo": "Estrategias de Lanzamiento",
+        "horas": 4,
+        "temas": [
+          "Product Launch Formula",
+          "Beta seeding",
+          "Evergreen",
+          "Afiliados",
+          "Retargeting"
+        ]
+      },
+      {
+        "modulo_id": "afiliados",
+        "orden": 6,
+        "titulo": "Programa Afiliados",
+        "horas": 3,
+        "temas": [
+          "Reclutamiento",
+          "Materiales promo",
+          "Tracking",
+          "Comisiones escalonadas"
+        ]
+      },
+      {
+        "modulo_id": "retencion",
+        "orden": 7,
+        "titulo": "Retencion y LTV",
+        "horas": 3,
+        "temas": [
+          "Onboarding post-compra",
+          "Comunidad privada",
+          "Actualizaciones",
+          "Upsells logicos"
+        ]
+      }
+    ]
+  }
+}

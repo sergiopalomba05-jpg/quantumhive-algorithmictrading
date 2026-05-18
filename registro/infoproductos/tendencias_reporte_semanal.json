@@ -1,0 +1,142 @@
+{
+  "fecha_reporte": "2026-04-27T07:27:19.470130+00:00",
+  "total_nichos_analizados": 6,
+  "nicho_top_1": {
+    "nicho": "propfirm_challenge_pass",
+    "score_oportunidad": 90,
+    "volumen_busqueda": "muy_alto",
+    "crecimiento_mensual_pct": 35,
+    "competencia": "media",
+    "precio_recomendado_usd": 164,
+    "formato_recomendado": "video + mentorias",
+    "dolor_principal": "queman cuentas por gestion de riesgo",
+    "oportunidad_detectada": "sistema probado con gestion de portafolio",
+    "estrategias_lanzamiento_recomendadas": [
+      "Afiliados Primero"
+    ],
+    "timestamp": "2026-04-27T07:27:19.472128+00:00"
+  },
+  "nicho_top_2": {
+    "nicho": "ia_financiera",
+    "score_oportunidad": 80,
+    "volumen_busqueda": "medio",
+    "crecimiento_mensual_pct": 45,
+    "competencia": "baja",
+    "precio_recomendado_usd": 587,
+    "formato_recomendado": "video + notebooks + datasets",
+    "dolor_principal": "teoria sin aplicacion practica al trading",
+    "oportunidad_detectada": "pipeline completo RL -> ONNX -> Live",
+    "estrategias_lanzamiento_recomendadas": [
+      "Afiliados Primero"
+    ],
+    "timestamp": "2026-04-27T07:27:19.473128+00:00"
+  },
+  "nicho_top_3": {
+    "nicho": "automatizacion_negocios",
+    "score_oportunidad": 77.0,
+    "volumen_busqueda": "alto",
+    "crecimiento_mensual_pct": 18,
+    "competencia": "media",
+    "precio_recomendado_usd": 506,
+    "formato_recomendado": "video + templates + comunidad",
+    "dolor_principal": "overwhelm de herramientas sin integracion",
+    "oportunidad_detectada": "framework unificado con agents",
+    "estrategias_lanzamiento_recomendadas": [
+      "Afiliados Primero"
+    ],
+    "timestamp": "2026-04-27T07:27:19.472128+00:00"
+  },
+  "todos_nichos": {
+    "trading_algoritmico": {
+      "nicho": "trading_algoritmico",
+      "score_oportunidad": 72.5,
+      "volumen_busqueda": "alto",
+      "crecimiento_mensual_pct": 15,
+      "competencia": "media",
+      "precio_recomendado_usd": 294,
+      "formato_recomendado": "video + codigo",
+      "dolor_principal": "no saben programar ni donde empezar",
+      "oportunidad_detectada": "curso paso a paso con plantillas listas",
+      "estrategias_lanzamiento_recomendadas": [
+        "Afiliados Primero"
+      ],
+      "timestamp": "2026-04-27T07:27:19.471131+00:00"
+    },
+    "mql5_expert_advisor": {
+      "nicho": "mql5_expert_advisor",
+      "score_oportunidad": 62.0,
+      "volumen_busqueda": "medio",
+      "crecimiento_mensual_pct": 8,
+      "competencia": "baja",
+      "precio_recomendado_usd": 186,
+      "formato_recomendado": "video + PDF",
+      "dolor_principal": "documentacion confusa en ingles",
+      "oportunidad_detectada": "curso en espanol con soporte comunidad",
+      "estrategias_lanzamiento_recomendadas": [
+        "Afiliados Primero"
+      ],
+      "timestamp": "2026-04-27T07:27:19.472128+00:00"
+    },
+    "python_trading_bot": {
+      "nicho": "python_trading_bot",
+      "score_oportunidad": 70,
+      "volumen_busqueda": "alto",
+      "crecimiento_mensual_pct": 22,
+      "competencia": "alta",
+      "precio_recomendado_usd": 411,
+      "formato_recomendado": "video + notebooks + repo",
+      "dolor_principal": "codigo que no funciona o no se conecta a broker",
+      "oportunidad_detectada": "framework completo probado y documentado",
+      "estrategias_lanzamiento_recomendadas": [
+        "Afiliados Primero"
+      ],
+      "timestamp": "2026-04-27T07:27:19.472128+00:00"
+    },
+    "propfirm_challenge_pass": {
+      "nicho": "propfirm_challenge_pass",
+      "score_oportunidad": 90,
+      "volumen_busqueda": "muy_alto",
+      "crecimiento_mensual_pct": 35,
+      "competencia": "media",
+      "precio_recomendado_usd": 164,
+      "formato_recomendado": "video + mentorias",
+      "dolor_principal": "queman cuentas por gestion de riesgo",
+      "oportunidad_detectada": "sistema probado con gestion de portafolio",
+      "estrategias_lanzamiento_recomendadas": [
+        "Afiliados Primero"
+      ],
+      "timestamp": "2026-04-27T07:27:19.472128+00:00"
+    },
+    "automatizacion_negocios": {
+      "nicho": "automatizacion_negocios",
+      "score_oportunidad": 77.0,
+      "volumen_busqueda": "alto",
+      "crecimiento_mensual_pct": 18,
+      "competencia": "media",
+      "precio_recomendado_usd": 506,
+      "formato_recomendado": "video + templates + comunidad",
+      "dolor_principal": "overwhelm de herramientas sin integracion",
+      "oportunidad_detectada": "framework unificado con agents",
+      "estrategias_lanzamiento_recomendadas": [
+        "Afiliados Primero"
+      ],
+      "timestamp": "2026-04-27T07:27:19.472128+00:00"
+    },
+    "ia_financiera": {
+      "nicho": "ia_financiera",
+      "score_oportunidad": 80,
+      "volumen_busqueda": "medio",
+      "crecimiento_mensual_pct": 45,
+      "competencia": "baja",
+      "precio_recomendado_usd": 587,
+      "formato_recomendado": "video + notebooks + datasets",
+      "dolor_principal": "teoria sin aplicacion practica al trading",
+      "oportunidad_detectada": "pipeline completo RL -> ONNX -> Live",
+      "estrategias_lanzamiento_recomendadas": [
+        "Afiliados Primero"
+      ],
+      "timestamp": "2026-04-27T07:27:19.473128+00:00"
+    }
+  },
+  "recomendacion_prioritaria": "Lanzar infoproducto en 'propfirm_challenge_pass' con precio ~$164 usando Afiliados Primero"
+}

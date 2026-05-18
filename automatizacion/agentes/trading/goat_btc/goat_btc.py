@@ -641,7 +641,7 @@ def _main_processing():
                     k["open"], k["high"], k["low"], k["close"], k["volume"]
                 )
                 velas_m1.append({
-                    "time": datetime.fromtimestamp(k["time"], tz=timezone.utc).strftime("%H:%M"),
+                    "time": datetime.fromtimestamp(k["time"] / 1000, tz=timezone.utc).strftime("%H:%M"),
                     "delta": d,
                 })
 

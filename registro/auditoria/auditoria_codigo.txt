@@ -1,0 +1,30 @@
+======================================================================
+AUDITORÍA DE CÓDIGO — QuantumHive
+Fecha: 2026-04-25 | Archivos analizados: 32
+======================================================================
+
+--- STRING_PLACEHOLDER (22 hallazgos) ---
+  automatizacion\agentes\agente_recolector.py:1  →  Línea contiene 'todo': """AgenteRecolector: descarga OHLCV de todos los timeframes desde MT5.
+  automatizacion\agentes\agente_recolector.py:3  →  Línea contiene 'todo': Descarga automaticamente para todos los activos configurados:
+  automatizacion\agentes\agente_recolector.py:105  →  Línea contiene 'todo': """Descarga todos los timeframes para todos los simbolos."""
+  automatizacion\agentes\agente_recolector.py:128  →  Línea contiene 'todo': def obtener_todos_timeframes(self, simbolo: str) -> dict[str, pd.DataFrame]:
+  automatizacion\agentes\agente_recolector.py:129  →  Línea contiene 'todo': """Retorna dict con todos los timeframes disponibles para un simbolo."""
+  automatizacion\scheduler.py:4  →  Línea contiene 'todo': Todos los horarios en hora Argentina (UTC-3).
+  notebooks\kaggle_pipeline_secuencial.py:5  →  Línea contiene 'todo': Paso 2: Calcular todos los indicadores con nucleo/
+  notebooks\kaggle_pipeline_secuencial.py:10  →  Línea contiene 'pendiente': Paso 7: Entrenar Scalper independiente (datos donde hay surfeo de banda confirma
+  notebooks\kaggle_pipeline_secuencial.py:36  →  Línea contiene 'todo': from nucleo.indicadores import calcular_todos_indicadores, calcular_bollinger, c
+  notebooks\kaggle_pipeline_secuencial.py:50  →  Línea contiene 'todo': """Carga todos los timeframes desde parquet."""
+  notebooks\kaggle_pipeline_secuencial.py:64  →  Línea contiene 'todo': df_m1 = calcular_todos_indicadores(
+  notebooks\kaggle_pipeline_secuencial.py:130  →  Línea contiene 'todo': # Crear env con datos filtrados (simplificado: usa todo y deja que el env decida
+  notebooks\kaggle_pipeline_secuencial.py:179  →  Línea contiene 'pendiente': # PASO 7: ENTRENAR SCALPER INDEPENDIENTE
+  notebooks\kaggle_pipeline_secuencial.py:207  →  Línea contiene 'todo': def exportar_todos(modelos: dict[str, PPO]) -> None:
+  notebooks\kaggle_pipeline_secuencial.py:238  →  Línea contiene 'todo': exportar_todos({
+  notebooks\kaggle_pipeline_secuencial.py:246  →  Línea contiene 'todo': print("[DONE] Todos los modelos entrenados y exportados a ONNX.")
+  nucleo\entornos\entorno_madre.py:141  →  Línea contiene 'pendiente': # Score confluencia macro: BBW + RSI + pendiente normalizado
+  nucleo\indicadores.py:215  →  Línea contiene 'todo': def calcular_todos_indicadores(df_m1: pd.DataFrame, df_m5: pd.DataFrame, df_m15:
+  nucleo\lector_pdfs_estrategia.py:70  →  Línea contiene 'todo': """Combina conocimiento de todos los PDFs en documentos/.
+  nucleo\utilidades.py:130  →  Línea contiene 'todo': Si el objeto tiene método `save`, se utiliza. Caso contrario se serializa como J
+  nucleo\utilidades.py:143  →  Línea contiene 'todo': raise TypeError("El modelo no es serializable y no tiene método save().") from e
+  nucleo\utilidades.py:218  →  Línea contiene 'todo': Usar en todos los bots y agentes.
+
+TOTAL: 22 hallazgos

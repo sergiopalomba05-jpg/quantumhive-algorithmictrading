@@ -1,0 +1,66 @@
+{
+  "timestamp": "2026-04-26T21:50:33.139591",
+  "root": "C:\\Users\\sergio\\QUANTUMHIVE_ALGORITHMICTRADING",
+  "dry_run": true,
+  "basura": [
+    {
+      "path": "automatizacion\\agentes\\__pycache__",
+      "size_mb": 0.008217811584472656
+    },
+    {
+      "path": "automatizacion\\agentes\\division_bi\\__pycache__",
+      "size_mb": 0.018151283264160156
+    },
+    {
+      "path": "automatizacion\\agentes\\division_crecimiento\\__pycache__",
+      "size_mb": 0.009913444519042969
+    },
+    {
+      "path": "automatizacion\\agentes\\division_fondeo\\__pycache__",
+      "size_mb": 0.016153335571289062
+    },
+    {
+      "path": "automatizacion\\agentes\\division_infra\\__pycache__",
+      "size_mb": 0.02349376678466797
+    },
+    {
+      "path": "automatizacion\\agentes\\division_senales\\__pycache__",
+      "size_mb": 0.017223358154296875
+    },
+    {
+      "path": "automatizacion\\agentes\\division_ventas\\__pycache__",
+      "size_mb": 0.015180587768554688
+    },
+    {
+      "path": "nucleo\\__pycache__",
+      "size_mb": 0.03415203094482422
+    },
+    {
+      "path": "nucleo\\entornos\\__pycache__",
+      "size_mb": 0.050403594970703125
+    }
+  ],
+  "duplicados": [
+    {
+      "hash_prefix": "ed161e3e",
+      "size_mb": 0.03587055206298828,
+      "paths": [
+        "dashboard\\index.html",
+        "dashboard\\quantumhive_dashboard_v2.html"
+      ]
+    },
+    {
+      "hash_prefix": "871a68ab",
+      "size_mb": 57.30135631561279,
+      "paths": [
+        "datasets\\US30_H1_2022_2024.csv",
+        "datasets\\US30_M15_2022_2024.csv",
+        "datasets\\US30_M1_2022_2024.csv",
+        "datasets\\US30_M5_2022_2024.csv"
+      ]
+    }
+  ],
+  "viejos": [],
+  "total_borrado_mb": 0.19288921356201172,
+  "errores": []
+}

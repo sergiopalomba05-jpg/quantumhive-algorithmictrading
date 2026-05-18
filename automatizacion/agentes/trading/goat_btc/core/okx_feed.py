@@ -15,6 +15,10 @@ logger = logging.getLogger('okx_feed')
 OKX_BASE_URL = 'https://www.okx.com'
 OKX_INSTRUMENT = 'BTC-USDT-SWAP'
 
+# OKX API bar format: lowercase for minutes, uppercase H for hours
+OKX_BAR_MAP = {'1m': '1m', '3m': '3m', '5m': '5m', '15m': '15m', '30m': '30m',
+               '1h': '1H', '1H': '1H', '2h': '2H', '4h': '4H'}
+
 
 class OKXFeed:
     """Feed de datos de mercado OKX (público, sin auth)."""
@@ -63,7 +67,8 @@ class OKXFeed:
         """Fetch klines desde OKX public API."""
         try:
             url = f'{OKX_BASE_URL}/api/v5/market/candles'
-            params = {'instId': self.instrument, 'bar': timeframe, 'limit': limit}
+            api_bar = OKX_BAR_MAP.get(timeframe, timeframe)
+            params = {'instId': self.instrument, 'bar': api_bar, 'limit': limit}
             resp = requests.get(url, params=params, timeout=10)
             if resp.status_code == 200:
                 data = resp.json()

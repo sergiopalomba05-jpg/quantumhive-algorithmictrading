@@ -36,6 +36,19 @@ Directorio principal: C:\Users\sergio\QUANTUMHIVE_ALGORITHMICTRADING\
 8. El directorio de trabajo siempre es QUANTUMHIVE_ALGORITHMICTRADING
    nunca CascadeProjects ni ningún otro directorio
 
+## REGLAS DE HIERRO — PROTECCIÓN DEL PROYECTO (NUNCA VIOLAR)
+9. PROHIBIDO TERMINANTEMENTE ejecutar: git clone, git clean, git reset --hard,
+   Remove-Item -Recurse -Force, rm -rf, del /f /s. Cualquier agente que lo haga
+   sin autorización expresa de Sergio (Nivel 0) comete una falta crítica.
+10. TODO archivo creado o modificado debe ser pusheado a GitHub antes de
+    finalizar la sesión. No hay excepción. "Se me olvidó" no es aceptable.
+11. Antes de cualquier operación git, verificar que no sobrescriba archivos
+    no trackeados. Si hay archivos sin trackear, preguntar a Sergio qué hacer.
+12. El guardrail_terminal.ps1 DEBE cargarse al inicio de cada sesión:
+    . .\automatizacion\utils\guardrail_terminal.ps1
+13. Backup automático: el script shadow_backup.ps1 corre cada hora. No
+    desactivarlo sin orden de Sergio.
+
 ## ARCHIVOS CRÍTICOS — NO TOCAR SIN BRIEF EXPLÍCITO
 - automatizacion/agentes/agi_telegram.py
 - automatizacion/agi_core/event_bus.py

@@ -1,0 +1,43 @@
+nombre_bot: bot_europa_us30
+simbolo: US30
+tipo: live
+activo: US30
+sesion: EUROPA
+especialidad: continuacion_tendencia_europea
+
+horario:
+  inicio_mt5: "09:00"
+  fin_mt5: "13:30"
+  inicio_argentina: "06:00"
+  fin_argentina: "10:30"
+  filtro_previo_ny_minutos: 30
+
+parametros_indicadores:
+  atr_periodo: 14
+  atr_multiplicador_sl: 1.5
+  bb_periodo: 30
+  bb_desviaciones: 3.0
+  rsi_periodo: 7
+  ema_tendencia: 50
+
+riesgo:
+  riesgo_por_operacion: 0.01
+  limite_drawdown_diario: -0.03
+  limite_drawdown_total: -0.06
+  score_minimo: 60
+
+doble_tp:
+  ratio_tp1: 2.0
+  ratio_tp2: 4.0
+  cierre_parcial_tp1: 0.5
+  break_even_pips: 5
+
+filtros:
+  noticias: true
+  sesion_autorizada: EUROPA
+  max_operaciones_dia: 2
+  no_operar_30min_previo_ny: true
+
+modelo:
+  ruta: modelos/bot_europa_us30.zip
+  tipo: PPO

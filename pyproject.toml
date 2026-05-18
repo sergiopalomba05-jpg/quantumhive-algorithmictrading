@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "QuantumHive"
+version = "0.1.0"
+description = "Trading algoritmico enterprise con bots RL + ONNX + MT5"
+readme = "LEEME.md"
+requires-python = ">=3.13"
+license = {text = "Proprietary"}
+authors = [
+    {name = "QuantumHive", email = "dev@quantumhive.io"}
+]
+keywords = ["trading", "algoritmico", "rl", "onnx", "mt5", "bollinger"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Programming Language :: Python :: 3.13",
+]
+
+dependencies = [
+    "gymnasium>=0.29.1",
+    "stable-baselines3>=2.3.2",
+    "torch>=2.2.0",
+    "pandas>=2.2.0",
+    "numpy>=1.26.0",
+    "pyyaml>=6.0.1",
+    "pytz>=2024.1",
+    "onnx>=1.15.0",
+    "onnxruntime>=1.17.0",
+    "MetaTrader5>=5.0.4200",
+    "APScheduler>=3.10.4",
+    "matplotlib>=3.8.0",
+    "Pillow>=10.2.0",
+    "fpdf2>=2.7.0",
+    "pdfplumber>=0.10.0",
+    "PyPDF2>=3.0.0",
+    "torchvision>=0.17.0",
+    "requests>=2.31.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+agentes = ["crewai>=0.28.0"]
+dev = ["pytest>=8.0", "black>=24.0", "mypy>=1.8"]
+
+[project.urls]
+Homepage = "https://quantumhive.io"
+Repository = "https://github.com/quantumhive/trading-ai"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["nucleo*", "automatizacion*", "bots*", "marketing*", "registro*", "ea_mql5*"]
+
+[tool.black]
+line-length = 120
+target-version = ['py313']
+
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true

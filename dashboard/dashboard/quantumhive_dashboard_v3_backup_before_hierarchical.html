@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuantumHive — Panel de Progreso</title>
+<style>
+  :root {
+    --bg: #f8f7f3; --bg2: #f1efe8; --card: #ffffff;
+    --text: #2C2C2A; --text2: #5F5E5A; --border: #e0ddd5;
+    --accent: #534AB7; --accent2: #185FA5; --accent3: #0F6E56;
+    --warn: #b45309; --danger: #993C1D; --ok: #0F6E56;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1a1a18; --bg2: #252523; --card: #2a2a28; --text: #e0dfd8; --text2: #9c9a92; --border: #444; }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 20px; min-height: 100vh; }
+  header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
+  h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.3px; }
+  .version { font-size: 12px; color: var(--text2); background: var(--bg2); padding: 3px 10px; border-radius: 12px; border: 1px solid var(--border); }
+
+  /* Progress bar */
+  .progress-wrap { margin-bottom: 16px; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; color: var(--text2); }
+  .progress-label strong { color: var(--accent); }
+  .progress-bar { height: 8px; background: var(--bg2); border-radius: 4px; overflow: hidden; border: 1px solid var(--border); }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width .4s ease; }
+  .progress-legend { display: flex; gap: 14px; margin-top: 6px; font-size: 11px; flex-wrap: wrap; color: var(--text2); }
+  .progress-legend span { display: flex; align-items: center; gap: 4px; }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+  .tab { font-size: 12px; padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg2); color: var(--text2); cursor: pointer; transition: .15s; }
+  .tab:hover { background: var(--card); }
+  .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 500; }
+  .panel { display: none; }
+  .panel.active { display: block; animation: fade .2s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; } }
+
+  /* Status badges */
+  .badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .3px; }
+  .b-ok { background: #dcfce7; color: #166534; }
+  .b-warn { background: #fef3c7; color: #92400e; }
+  .b-wip { background: #dbeafe; color: #1e40af; }
+  .b-pend { background: #f3f4f6; color: #6b7280; }
+  @media (prefers-color-scheme: dark) {
+    .b-ok { background: #14532d33; color: #86efac; }
+    .b-warn { background: #78350f33; color: #fcd34d; }
+    .b-wip { background: #1e3a8a33; color: #93c5fd; }
+    .b-pend { background: #37415133; color: #9ca3af; }
+  }
+
+  /* Cards */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+  .card h3 { font-size: 13px; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .item { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 12.5px; }
+  .item:last-child { border-bottom: 0; }
+  .item-name { display: flex; align-items: center; gap: 8px; }
+  .item-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+  /* Timeline */
+  .timeline { position: relative; margin: 12px 0; padding-left: 24px; }
+  .timeline::before { content: ''; position: absolute; left: 7px; top: 4px; bottom: 4px; width: 2px; background: var(--border); }
+  .t-event { position: relative; margin-bottom: 14px; }
+  .t-event::before { content: ''; position: absolute; left: -20px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--border); border: 2px solid var(--card); }
+  .t-event.done::before { background: var(--accent); }
+  .t-event.wip::before { background: var(--warn); }
+  .t-date { font-size: 11px; color: var(--text2); font-weight: 600; }
+  .t-title { font-size: 12.5px; font-weight: 500; }
+  .t-desc { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+  /* Org tree */
+  .org-wrap { display: flex; flex-direction: column; align-items: center; gap: 24px; }
+  .org-tier { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+  .org-node { background: var(--card); border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 16px; min-width: 140px; text-align: center; position: relative; }
+  .org-node.lead { border-color: var(--accent); }
+  .org-node h4 { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
+  .org-node p { font-size: 11px; color: var(--text2); }
+  .org-node .badge { margin-top: 6px; display: inline-block; }
+  .org-connector { width: 1.5px; height: 16px; background: var(--border); }
+
+  /* Diagram boxes */
+  .flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+  .box { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 11.5px; text-align: center; min-width: 90px; }
+  .box.hl { border-color: var(--accent); background: #534AB710; }
+  .arrow { color: var(--text2); font-size: 14px; }
+  .section-title { font-size: 14px; font-weight: 600; margin: 16px 0 8px; color: var(--accent); }
+  .deploy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 600px) { .deploy-grid { grid-template-columns: 1fr; } }
+  .deploy-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+  .deploy-card h4 { font-size: 12px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .deploy-card ul { list-style: none; font-size: 11.5px; }
+  .deploy-card li { padding: 3px 0; color: var(--text2); }
+  .deploy-card li::before { content: "•"; color: var(--accent); margin-right: 6px; }
+
+  /* Badge pulse animation */
+  @keyframes pulse-blue {
+    0% { box-shadow: 0 0 0 0 rgba(83,74,183,0.4); }
+    70% { box-shadow: 0 0 0 6px rgba(83,74,183,0); }
+    100% { box-shadow: 0 0 0 0 rgba(83,74,183,0); }
+  }
+  .b-ok { animation: pulse-blue 2s infinite; }
+
+  /* Mini mapa / office floorplan */
+  .minimap { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; max-width: 720px; margin-left: auto; margin-right: auto; }
+  .mm-node { background: var(--card); border: 1.5px solid var(--border); border-radius: 10px; padding: 10px; text-align: center; transition: .2s; cursor: default; }
+  .mm-node:hover { transform: translateY(-2px); border-color: var(--accent); }
+  .mm-node .mm-emoji { font-size: 22px; display: block; margin-bottom: 4px; }
+  .mm-node .mm-title { font-size: 12px; font-weight: 600; }
+  .mm-node .mm-sub { font-size: 10.5px; color: var(--text2); margin-top: 2px; }
+  .mm-node.lead { border-color: var(--accent); background: #534AB708; }
+  .mm-node.active { border-color: var(--ok); }
+  .mm-connector { display: flex; align-items: center; justify-content: center; color: var(--text2); font-size: 14px; }
+
+  /* Data source indicator */
+  .data-source { font-size: 11px; color: var(--text2); margin-top: 8px; padding: 6px 10px; background: var(--bg2); border-radius: 6px; border: 1px solid var(--border); }
+  .data-source.ok { border-color: var(--ok); color: var(--ok); }
+  .data-source.err { border-color: var(--danger); color: var(--danger); }
+
+  /* Orders — filters + cards */
+  .filtros-orden { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .filtro-btn { font-size: 11px; padding: 5px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg2); color: var(--text2); cursor: pointer; transition: .15s; }
+  .filtro-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .orden-card { border-left: 3px solid var(--warn); }
+  .orden-card.urgente { border-left-color: var(--danger); }
+  .orden-card.alta { border-left-color: var(--warn); }
+  .orden-card.media { border-left-color: var(--accent2); }
+  .btn-accion { font-size: 11px; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; font-weight: 600; transition: .15s; white-space: nowrap; }
+  .btn-accion:hover { background: #423a9e; border-color: #423a9e; }
+
+  /* Expandable items */
+  .item-row { display: flex; align-items: flex-start; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .15s; border-radius: 6px; padding-left: 4px; padding-right: 4px; }
+  .item-row:hover { background: var(--bg2); }
+  .item-row:last-child { border-bottom: 0; }
+  .item-main { display: flex; align-items: center; justify-content: space-between; flex: 1; gap: 8px; }
+  .item-desc { max-height: 0; overflow: hidden; transition: max-height .3s ease, padding .3s ease, opacity .3s ease; opacity: 0; font-size: 11px; color: var(--text2); line-height: 1.45; padding: 0 8px 0 20px; }
+  .item-desc.open { max-height: 200px; opacity: 1; padding: 6px 8px 8px 20px; }
+  .item-chevron { font-size: 10px; color: var(--text2); transition: transform .2s; margin-left: 4px; }
+  .item-row.open .item-chevron { transform: rotate(90deg); }
+
+  /* Modal */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+  .modal-overlay.open { display: flex; }
+  .modal-box { background: var(--card); border: 1px solid var(--border); border-radius: 14px; max-width: 640px; width: 100%; max-height: 85vh; overflow-y: auto; padding: 22px; box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .modal-header h3 { font-size: 15px; font-weight: 600; margin: 0; }
+  .modal-close { background: none; border: none; font-size: 18px; cursor: pointer; color: var(--text2); line-height: 1; }
+  .modal-close:hover { color: var(--danger); }
+  .modal-meta { font-size: 11px; color: var(--text2); margin-bottom: 10px; display: flex; gap: 12px; flex-wrap: wrap; }
+  .modal-meta span { background: var(--bg2); padding: 3px 8px; border-radius: 6px; border: 1px solid var(--border); }
+  .modal-orden { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 12.5px; line-height: 1.6; white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, 'SF Mono', Consolas, monospace; color: var(--text); }
+  .btn-copiar { font-size: 12px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; font-weight: 600; margin-top: 10px; display: inline-flex; align-items: center; gap: 6px; }
+  .btn-copiar:hover { background: #423a9e; }
+  .btn-copiar.copied { background: var(--ok); border-color: var(--ok); }
+
+  @media (prefers-color-scheme: dark) {
+    .modal-overlay { background: rgba(0,0,0,0.6); }
+    .modal-orden { background: #252523; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>QuantumHive — Panel de Progreso</h1>
+    <p style="font-size:12px;color:var(--text2);margin-top:2px;">Fábrica de bots RL → ONNX → MT5 &nbsp;|&nbsp; 26 Abr 2026</p>
+  </div>
+    <span class="version">v1.2 — 19 Divisiones QuantumHive</span>
+</header>
+
+<!-- Mini Mapa Oficina -->
+<div class="minimap">
+  <div class="mm-node lead">
+    <span class="mm-emoji">🏢</span>
+    <div class="mm-title">CEO Orchestrator</div>
+    <div class="mm-sub">Decide qué bot construir</div>
+  </div>
+  <div class="mm-node active">
+    <span class="mm-emoji">🤖</span>
+    <div class="mm-title">Trading IA</div>
+    <div class="mm-sub">D1 · Entrenando ahora</div>
+  </div>
+  <div class="mm-node">
+    <span class="mm-emoji">💰</span>
+    <div class="mm-title">Fondeo + Señales</div>
+    <div class="mm-sub">D2 · D3 · Fase 3</div>
+  </div>
+  <div class="mm-node">
+    <span class="mm-emoji">🏭</span>
+    <div class="mm-title">Fábrica Bots</div>
+    <div class="mm-sub">D8 · Catálogo + QA</div>
+  </div>
+  <div class="mm-node">
+    <span class="mm-emoji">📊</span>
+    <div class="mm-title">BI + Dashboard</div>
+    <div class="mm-sub">D15 · Métricas en vivo</div>
+  </div>
+  <div class="mm-node">
+    <span class="mm-emoji">�</span>
+    <div class="mm-title">Sala Colmena</div>
+    <div class="mm-sub">D16 · Capital en vivo</div>
+  </div>
+  <div class="mm-node">
+    <span class="mm-emoji">🧠</span>
+    <div class="mm-title">UCI</div>
+    <div class="mm-sub">D18 · Conocimiento IA</div>
+  </div>
+  <div class="mm-node">
+    <span class="mm-emoji">�🚀</span>
+    <div class="mm-title">Futuro</div>
+    <div class="mm-sub">D5–D7 · D17 Partners</div>
+  </div>
+</div>
+
+<!-- Progress Bar -->
+<div class="progress-wrap">
+  <div class="progress-label">
+    <span>Progreso Fase 1: Fundación</span>
+    <strong id="progress-pct">55%</strong>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:55%"></div></div>
+  <div class="progress-legend">
+    <span><span class="badge b-ok">Listo</span> 14/28</span>
+    <span><span class="badge b-wip">En progreso</span> 4/28</span>
+    <span><span class="badge b-warn">Pendiente</span> 6/28</span>
+    <span><span class="badge b-pend">Futuro</span> 4/28</span>
+  </div>
+</div>
+
+<div class="tabs" id="tabs">
+  <button class="tab active" data-panel="p1">1. Organigrama</button>
+  <button class="tab" data-panel="p2">2. Infraestructura</button>
+  <button class="tab" data-panel="p3">3. Arquitectura Software</button>
+  <button class="tab" data-panel="p4">4. Despliegue UML</button>
+  <button class="tab" data-panel="p5">5. Timeline</button>
+  <button class="tab" data-panel="p6">6. Orders</button>
+</div>
+
+<!-- ===================== PANEL 1: ORGANIGRAMA ===================== -->
+<div class="panel active" id="p1">
+  <div class="section-title">Pipeline Técnico — De Idea a Live</div>
+  <div class="org-wrap">
+    <div class="org-node lead">
+      <h4>👤 CEO Orchestrator</h4>
+      <p>Decide qué bot construir</p>
+      <span class="badge b-ok">Listo</span>
+    </div>
+    <div class="org-connector"></div>
+    <div class="org-tier">
+      <div class="org-node">
+        <h4>📊 Data Engineer</h4>
+        <p>Limpia + Features</p>
+        <span class="badge b-ok">Listo</span>
+      </div>
+      <div class="org-node">
+        <h4>🧠 Strategist</h4>
+        <p>Reglas → Reward Shaping</p>
+        <span class="badge b-ok">Listo</span>
+      </div>
+      <div class="org-node">
+        <h4>🤖 Trainer (PPO)</h4>
+        <p>Entrena + Exporta ONNX</p>
+        <span class="badge b-wip">En progreso</span>
+      </div>
+      <div class="org-node">
+        <h4>🔍 Validator</h4>
+        <p>Backtest + GO/NO-GO</p>
+        <span class="badge b-warn">Pendiente</span>
+      </div>
+      <div class="org-node">
+        <h4>🚀 Deployer</h4>
+        <p>EA MT5 + Live</p>
+        <span class="badge b-wip">En progreso</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">18 Divisiones QuantumHive — Estado Detallado</div>
+  <div class="grid">
+    <!-- D1 -->
+    <div class="card">
+      <h3><span class="dot" style="background:var(--accent)"></span>🤖 D1 — Trading IA</h3>
+      <div class="item"><div class="item-name">Cerebro Unificado US30</div><span class="badge b-wip">En progreso</span></div>
+      <div class="item"><div class="item-name">Entorno REV+CONT+SCALP</div><span class="badge b-ok">Listo</span></div>
+      <div class="item"><div class="item-name">Dataset US30 M1–H1 (3 años)</div><span class="badge b-ok">Listo</span></div>
+      <div class="item"><div class="item-name">EA MT5 ONNX loader</div><span class="badge b-wip">En progreso</span></div>
+      <div class="item"><div class="item-name">Kill-switch STOP.txt</div><span class="badge b-warn">Pendiente</span></div>
+    </div>
+    <!-- D2 -->
+    <div class="card">
+      <h3><span class="dot" style="background:var(--accent3)"></span>💰 D2 — Fondeo / Challenges</h3>
+      <div class="item"><div class="item-name">Agente afiliaciones</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Gestor challenges</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Cuentas fondeadas</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Agente cobro comisiones</div><span class="badge b-pend">Futuro</span></div>
+    </div>
+    <!-- D3 -->
+    <div class="card">
+      <h3><span class="dot" style="background:var(--accent3)"></span>📡 D3 — Señales / Telegram</h3>
+      <div class="item"><div class="item-name">Formateador señales</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Gestor grupos Free/VIP</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Cobro suscripción auto</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Retención + A/B testing</div><span class="badge b-pend">Futuro</span></div>
+    </div>
+    <!-- D4 -->
+    <div class="card">
+      <h3><span class="dot" style="background:var(--accent3)"></span>📢 D4 — Marketing / Captación</h3>
+      <div class="item"><div class="item-name">Instagram por división</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Generador contenido (IA)</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Publicador auto (Buffer)</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">CRM clientes</div><span class="badge b-pend">Futuro</span></div>
+    </div>
+    <!-- D5 -->
+    <div class="card">
+      <h3><span class="dot" style="background:var(--warn)"></span>📚 D5 — Infoproductos / EAs</h3>
+      <div class="item"><div class="item-name">Creador contenido edu</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Publicador Hotmart/Gumroad</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Gestor afiliados</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Licencias EA por activo</div><span class="badge b-warn">Pendiente</span></div>
+    </div>
+    <!-- D6 -->
+    <div class="card">
+      <h3><span class="dot" style="background:var(--warn)"></span>🏢 D6 — Enterprise / High Ticket</h3>
+      <div class="item"><div class="item-name">Licencias framework completo</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Contratos institucionales</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">White label bots</div><span class="badge b-pend">Futuro</span></div>
+    </div>
+    <!-- D7 -->
+    <div class="card">
+      <h3><span class="dot" style="background:var(--warn)"></span>🏦 D7 — PropFirm Propio</h3>
+      <div class="item"><div class="item-name">PropFirm propia (Fase 5)</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Broker propio (Fase 7)</div><span class="badge b-pend">Futuro</span></div>
+    </div>
+    <!-- D8 -->
+    <div class="card">
+      <h3><span class="dot" style="background:var(--accent2)"></span>🏭 D8 — Fábrica de Bots</h3>
+      <div class="item"><div class="item-name">Control de calidad ONNX</div><span class="badge b-warn">Pendiente</span></div>
+      <div class="item"><div class="item-name">Catálogo por activo + RR</div><span class="badge b-warn">Pendiente</span></div>
+      <div class="item"><div class="item-name">Pricing dinámico</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Soporte post-venta</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Ecosistemas por bot (EA+PDF+video)</div><span class="badge b-pend">Futuro</span></div>
+    </div>
+    <!-- D9 -->
+    <div class="card">
+      <h3><span class="dot" style="background:var(--danger)"></span>🧹 D9 — Limpieza / Mantenimiento</h3>
+      <div class="item"><div class="item-name">Agente Mantenimiento (script)</div><span class="badge b-ok">Listo</span></div>
+      <div class="item"><div class="item-name">Limpieza __pycache__ / logs / temp</div><span class="badge b-ok">Listo</span></div>
+      <div class="item"><div class="item-name">Detección duplicados por hash</div><span class="badge b-ok">Listo</span></div>
+      <div class="item"><div class="item-name">Rotación logs (7/30/90 días)</div><span class="badge b-warn">Pendiente</span></div>
+      <div class="item"><div class="item-name">Limpieza modelos ONNX viejos</div><span class="badge b-warn">Pendiente</span></div>
+      <div class="item"><div class="item-name">Limpieza prompts obsoletos</div><span class="badge b-pend">Futuro</span></div>
+    </div>
+    <!-- D10 -->
+    <div class="card">
+      <h3><span class="dot" style="background:var(--accent2)"></span>🌐 D10 — Web / SEO / Dashboard</h3>
+      <div class="item"><div class="item-name">Analytics web (GA4)</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">SEO técnico + contenido</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">A/B testing landing pages</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Diseño contenido (Canva API)</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Next.js dashboard público</div><span class="badge b-pend">Futuro</span></div>
+    </div>
+    <!-- D11 -->
+    <div class="card">
+      <h3><span class="dot" style="background:var(--accent3)"></span>💬 D11 — Ventas / Atención</h3>
+      <div class="item"><div class="item-name">Bot bienvenida + qualifying</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Especialistas por área</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Closer / cobro</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Onboarding ventas</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Retención + win-back</div><span class="badge b-pend">Futuro</span></div>
+    </div>
+    <!-- D12 -->
+    <div class="card">
+      <h3><span class="dot" style="background:var(--accent2)"></span>📈 D12 — Crecimiento / Optimización</h3>
+      <div class="item"><div class="item-name">CEO estratégico (GPT-4)</div><span class="badge b-ok">Listo</span></div>
+      <div class="item"><div class="item-name">Agente Entrenador (ajuste params scripted)</div><span class="badge b-ok">Listo</span></div>
+      <div class="item"><div class="item-name">Agente Curriculum (5 niveles RL)</div><span class="badge b-ok">Listo</span></div>
+      <div class="item"><div class="item-name">Prompts versionados LLM-assistidos</div><span class="badge b-ok">Listo</span></div>
+      <div class="item"><div class="item-name">Scout GitHub / estrategias</div><span class="badge b-warn">Pendiente</span></div>
+      <div class="item"><div class="item-name">Clasificador equity curves (CNN)</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Sistema premios / gamificación</div><span class="badge b-pend">Futuro</span></div>
+    </div>
+    <!-- D13 -->
+    <div class="card">
+      <h3><span class="dot" style="background:var(--danger)"></span>⚖️ D13 — Legal / Compliance</h3>
+      <div class="item"><div class="item-name">Términos de servicio</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Contratos PDF auto-generados</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Regulaciones por jurisdicción</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Compliance PropFirms</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Privacidad GDPR / CCPA</div><span class="badge b-pend">Futuro</span></div>
+    </div>
+    <!-- D14 -->
+    <div class="card">
+      <h3><span class="dot" style="background:var(--danger)"></span>⚙️ D14 — DevOps / Infraestructura</h3>
+      <div class="item"><div class="item-name">Monitoreo sistema (Uptime)</div><span class="badge b-warn">Pendiente</span></div>
+      <div class="item"><div class="item-name">Backup diario automático</div><span class="badge b-warn">Pendiente</span></div>
+      <div class="item"><div class="item-name">Actualizaciones auto-rollback</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Performance alerts</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Alertas 5 niveles (Slack/Discord)</div><span class="badge b-pend">Futuro</span></div>
+    </div>
+    <!-- D15 -->
+    <div class="card">
+      <h3><span class="dot" style="background:var(--accent2)"></span>📊 D15 — BI / Business Intelligence</h3>
+      <div class="item"><div class="item-name">Dashboard ejecutivo (este panel)</div><span class="badge b-ok">Listo</span></div>
+      <div class="item"><div class="item-name">Agente Dashboard Central (monitoreo)</div><span class="badge b-wip">En progreso</span></div>
+      <div class="item"><div class="item-name">Métricas trading en vivo</div><span class="badge b-warn">Pendiente</span></div>
+      <div class="item"><div class="item-name">Métricas negocio (LTV, CAC)</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Alertas KPIs automáticas</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Reporte inversores (Fase 4)</div><span class="badge b-pend">Futuro</span></div>
+    </div>
+    <!-- D16 -->
+    <div class="card">
+      <h3><span class="dot" style="background:var(--ok)"></span>🐝 D16 — Sala de Inversión Colmena</h3>
+      <div class="item"><div class="item-name">Agente Pool Capital</div><span class="badge b-ok">Listo</span></div>
+      <div class="item"><div class="item-name">Agente Distribución 80/20</div><span class="badge b-ok">Listo</span></div>
+      <div class="item"><div class="item-name">Agente Sala Visual (PnL vivo)</div><span class="badge b-ok">Listo</span></div>
+      <div class="item"><div class="item-name">Agente Retiros (MP/Stripe)</div><span class="badge b-ok">Listo</span></div>
+      <div class="item"><div class="item-name">Agente CEO Sala (kill-switch 5%)</div><span class="badge b-ok">Listo</span></div>
+      <div class="item"><div class="item-name">Integración MT5 cuenta real</div><span class="badge b-wip">En progreso</span></div>
+      <div class="item"><div class="item-name">Habilitación legal (D13)</div><span class="badge b-warn">Pendiente</span></div>
+      <div class="item"><div class="item-name">Beta cerrada 5-10 personas</div><span class="badge b-wip">En progreso</span></div>
+    </div>
+    <!-- D17 -->
+    <div class="card">
+      <h3><span class="dot" style="background:var(--text2)"></span>🌐 D17 — Ecosistema de Partners</h3>
+      <div class="item"><div class="item-name">Infraestructura multi-sala</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">API partner (white-label)</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Branding por partner</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Revenue share automático</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Track record requerido</div><span class="badge b-pend">Futuro</span></div>
+    </div>
+    <!-- D18 -->
+    <div class="card">
+      <h3><span class="dot" style="background:var(--ok)"></span>🧠 D18 — UCI / Conocimiento IA</h3>
+      <div class="item"><div class="item-name">18A — Recolector Videos (yt-dlp + Whisper)</div><span class="badge b-ok">Listo</span></div>
+      <div class="item"><div class="item-name">18B — Procesador PDFs (pdfplumber)</div><span class="badge b-ok">Listo</span></div>
+      <div class="item"><div class="item-name">18C — Generador CNN (captura + etiquetado)</div><span class="badge b-ok">Listo</span></div>
+      <div class="item"><div class="item-name">18D — Base Conocimiento (ChromaDB/FAISS)</div><span class="badge b-ok">Listo</span></div>
+      <div class="item"><div class="item-name">Pipeline end-to-end testeado</div><span class="badge b-warn">Pendiente</span></div>
+      <div class="item"><div class="item-name">Dataset ≥500 imágenes CNN</div><span class="badge b-warn">Pendiente</span></div>
+      <div class="item"><div class="item-name">Documentos estrategia en carpeta</div><span class="badge b-warn">Pendiente</span></div>
+    </div>
+    <!-- D19 -->
+    <div class="card">
+      <h3><span class="dot" style="background:var(--accent1)"></span>🌍 D19 — Localización / Multinacional</h3>
+      <div class="item"><div class="item-name">19A — Coordinador Idiomas (ES, EN, PT, DE, FR)</div><span class="badge b-ok">Listo</span></div>
+      <div class="item"><div class="item-name">19B — Traductor Técnico (docs, código, notebooks)</div><span class="badge b-ok">Listo</span></div>
+      <div class="item"><div class="item-name">19C — Marketing Local (landing por región)</div><span class="badge b-ok">Listo</span></div>
+      <div class="item"><div class="item-name">19D — Soporte Comunitario (FAQs, tickets)</div><span class="badge b-ok">Listo</span></div>
+      <div class="item"><div class="item-name">19E — Legal Compliance por jurisdicción</div><span class="badge b-ok">Listo</span></div>
+      <div class="item"><div class="item-name">Idiomas: ZH, JA, RU, AR (fase 2)</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Landing pages localizadas por mercado</div><span class="badge b-warn">Pendiente</span></div>
+      <div class="item"><div class="item-name">Disclaimers regulatorios por país</div><span class="badge b-warn">Pendiente</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== PANEL 2: INFRAESTRUCTURA ===================== -->
+<div class="panel" id="p2">
+  <div class="section-title">Red Técnica — Componentes y Conexiones</div>
+
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;">
+    <div style="font-size:12px;font-weight:600;margin-bottom:10px;">📡 WebSocket — Tiempo Real</div>
+    <div class="flow">
+      <div class="box hl">MT5 Terminal<br><small>Precios + trades</small></div>
+      <span class="arrow">→</span>
+      <div class="box hl">Agent Bridge<br><small>Python local</small></div>
+      <span class="arrow">→</span>
+      <div class="box">Dashboard Web<br><small>Visual HTML</small></div>
+    </div>
+  </div>
+
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;">
+    <div style="font-size:12px;font-weight:600;margin-bottom:10px;">☁️ Cloud — Entrenamiento</div>
+    <div class="flow">
+      <div class="box">Kaggle GPU<br><small>V100 / PPO</small></div>
+      <span class="arrow">→</span>
+      <div class="box hl">ONNX Model<br><small>bot_unificado.onnx</small></div>
+      <span class="arrow">→</span>
+      <div class="box">Download<br><small>a local / MT5</small></div>
+    </div>
+  </div>
+
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;">
+    <div style="font-size:12px;font-weight:600;margin-bottom:10px;">💾 Almacenamiento</div>
+    <div class="flow">
+      <div class="box">CSV Raw<br><small>MT5 export</small></div>
+      <span class="arrow">→</span>
+      <div class="box hl">Dataset Clean<br><small>M1/M5/M15/H1</small></div>
+      <span class="arrow">→</span>
+      <div class="box">Checkpoints<br><small>.zip / .onnx</small></div>
+    </div>
+  </div>
+
+  <div class="section-title">Estado de Componentes</div>
+  <div class="grid">
+    <div class="card">
+      <h3>🖥️ Local (PC Sergio)</h3>
+      <div class="item"><div class="item-name">MT5 + IC Markets</div><span class="badge b-ok">Activo</span></div>
+      <div class="item"><div class="item-name">Python + entorno RL</div><span class="badge b-ok">Activo</span></div>
+      <div class="item"><div class="item-name">Dashboard HTML</div><span class="badge b-ok">Activo</span></div>
+      <div class="item"><div class="item-name">Agent Bridge WebSocket</div><span class="badge b-warn">Pendiente</span></div>
+    </div>
+    <div class="card">
+      <h3>☁️ Cloud (Kaggle)</h3>
+      <div class="item"><div class="item-name">Notebook entrenamiento</div><span class="badge b-wip">Listo p/ upload</span></div>
+      <div class="item"><div class="item-name">Dataset US30 2022–2024</div><span class="badge b-ok">Subido</span></div>
+      <div class="item"><div class="item-name">GPU V100</div><span class="badge b-pend">Por usar</span></div>
+    </div>
+    <div class="card">
+      <h3>📱 MT5 VPS (futuro)</h3>
+      <div class="item"><div class="item-name">EA ONNX Loader</div><span class="badge b-wip">En desarrollo</span></div>
+      <div class="item"><div class="item-name">Ejecución 24/7</div><span class="badge b-pend">Futuro</span></div>
+    </div>
+    <div class="card">
+      <h3>🔧 Scripts Automatización</h3>
+      <div class="item"><div class="item-name">pipeline_auto.py (train→ONNX→MT5)</div><span class="badge b-ok">Listo</span></div>
+      <div class="item"><div class="item-name">versionar_modelo.py (Git tags)</div><span class="badge b-ok">Listo</span></div>
+      <div class="item"><div class="item-name">descargar_kaggle.py + exportar_onnx.py</div><span class="badge b-ok">Listo</span></div>
+      <div class="item"><div class="item-name">agente_mantenimiento.py (limpieza)</div><span class="badge b-ok">Listo</span></div>
+      <div class="item"><div class="item-name">save_progress.py (persistencia)</div><span class="badge b-ok">Listo</span></div>
+    </div>
+  </div>
+
+  <div class="data-source" id="data-status-infra">
+    📡 Datos en tiempo real: No conectado (modo estático) — Actualizado: 26 Abr 2026 17:30
+  </div>
+</div>
+
+<!-- ===================== PANEL 3: ARQUITECTURA SOFTWARE ===================== -->
+<div class="panel" id="p3">
+  <div class="section-title">Flujo de Datos — De Raw a Trade</div>
+
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;">
+    <div style="font-size:12px;font-weight:600;margin-bottom:10px;">1️⃣ Ingesta y Feature Engineering</div>
+    <div class="flow">
+      <div class="box">MT5 CSV<br><small>OHLCV M1/M5/M15/H1</small></div>
+      <span class="arrow">→</span>
+      <div class="box hl">preparar_datos_mt5.py<br><small>Limpieza + confluencias</small></div>
+      <span class="arrow">→</span>
+      <div class="box">Dataset Unificado<br><small>10 features norm</small></div>
+    </div>
+  </div>
+
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;">
+    <div style="font-size:12px;font-weight:600;margin-bottom:10px;">2️⃣ Entorno RL + PPO</div>
+    <div class="flow">
+      <div class="box">gym.Env<br><small>EntornoHibridoUnificado</small></div>
+      <span class="arrow">→</span>
+      <div class="box hl">Stable-Baselines3<br><small>PPO 1M steps</small></div>
+      <span class="arrow">→</span>
+      <div class="box">Policy MLP<br><small>10 → 64 → 7</small></div>
+    </div>
+  </div>
+
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;">
+    <div style="font-size:12px;font-weight:600;margin-bottom:10px;">3️⃣ Export + Validación</div>
+    <div class="flow">
+      <div class="box">Checkpoint<br><small>modelo_final.zip</small></div>
+      <span class="arrow">→</span>
+      <div class="box hl">torch.onnx.export<br><small>opset 11</small></div>
+      <span class="arrow">→</span>
+      <div class="box">Validator<br><small>Backtest GO/NO-GO</small></div>
+    </div>
+  </div>
+
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;">
+    <div style="font-size:12px;font-weight:600;margin-bottom:10px;">4️⃣ Deploy MT5</div>
+    <div class="flow">
+      <div class="box hl">bot_unificado.onnx</div>
+      <span class="arrow">→</span>
+      <div class="box">QuantumHive_EA.mq5<br><small>Carga ONNX</small></div>
+      <span class="arrow">→</span>
+      <div class="box hl">Trade Mecánico<br><small>TP1/TP2/BE/SL</small></div>
+    </div>
+  </div>
+
+  <div class="section-title">Detalle de Features (10 observaciones)</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-top:8px;">
+    <div class="box" style="text-align:left;"><strong>0</strong> %B Bollinger<br><small>[-1, 1] normalizado</small></div>
+    <div class="box" style="text-align:left;"><strong>1</strong> RSI<br><small>[-1, 1] /50-1</small></div>
+    <div class="box" style="text-align:left;"><strong>2</strong> BBW Estado<br><small>[-1, 0, 1] compresión/expansión</small></div>
+    <div class="box" style="text-align:left;"><strong>3</strong> Pendiente EMA50<br><small>[-1, 1] ×1000</small></div>
+    <div class="box" style="text-align:left;"><strong>4</strong> Conf M5<br><small>[0, 1] score confluencia</small></div>
+    <div class="box" style="text-align:left;"><strong>5</strong> Conf M1<br><small>[0, 1] score confluencia</small></div>
+    <div class="box" style="text-align:left;"><strong>6</strong> Tendencia H1<br><small>[-1, 1] vs EMA50</small></div>
+    <div class="box" style="text-align:left;"><strong>7</strong> ATR / Close<br><small>[-1, 1] ×100</small></div>
+    <div class="box" style="text-align:left;"><strong>8</strong> Posición Estado<br><small>[-1, 0, 1]</small></div>
+    <div class="box" style="text-align:left;"><strong>9</strong> PnL Día Normalizado<br><small>[-1, 1] ×10</small></div>
+  </div>
+</div>
+
+<!-- ===================== PANEL 4: DESPLIEGUE UML ===================== -->
+<div class="panel" id="p4">
+  <div class="section-title">Diagrama de Despliegue — Local vs Cloud</div>
+  <div class="deploy-grid">
+    <div class="deploy-card">
+      <h4>🖥️ Estación de Trabajo (Local)</h4>
+      <ul>
+        <li>MT5 Terminal (IC Markets demo)</li>
+        <li>Python 3.11 + venv</li>
+        <li>VS Code + Cascade IDE</li>
+        <li>Navegador → Dashboard HTML</li>
+        <li>Datos CSV descargados MT5</li>
+      </ul>
+      <div style="margin-top:8px;font-size:11px;color:var(--text2);">Rol: Desarrollo, testeo local, monitor visual.</div>
+    </div>
+    <div class="deploy-card">
+      <h4>☁️ Kaggle Cloud (GPU)</h4>
+      <ul>
+        <li>Notebook Python (V100)</li>
+        <li>Dataset US30 2022–2024</li>
+        <li>Entrenamiento PPO 1M steps</li>
+        <li>Export ONNX opset 11</li>
+        <li>Output: modelo.zip + .onnx</li>
+      </ul>
+      <div style="margin-top:8px;font-size:11px;color:var(--text2);">Rol: Entrenamiento pesado. Se apaga al terminar.</div>
+    </div>
+    <div class="deploy-card">
+      <h4>📡 MetaTrader 5 (VPS / Local)</h4>
+      <ul>
+        <li>MT5 64-bit + ONNX Runtime</li>
+        <li>EA: QuantumHive_EA.mq5</li>
+        <li>Carga bot_unificado.onnx</li>
+        <li>Gestión mecánica trades</li>
+        <li>Conexión broker (IC Markets)</li>
+      </ul>
+      <div style="margin-top:8px;font-size:11px;color:var(--text2);">Rol: Ejecución live. 24/5 durante NY session.</div>
+    </div>
+    <div class="deploy-card">
+      <h4>📊 Storage / Versionado</h4>
+      <ul>
+        <li>GitHub: código fuente</li>
+        <li>Kaggle Datasets: CSVs limpios</li>
+        <li>Local: modelos, checkpoints</li>
+        <li>MT5 /MQL5/Files: .onnx activo</li>
+        <li>Logs: PnL, trades, métricas</li>
+      </ul>
+      <div style="margin-top:8px;font-size:11px;color:var(--text2);">Rol: Persistencia, reproducibilidad, rollback.</div>
+    </div>
+  </div>
+
+  <div class="section-title">Flujo de Deploy — De Kaggle a Live</div>
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;">
+    <div class="flow" style="justify-content:center;">
+      <div class="box hl">Entrenar<br><small>Kaggle V100</small></div>
+      <span class="arrow">→</span>
+      <div class="box">Validar<br><small>Backtest 2024</small></div>
+      <span class="arrow">→</span>
+      <div class="box">GO/NO-GO<br><small>Validator decide</small></div>
+      <span class="arrow">→</span>
+      <div class="box hl">Descargar .onnx<br><small>a local</small></div>
+      <span class="arrow">→</span>
+      <div class="box">Copiar a MT5<br><small>/MQL5/Files/</small></div>
+      <span class="arrow">→</span>
+      <div class="box hl">Compilar EA<br><small>F5 en MetaEditor</small></div>
+      <span class="arrow">→</span>
+      <div class="box">Attach to Chart<br><small>US30 M15</small></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== PANEL 5: TIMELINE ===================== -->
+<div class="panel" id="p5">
+  <div class="section-title">Línea de Tiempo — Fases del Proyecto</div>
+  <div class="timeline">
+    <div class="t-event done">
+      <div class="t-date">Ene – Mar 2026</div>
+      <div class="t-title">Fase 0: Diseño Arquitectura</div>
+      <div class="t-desc">Definir 15 divisiones, pipeline RL, estructura ONNX/MT5.</div>
+    </div>
+    <div class="t-event done">
+      <div class="t-date">Abr 2026 (Semana 1–2)</div>
+      <div class="t-title">Fase 1a: Entorno Unificado</div>
+      <div class="t-desc">Crear entorno REV+CONT+SCALP, reward shaping, castigos momentum.</div>
+    </div>
+    <div class="t-event done">
+      <div class="t-date">Abr 2026 (Semana 3)</div>
+      <div class="t-title">Fase 1b: Datos + Preparación</div>
+      <div class="t-desc">Descargar US30 2022–2024 M1/M5/M15/H1 de IC Markets. Script de limpieza.</div>
+    </div>
+    <div class="t-event wip">
+      <div class="t-date">Abr 2026 (Semana 4)</div>
+      <div class="t-title">Fase 1c: Entrenamiento PPO en Kaggle</div>
+      <div class="t-desc">Subir notebook, entrenar 1M steps, exportar ONNX. Esperar WR > 35%.</div>
+    </div>
+    <div class="t-event">
+      <div class="t-date">May 2026 (Semana 1)</div>
+      <div class="t-title">Fase 1d: Validación + EA MT5</div>
+      <div class="t-desc">Backtest walk-forward 2024, ajustar EA mecánico, test en demo.</div>
+    </div>
+    <div class="t-event">
+      <div class="t-date">May 2026 (Semana 2–3)</div>
+      <div class="t-title">Fase 2: Demo Live + Métricas</div>
+      <div class="t-desc">Correr EA en demo IC Markets, monitorear WR/PF/DD. Logs automáticos.</div>
+    </div>
+    <div class="t-event">
+      <div class="t-date">Jun 2026</div>
+      <div class="t-title">Fase 3: Live Account + Señales</div>
+      <div class="t-desc">Cuenta real pequeña, Telegram signals, dashboard métricas trading.</div>
+    </div>
+    <div class="t-event">
+      <div class="t-date">Jul – Ago 2026</div>
+      <div class="t-title">Fase 4: Fábrica + Infoproductos</div>
+      <div class="t-desc">Catálogo de bots por activo, licencias EA, marketing auto.</div>
+    </div>
+    <div class="t-event">
+      <div class="t-date">Sep – Dic 2026</div>
+      <div class="t-title">Fase 5: PropFirm + Challenge Manager</div>
+      <div class="t-desc">Bot fondeo automatizado, gestión múltiples challenges, affiliate.</div>
+    </div>
+    <div class="t-event">
+      <div class="t-date">2027+</div>
+      <div class="t-title">Fase 6+: Enterprise + Broker Propio</div>
+      <div class="t-desc">White label, contratos institucionales, prop firm propia.</div>
+    </div>
+  </div>
+
+  <div class="section-title">Próximos Hitos Inmediatos</div>
+  <div class="grid">
+    <div class="card">
+      <h3>🎯 Esta semana (Abr 26–30)</h3>
+      <div class="item"><div class="item-name">Subir dataset a Kaggle</div><span class="badge b-wip">En progreso</span></div>
+      <div class="item"><div class="item-name">Entrenar PPO 1M steps</div><span class="badge b-warn">Pendiente</span></div>
+      <div class="item"><div class="item-name">Descargar ONNX validado</div><span class="badge b-warn">Pendiente</span></div>
+    </div>
+    <div class="card">
+      <h3>📅 Próxima semana (May 1–7)</h3>
+      <div class="item"><div class="item-name">Backtest walk-forward 2024</div><span class="badge b-warn">Pendiente</span></div>
+      <div class="item"><div class="item-name">Ajustar EA MT5 mecánico</div><span class="badge b-warn">Pendiente</span></div>
+      <div class="item"><div class="item-name">Test demo 1 semana</div><span class="badge b-warn">Pendiente</span></div>
+    </div>
+    <div class="card">
+      <h3>📆 Mayo 2026</h3>
+      <div class="item"><div class="item-name">Live account (micro)</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Dashboard métricas trading</div><span class="badge b-pend">Futuro</span></div>
+      <div class="item"><div class="item-name">Bot señales Telegram</div><span class="badge b-pend">Futuro</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== PANEL 6: ORDERS ===================== -->
+<div class="panel" id="p6">
+  <div class="section-title">Órdenes de Ejecución — Prioridad + Acción</div>
+  <div class="card" style="margin-bottom:12px;">
+    <h3>🤖 Flujo Inteligente de Ejecución</h3>
+    <div class="flow">
+      <div class="box hl">Detectar Orden</div>
+      <span class="arrow">→</span>
+      <div class="box">Evaluar LLM</div>
+      <span class="arrow">→</span>
+      <div class="box hl">Plan Detallado</div>
+      <span class="arrow">→</span>
+      <div class="box">Cascade Ejecuta</div>
+      <span class="arrow">→</span>
+      <div class="box hl">Resultado en DB</div>
+    </div>
+  </div>
+
+  <div class="filtros-orden">
+    <button class="filtro-btn active" data-filtro="todos">Todas</button>
+    <button class="filtro-btn" data-filtro="urgente">🚨 Urgente</button>
+    <button class="filtro-btn" data-filtro="alta">🔥 Alta</button>
+    <button class="filtro-btn" data-filtro="media">📋 Media</button>
+  </div>
+
+  <div class="grid">
+    <!-- URGENTE -->
+    <div class="card orden-card urgente" data-prio="urgente">
+      <h3><span class="dot" style="background:var(--danger)"></span> 0. Configurar LLM Cloud Gratis</h3>
+      <div class="item"><div class="item-name">Estado</div><span class="badge b-warn">Pendiente</span></div>
+      <div class="item"><div class="item-name">Agente</div><span class="badge b-wip">Cascade + humano</span></div>
+      <div style="margin-top:6px;"><span style="font-size:11px;color:var(--text2)">Criterio éxito: API key Groq/Gemini testeada OK</span></div>
+      <button class="btn-accion" onclick="abrirModal('setup_llm')">⚡ EJECUTAR</button>
+    </div>
+
+    <!-- ALTA -->
+    <div class="card orden-card alta" data-prio="alta">
+      <h3><span class="dot" style="background:var(--warn)"></span> 4. Reentrenar en Kaggle (2M steps)</h3>
+      <div class="item"><div class="item-name">Estado</div><span class="badge b-warn">Pendiente</span></div>
+      <div class="item"><div class="item-name">Agente</div><span class="badge b-wip">Cascade</span></div>
+      <div style="margin-top:6px;"><span style="font-size:11px;color:var(--text2)">Criterio éxito: EA compila, carga ONNX, opera demo 1 semana</span></div>
+      <button class="btn-accion" onclick="abrirModal('ea')">⚡ EJECUTAR</button>
+    </div>
+
+    <!-- MEDIA -->
+    <div class="card orden-card media" data-prio="media">
+      <h3><span class="dot" style="background:var(--accent2)"></span> 7. Dashboard v4 — D12 + D15</h3>
+      <div class="item"><div class="item-name">Estado</div><span class="badge b-warn">Pendiente</span></div>
+      <div class="item"><div class="item-name">Agente</div><span class="badge b-wip">Cascade</span></div>
+      <div style="margin-top:6px;"><span style="font-size:11px;color:var(--text2)">Criterio éxito: Landing EN/PT/DE + disclaimers USA/DEU/BRA</span></div>
+      <button class="btn-accion" onclick="abrirModal('d19')">⚡ EJECUTAR</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="cerrarModal(event)">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="modal-titulo">Orden de Ejecución</h3>
+      <button class="modal-close" onclick="cerrarModal()">&times;</button>
+    </div>
+    <div class="modal-meta" id="modal-meta"></div>
+    <div class="modal-orden" id="modal-orden"></div>
+    <div style="text-align:right;">
+      <button class="btn-copiar" id="btn-copiar" onclick="copiarOrden()">
+        <span id="copiar-icono">📋</span> <span id="copiar-texto">Copiar orden al portapapeles</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Tabs
+const tabs = document.querySelectorAll('.tab');
+const panels = document.querySelectorAll('.panel');
+tabs.forEach(t => {
+  t.addEventListener('click', () => {
+    tabs.forEach(x => x.classList.remove('active'));
+    panels.forEach(p => p.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById(t.dataset.panel).classList.add('active');
+  });
+});
+
+// Dynamic data loading (attempt)
+async function cargarDatos() {
+  try {
+    const res = await fetch('./metrics.json');
+    if (!res.ok) throw new Error('No metrics.json');
+    const data = await res.json();
+    // Update progress bar if available
+    if (data.progress !== undefined) {
+      document.getElementById('progress-pct').textContent = data.progress + '%';
+      document.getElementById('progress-fill').style.width = data.progress + '%';
+    }
+    // Update data source indicator
+    const el = document.getElementById('data-status-infra');
+    if (el) {
+      el.className = 'data-source ok';
+      el.textContent = '📡 Datos en tiempo real: Conectado | Última actualización: ' + new Date().toLocaleString();
+    }
+  } catch (e) {
+    console.log('Modo estático: ' + e.message);
+  }
+}
+cargarDatos();
+
+// Filtros de órdenes
+const filtros = document.querySelectorAll('.filtro-btn');
+const ordenCards = document.querySelectorAll('.orden-card');
+filtros.forEach(f => {
+  f.addEventListener('click', () => {
+    filtros.forEach(x => x.classList.remove('active'));
+    f.classList.add('active');
+    const filtro = f.dataset.filtro;
+    ordenCards.forEach(card => {
+      card.style.display = (filtro === 'todos' || card.dataset.prio === filtro) ? '' : 'none';
+    });
+  });
+});
+
+// Base de órdenes
+const ORDENES = {
+  setup_llm: {
+    titulo: 'Orden URGENTE: Configurar LLM Cloud Gratis',
+    meta: ['Agente: Sergio (humano) + Cascade', 'Archivo: scripts/setup_llm_cloud.py', 'Criterio: API key Groq/Gemini testeada OK'],
+    orden: `CONFIGURAR LLM CLOUD GRATIS
+
+OPCION A — Groq (RECOMENDADO):
+  - Modelo: Llama 3.3 70B
+  - Pasos: ir a https://console.groq.com/keys, crear cuenta, generar key (gsk_...)
+
+OPCION B — Google Gemini:
+  - Modelo: gemini-1.5-flash
+  - Pasos: https://aistudio.google.com/app/apikey, key (AI...)
+
+VERIFICACION:
+  python automatizacion/agentes/division_bi/agente_orquestador_llm.py diagnostico`
+  },
+  ea: {
+    titulo: 'Orden: Crear EA MQL5 ONNX Loader',
+    meta: ['Agente: Cascade (tu)', 'Archivo: ea_mql5/QuantumHive_EA.mq5', 'Criterio: EA opera demo 1 semana'],
+    orden: `CREAR EA MQL5 QUE CARGUE ONNX
+
+1. Crear/actualizar ea_mql5/QuantumHive_EA.mq5:
+   - FiltroHorario.mqh (DST NY automático)
+   - GestorRiesgoEA.mqh (lotes, SL/TP, BE, DD)
+   - Cargar bot_unificado.onnx con ONNX Runtime
+2. Compilar en MetaEditor sin warnings críticos.
+3. Attach a US30 M15 demo IC Markets.`
+  },
+  d19: {
+    titulo: 'Orden: D19 — Landing Pages + Disclaimers',
+    meta: ['Agente: Marketing Local + Legal Compliance', 'Archivo: marketing/landing/ + docs/legal/', 'Criterio: Landing EN/PT/DE + disclaimers'],
+    orden: `GENERAR LANDING PAGES Y DISCLAIMERS D19
+
+1. Agente Marketing Local (agente_marketing_local.py):
+   - Generar landing pages para:
+     * EN (USA/UK): quantumhive.io/en/
+     * PT (BR): quantumhive.io/pt-br/
+     * DE (DEU/AUT): quantumhive.io/de/
+   - Incluir: hero section, resultados del bot (demo), pricing, FAQ, CTA
+   - Disclaimer visible en hero: "El rendimiento pasado no garantiza resultados futuros"
+2. Agente Legal Compliance (agente_legal_compliance.py):
+   - Generar disclaimers regulatorios:
+     * USA: NFA/CFTC compliant disclaimer
+     * DEU: BaFin compatible + GDPR notice
+     * BRA: CVM disclaimer
+   - Términos de servicio base
+3. Guardar todo en marketing/landing/ y docs/legal/
+4. Confirmar que cada landing incluye link a términos y disclaimer localizado.`
+  }
+};
+
+let ordenActual = '';
+
+function abrirModal(clave) {
+  ordenActual = clave;
+  const o = ORDENES[clave];
+  if (!o) return;
+  document.getElementById('modal-titulo').textContent = o.titulo;
+  document.getElementById('modal-meta').innerHTML = o.meta.map(m => '<span>' + m + '</span>').join('');
+  document.getElementById('modal-orden').textContent = o.orden;
+  const btn = document.getElementById('btn-copiar');
+  btn.classList.remove('copied');
+  document.getElementById('copiar-icono').textContent = '📋';
+  document.getElementById('copiar-texto').textContent = 'Copiar orden al portapapeles';
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function cerrarModal(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+async function copiarOrden() {
+  const o = ORDENES[ordenActual];
+  if (!o) return;
+  try {
+    await navigator.clipboard.writeText(o.orden);
+    const btn = document.getElementById('btn-copiar');
+    btn.classList.add('copied');
+    document.getElementById('copiar-icono').textContent = '✅';
+    document.getElementById('copiar-texto').textContent = '¡Orden copiada!';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      document.getElementById('copiar-icono').textContent = '📋';
+      document.getElementById('copiar-texto').textContent = 'Copiar orden al portapapeles';
+    }, 2000);
+  } catch (err) {
+    alert('No se pudo copiar automáticamente. Seleccioná el texto manualmente.');
+  }
+}
+
+// Cerrar con Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') cerrarModal();
+});
+</script>
+
+</body>
+</html>
