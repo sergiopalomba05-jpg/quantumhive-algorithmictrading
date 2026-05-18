@@ -92,7 +92,10 @@ class OKXFeed:
             logger.warning(f"Error fetching klines {timeframe}: {e}")
 
     def _fetch_trades(self):
-        """Fetch últimos trades desde OKX public API."""
+        """Fetch últimos trades desde OKX public API.
+        OKX trade format: [tradeId, price, size, timestamp, side, ...]
+        side: 'buy' (agresivo comprador) o 'sell' (agresivo vendedor)
+        """
         try:
             url = f'{OKX_BASE_URL}/api/v5/market/trades'
             params = {'instId': self.instrument, 'limit': 100}
@@ -103,10 +106,10 @@ class OKXFeed:
                     trades = []
                     for row in data['data']:
                         trades.append({
-                            'time': int(row[0]),
+                            'time': int(row[3]),      # timestamp ms
                             'price': float(row[1]),
                             'amount': float(row[2]),
-                            'is_buyer_maker': row[3] == 'S',
+                            'is_buyer_maker': row[4] == 'sell',  # sell=agresivo vendedor
                         })
                     with self._lock:
                         self._trades = deque(trades, maxlen=500)

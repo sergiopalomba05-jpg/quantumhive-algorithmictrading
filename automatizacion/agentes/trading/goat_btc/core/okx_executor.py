@@ -39,12 +39,20 @@ CONTRACT_SIZE_BTC = 0.001
 SYMBOL = OKX_INSTRUMENT
 
 
+def get_balance_available() -> float:
+    """Obtiene balance disponible de la cuenta OKX."""
+    try:
+        return _executor.get_balance()
+    except Exception:
+        return 0.0
+
 def calcular_contratos(precio: float, riesgo_usd: float = None, sl_pct: float = None) -> int:
     """
     Calcula cantidad de contratos basado en riesgo fijo en USD.
     Risk = Position Size × SL%
     Position Size = Risk / SL%
     Contracts = Position Size / (precio × CONTRACT_SIZE_BTC)
+    Escala automáticamente si el balance no alcanza (usa 1% del balance).
     """
     riesgo = riesgo_usd or RISK_PER_TRADE_USD
     sl = sl_pct or SL_PERCENT
@@ -52,7 +60,23 @@ def calcular_contratos(precio: float, riesgo_usd: float = None, sl_pct: float = 
         return 1
     position_size_usd = riesgo / sl
     contracts = int(position_size_usd / (precio * CONTRACT_SIZE_BTC))
-    return max(1, contracts)
+    contracts = max(1, contracts)
+
+    # Verificar que quepa en el balance disponible (1% max por trade)
+    try:
+        balance = get_balance_available()
+        if balance > 0:
+            max_risk_balance = balance * 0.01  # 1% del balance
+            max_pos_size = max_risk_balance / sl
+            max_contracts = int(max_pos_size / (precio * CONTRACT_SIZE_BTC))
+            max_contracts = max(1, max_contracts)
+            if contracts > max_contracts:
+                logger.info(f"Balance ${balance:.2f} limita contratos: {contracts} → {max_contracts}")
+                contracts = max_contracts
+    except Exception:
+        pass
+
+    return contracts
 
 
 class OKXExecutor:
