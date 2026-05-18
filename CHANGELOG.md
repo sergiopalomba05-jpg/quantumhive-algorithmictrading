@@ -1,6 +1,18 @@
 # CHANGELOG
 
 Todos los cambios notables del proyecto.
+## [2026-05-18] - FIX
+**Commit:** b71d1efc
+**Módulo:** goat_btc
+- CVD OKX: corregido indice de side (row[4]=sell/buy). Balance bajo: contratos limitados a 1% del balance
+
+
+## [2026-05-18] - FIX
+**Commit:** b71d1efc
+**Módulo:** goat_btc
+- CVD OKX: corregido índice de side (row[4]=sell/buy vs row[3]=timestamp). Balance bajo: contratos limitados a 1%% del balance disponible
+
+
 ## [2026-05-16] - FEAT
 **Commit:** f795d74d
 **Módulo:** goat_btc
