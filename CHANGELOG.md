@@ -1,6 +1,12 @@
 # CHANGELOG
 
 Todos los cambios notables del proyecto.
+## [2026-05-28] - FIX
+**Commit:** 42647305
+**Módulo:** agi_telegram
+- AGI HF Space branch master->main, contexto carga correctamente con GitHub API autenticada, GH Action reinicia Space automaticamente
+
+
 ## [2026-05-28] - FEAT
 **Commit:** c69d4b4e
 **Módulo:** github_actions
