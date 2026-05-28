@@ -1,22 +1,6 @@
 # INVENTARIO TOTAL QH — QuantumHive Algorithmic Trading
 
-**Generado:** 28/05/2026 15:40:17
-
-## Estructura organizacional
-
-QuantumHive se organiza en 6 macrodivisiones operativas más núcleo AGI y utilidades:
-
-| División | Propósito | Agentes |
-|----------|-----------|---------|
-| **PropFirms** | Gestión de cuentas en firms de fondeo | 7 agentes |
-| **Fondeo** | Programa de fondeo (challenges → fondeadas) | 5 agentes |
-| **Sala Inversión** | Pool de capital colectivo | 5 agentes |
-| **UCI** | Captación de inteligencia de trading | 5 agentes |
-| **Fábrica Bots** | Creación y venta de bots | 12 agentes |
-| **Recursos Gratis** | Recursos gratuitos para la colmena | 7 agentes |
-| **Trading (GOAT BTC)** | Trading algorítmico BTC | 15 módulos |
-| **AGI Core** | Núcleo del sistema AGI | 8 módulos |
-| **Cerebro** | Monitoreo y orquestación | 5 módulos |
+**Generado:** 28/05/2026 16:14:19
 
 ---
 
@@ -67,6 +51,8 @@ Sistema de memoria persistente de AGI: GitHub Memory, Memory Manager, clasificad
 
 ## Biblioteca Fabrica
 
+Biblioteca de fábrica: repositorio de bots rentables y estrategias empaquetadas.
+
 ### bots_rentables
 
 
@@ -87,6 +73,8 @@ División de crecimiento: AGI WhatsApp para atención al cliente.
 - **agi_whatsapp.py** — AGI WhatsApp para atención al cliente (División Crecimiento)
 
 ## Data
+
+Datos y reportes auxiliares de la colmena.
 
 ## Division Biblioteca Fabrica Bots
 

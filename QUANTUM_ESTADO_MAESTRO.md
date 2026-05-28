@@ -1,6 +1,6 @@
 # QUANTUM_ESTADO_MAESTRO.md
 ## Mapa Completo de Activos — QuantumHive Algorithmic Trading
-**Generado:** 28/05/2026 15:40:17
+**Generado:** 28/05/2026 16:14:19
 
 ### 📊 Resumen Global
 - **Total agentes/scripts Python:** 90
@@ -156,7 +156,7 @@
 
 [PY] ├── changelog.py (6.2 KB)
 [PY] ├── configurar_agi_telegram.py (11.3 KB)
-[PY] ├── generar_inventario.py (13.2 KB)
+[PY] ├── generar_inventario.py (12.3 KB)
 [PS] ├── guardrail_terminal.ps1 (3.6 KB)
 [PY] ├── mapear_empresa.py (6.2 KB)
 [PY] ├── onnx_converter.py (5.4 KB)
@@ -271,7 +271,7 @@
 ### UTILS
 - `automatizacion/utils/changelog.py` (6.2 KB)
 - `automatizacion/utils/configurar_agi_telegram.py` (11.3 KB)
-- `automatizacion/utils/generar_inventario.py` (13.2 KB)
+- `automatizacion/utils/generar_inventario.py` (12.3 KB)
 - `automatizacion/utils/mapear_empresa.py` (6.2 KB)
 - `automatizacion/utils/onnx_converter.py` (5.4 KB)
 - `automatizacion/utils/purga_paperclip.py` (2.3 KB)
