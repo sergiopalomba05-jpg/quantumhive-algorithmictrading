@@ -122,8 +122,46 @@ if CEREBRO_DISPONIBLE and EVENT_BUS_AVAILABLE and event_bus:
 
 app = Flask(__name__)
 
+# ── Contexto Global: archivos maestro + inventario desde GitHub ──
+MAESTRO_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "QUANTUM_ESTADO_MAESTRO.md")
+INVENTARIO_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "INVENTARIO_TOTAL_QH.md")
+CONTEXTO_MAESTRO = ""
+CONTEXTO_INVENTARIO = ""
+GITHUB_TOKEN_CTX = os.getenv('GITHUB_TOKEN', '')
+
+def _cargar_contexto_remoto(ruta_api, nombre, global_var, archivo_local):
+    if GITHUB_TOKEN_CTX:
+        try:
+            url = f"https://api.github.com/repos/sergiopalomba05-jpg/quantumhive-algorithmictrading/contents/{ruta_api}"
+            headers = {"Authorization": f"token {GITHUB_TOKEN_CTX}", "Accept": "application/vnd.github.v3.raw"}
+            r = requests.get(url, headers=headers, timeout=10)
+            if r.status_code == 200:
+                globals()[global_var] = r.text
+                logger.info(f"{nombre} cargado desde GitHub API ({len(r.text)} bytes)")
+                return True
+        except Exception as e:
+            logger.warning(f"No se pudo cargar {nombre} desde GitHub API: {e}")
+    try:
+        if os.path.exists(archivo_local):
+            with open(archivo_local, encoding='utf-8') as f:
+                globals()[global_var] = f.read()
+            logger.info(f"{nombre} cargado desde local ({len(globals()[global_var])} bytes)")
+            return True
+    except Exception:
+        pass
+    logger.warning(f"{nombre} NO disponible")
+    return False
+
 # Cargar variables de entorno
 load_dotenv()
+
+# Re-evaluar GITHUB_TOKEN después de load_dotenv()
+GITHUB_TOKEN_CTX = os.getenv('GITHUB_TOKEN', '')
+
+_cargar_contexto_remoto(
+    "QUANTUM_ESTADO_MAESTRO.md", "Contexto maestro", "CONTEXTO_MAESTRO", MAESTRO_PATH)
+_cargar_contexto_remoto(
+    "INVENTARIO_TOTAL_QH.md", "Inventario total", "CONTEXTO_INVENTARIO", INVENTARIO_PATH)
 
 # Variables de entorno
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN', '').strip()
@@ -858,6 +896,12 @@ def construir_mensaje_sistema(db_conn, tipo_mensaje: str) -> str:
     # System prompt base (SYSTEM_PROMPT ya está definido)
     system_base = SYSTEM_PROMPT
     partes = [system_base]
+
+    # Contexto global: Estado Maestro + Inventario de la empresa
+    if CONTEXTO_MAESTRO:
+        partes.append(f"\n\n---\n## ESTRUCTURA COMPLETA DE LA EMPRESA (QUANTUM_ESTADO_MAESTRO)\n{CONTEXTO_MAESTRO[:4000]}")
+    if CONTEXTO_INVENTARIO:
+        partes.append(f"\n\n---\n## INVENTARIO DE AGENTES\n{CONTEXTO_INVENTARIO[:4000]}")
 
     # Memoria persistente de GitHub (entre sesiones)
     if github_memory:
