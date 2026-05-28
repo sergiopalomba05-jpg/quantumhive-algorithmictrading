@@ -67,15 +67,16 @@ class GitHubMemoryManager:
                 self._put_file(path, f'# {nombre}\n', None, f'AGI: inicializar {archivo}')
 
     def _get_file(self, path: str) -> Optional[Dict]:
-        """Lee un archivo desde GitHub. Retorna contenido y SHA."""
+        """Lee un archivo desde GitHub público (sin token). Retorna contenido y SHA."""
         try:
             url = f"{self.base_url}/{path}?ref={self.branch}"
-            response = requests.get(url, headers=self.headers, timeout=10)
-
+            headers_publicos = {'Accept': 'application/vnd.github.v3+json'}
+            response = requests.get(url, headers=headers_publicos, timeout=10)
             if response.status_code == 200:
                 data = response.json()
                 contenido = base64.b64decode(data['content']).decode('utf-8')
                 return {'contenido': contenido, 'sha': data['sha']}
+            logger.warning(f"Error leyendo {path}: {response.status_code}")
             return None
         except Exception as e:
             logger.error(f"Error leyendo {path}: {e}")
