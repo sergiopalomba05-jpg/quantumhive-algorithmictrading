@@ -23,6 +23,8 @@ jobs:
 
       - name: Commit y push del estado maestro
         id: commit
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           git config user.name "QuantumHive-Bot"
           git config user.email "bot@quantumhive.ai"
@@ -32,7 +34,7 @@ jobs:
             echo "cambios=false" >> $GITHUB_OUTPUT
           else
             git commit -m "auto: actualizar estado maestro [skip ci]"
-            git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+            git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/sergiopalomba05-jpg/quantumhive-algorithmictrading.git"
             git push
             echo "cambios=true" >> $GITHUB_OUTPUT
           fi
