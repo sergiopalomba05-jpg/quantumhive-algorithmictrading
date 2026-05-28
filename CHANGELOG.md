@@ -1,6 +1,24 @@
 # CHANGELOG
 
 Todos los cambios notables del proyecto.
+## [2026-05-28] - FEAT
+**Commit:** ad28bc94
+**Módulo:** agente_cerebro
+- Agente Cerebro v3: handler universal con suscripcion a todos los eventos, tabla cola_cerebro con prioridad 1-3, notificador automatico de alertas criticas, endpoint /cerebro en AGI
+
+
+## [2026-05-27] - FEAT
+**Commit:** 31d5652d
+**Módulo:** infra
+- Deploy AGI Telegram a HF Spaces (Docker python:3.10-slim, puerto 7860, commit 835c3de)
+
+
+## [2026-05-27] - FEAT
+**Commit:** 31d5652d
+**Módulo:** infra
+- Deploy AGI Telegram a HF Spaces (Docker python:3.10-slim, puerto 7860, commit 835c3de)
+
+
 ## [2026-05-18] - FIX
 **Commit:** b71d1efc
 **Módulo:** goat_btc

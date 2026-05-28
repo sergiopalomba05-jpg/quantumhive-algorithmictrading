@@ -112,6 +112,14 @@ except Exception as e:
     SCHEDULER_AVAILABLE = False
     logger.warning(f"Scheduler no disponible: {e}")
 
+# Iniciar Agente Cerebro (requiere Event Bus)
+if CEREBRO_DISPONIBLE and EVENT_BUS_AVAILABLE and event_bus:
+    try:
+        agente_cerebro.iniciar(event_bus)
+        logger.info("Agente Cerebro conectado al Event Bus")
+    except Exception as e:
+        logger.warning(f"Agente Cerebro no pudo iniciarse: {e}")
+
 app = Flask(__name__)
 
 # Cargar variables de entorno
@@ -1637,6 +1645,25 @@ def index():
 def health():
     """Endpoint de health check."""
     return jsonify({'status': 'healthy', 'timestamp': datetime.now().isoformat()}), 200
+
+@app.route('/cerebro', methods=['GET'])
+def cerebro_estado():
+    """Estado del Agente Cerebro y mensajes pendientes."""
+    if not CEREBRO_DISPONIBLE or not agente_cerebro:
+        return jsonify({'disponible': False, 'error': 'Agente Cerebro no disponible'}), 503
+    try:
+        pendientes = agente_cerebro.obtener_pendientes(prioridad_min=1, limite=20)
+        return jsonify({
+            'disponible': True,
+            'mensajes_pendientes': len(pendientes),
+            'pendientes': [
+                {'id': r[0], 'fecha': r[1], 'tipo': r[2], 'origen': r[3],
+                 'mensaje': r[4], 'prioridad': r[5]}
+                for r in pendientes
+            ]
+        }), 200
+    except Exception as e:
+        return jsonify({'disponible': True, 'error': str(e)}), 500
 
 @app.route('/set_webhook', methods=['POST'])
 def set_webhook():

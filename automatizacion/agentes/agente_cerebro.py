@@ -1,286 +1,211 @@
 """
-AGENTE CEREBRO — Sistema Nervioso Central de QuantumHive
-========================================================
-Responsabilidades:
-1. Leer eventos del Event Bus en tiempo real
-2. Construir y mantener el estado global del sistema
-3. Proveer contexto enriquecido a AGI en cada request (HTTP y directo)
-4. Detectar anomalías y alertar proactivamente
-5. Exponer API interna en puerto 5001
-
-Arquitectura:
-  cerebro/estado_global.py   → dataclasses EstadoGlobal, Posicion, Senal, Alerta
-  cerebro/event_bus_reader.py → lee eventos del SQLite del Event Bus
-  cerebro/context_builder.py  → construye bloque de contexto para AGI
-  cerebro/anomaly_detector.py → detecta anomalías por reglas
-  cerebro/api_interna.py      → Flask en puerto 5001
-
-Integración:
-  agi_telegram.py → requests.get('http://localhost:5001/contexto_agi')
-  goat_btc.py     → POST /evento con señal_detectada, orden_ejecutada, posicion_cerrada
+Agente Cerebro — QuantumHive Autonomous Intelligence System
+Puente entre Event Bus y AGI Telegram.
+Escucha pasiva, clasifica eventos por prioridad, escribe en cola_cerebro (SQLite).
+AGI consulta cada 60s y envía prioridad-1 a Sergio por Telegram.
 """
 
+import sqlite3
+import json
+import time
 import logging
 import threading
-import time
 import os
-import sys
-from pathlib import Path
+import requests
 from datetime import datetime
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-# ── Módulos del Cerebro ─────────────────────────────────────────────────────
+DB_PATH = 'agi_memoria_telegram.db'
+TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN', '')
+USER_TELEGRAM_ID = os.getenv('USER_TELEGRAM_ID', '')
 
-try:
-    from cerebro.estado_global import EstadoGlobal, Posicion, Senal, Alerta, determinar_horario_operativo
-    from cerebro.event_bus_reader import EventBusReader
-    from cerebro.context_builder import construir_contexto_completo, construir_contexto_minimo
-    from cerebro.anomaly_detector import AnomalyDetector
-    from cerebro.api_interna import app as cerebro_api, init_api
-    CEREBRO_MODULES_OK = True
-except ImportError:
-    logger.warning("Módulos cerebro/ no disponibles, usando modo legacy")
-    CEREBRO_MODULES_OK = False
+# Mapa de prioridades por tipo de evento
+PRIORIDADES = {
+    # Prioridad 1 — Crítico, notificar ya
+    'ERROR_CRITICO': 1,
+    'BOT_PAUSADO': 1,
+    'DRAWDOWN': 1,
+    # Prioridad 2 — Importante, reporte diario
+    'SENAL_TRADING': 2,
+    'SENAL_FINANCIERA': 2,
+    'SENAL_RIESGO': 2,
+    'AGENTE_PROBLEMA': 2,
+    'SOLICITUD_RETIRO': 2,
+    'CLIENTE_NUEVO': 2,
+    'PAGO_CONFIRMADO': 2,
+    # Prioridad 3 — Informativo, reporte semanal
+    'DECISION_CEO': 3,
+    'PRUEBA_COMPLETADA': 3,
+    'VENTA_BOT': 3,
+    'CONOCIMIENTO_AGREGADO': 3,
+    'TRADER_RECOLECTADO': 3,
+    'PREDICCION': 3,
+}
 
-
-# ── Constantes ──────────────────────────────────────────────────────────────
-
-BASE_DIR = Path(__file__).parent.parent
-DB_PATH = BASE_DIR / "agentes" / "agi_memoria_telegram.db"
-CEREBRO_PORT = int(os.getenv('CEREBRO_PORT', '5001'))
-POLL_INTERVAL = 5  # segundos entre lecturas del Event Bus
-
-# Eventos que AGI DEBE conocer (legacy — mantener compatibilidad)
-EVENTOS_CRITICOS = [
-    "error_critico", "deploy_fallido", "agente_caido",
-    "alerta_drawdown", "senal_trading", "decision_ceo",
-    "idea_nueva", "bot_resultado"
-]
-EVENTOS_CONTEXTO = [
-    "heartbeat", "briefing_diario", "reporte_agente",
-    "metrica_actualizada", "colmena_update"
-]
+def _enviar_telegram(mensaje: str):
+    """Envía mensaje a Sergio por Telegram."""
+    if not TELEGRAM_TOKEN or not USER_TELEGRAM_ID:
+        logger.warning("TELEGRAM_TOKEN o USER_TELEGRAM_ID no configurados")
+        return False
+    try:
+        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+        payload = {
+            'chat_id': USER_TELEGRAM_ID,
+            'text': mensaje,
+            'parse_mode': 'HTML'
+        }
+        resp = requests.post(url, json=payload, timeout=10)
+        resp.raise_for_status()
+        logger.info(f"Mensaje Telegram enviado: {mensaje[:80]}")
+        return True
+    except Exception as e:
+        logger.error(f"Error enviando Telegram: {e}")
+        return False
 
 
 class AgenteCerebro:
-    """
-    Sistema Nervioso Central de QuantumHive.
-    Mantiene el estado global actualizado y provee contexto a AGI.
-    """
+    """Puente Event Bus → AGI. Clasifica eventos y los encola."""
 
-    def __init__(self):
-        self.db_path = DB_PATH
-        self.estado = EstadoGlobal()
-        self.event_reader: Optional[EventBusReader] = None
-        self.anomaly_detector = AnomalyDetector()
-        self._running = False
-        self._thread: Optional[threading.Thread] = None
+    def __init__(self, db_path: str = DB_PATH):
+        self.db_path = db_path
+        self.event_bus = None
+        self._corriendo = False
+        self._crear_tablas()
+        logger.info("AgenteCerebro inicializado")
 
-        # Legacy: tablas SQLite y suscripción al Event Bus
-        self._inicializar_tablas()
-
-        if CEREBRO_MODULES_OK:
-            self.event_reader = EventBusReader(str(self.db_path))
-            init_api(self.estado)
-            logger.info(f"🧠 Agente Cerebro v2.0 — Sistema Nervioso Central activo")
-
-    def _inicializar_tablas(self):
-        """Legacy: crea tablas SQLite para compatibilidad."""
+    def _crear_tablas(self):
+        """Crea tabla cola_cerebro si no existe."""
         try:
-            import sqlite3
             with sqlite3.connect(self.db_path) as conn:
                 conn.execute("""
-                    CREATE TABLE IF NOT EXISTS contexto_agi (
+                    CREATE TABLE IF NOT EXISTS cola_cerebro (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        tipo TEXT NOT NULL,
-                        resumen TEXT NOT NULL,
-                        datos_json TEXT,
-                        prioridad TEXT DEFAULT 'normal',
+                        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        evento_id INTEGER,
+                        tipo_evento TEXT NOT NULL,
+                        origen TEXT NOT NULL,
+                        mensaje TEXT NOT NULL,
+                        prioridad INTEGER DEFAULT 3,
                         leido INTEGER DEFAULT 0,
-                        timestamp TEXT DEFAULT (datetime('now', 'localtime'))
-                    )
-                """)
-                conn.execute("""
-                    CREATE TABLE IF NOT EXISTS estado_sistema_agi (
-                        clave TEXT PRIMARY KEY,
-                        valor TEXT,
-                        actualizado TEXT DEFAULT (datetime('now', 'localtime'))
+                        enviado_telegram INTEGER DEFAULT 0
                     )
                 """)
                 conn.commit()
+            logger.info("Tabla cola_cerebro verificada/creada")
         except Exception as e:
-            logger.error(f"Error inicializando tablas legacy: {e}")
+            logger.error(f"Error creando tabla cola_cerebro: {e}")
 
-    # ── Loop principal ──────────────────────────────────────────────────────
+    def _clasificar_prioridad(self, tipo: str) -> int:
+        """Determina prioridad según tipo de evento."""
+        return PRIORIDADES.get(tipo, 3)
 
-    def _loop(self):
-        """Loop background: lee Event Bus, actualiza estado, detecta anomalías."""
-        logger.info("🧠 Cerebro loop iniciado")
-        while self._running:
+    def _generar_mensaje(self, evento: dict) -> str:
+        """Genera mensaje legible a partir del evento."""
+        tipo = evento.get('tipo', 'desconocido')
+        origen = evento.get('origen', 'desconocido')
+        payload = evento.get('payload', {})
+        if isinstance(payload, str):
             try:
-                if self.event_reader:
-                    # 1. Leer nuevos eventos del Event Bus
-                    n = self.event_reader.sincronizar(self.estado, max_eventos=50)
-                    if n > 0:
-                        logger.info(f"🧠 {n} eventos procesados")
+                payload = json.loads(payload)
+            except (json.JSONDecodeError, TypeError):
+                payload = {}
+        detalle = ""
+        if isinstance(payload, dict):
+            partes = [f"{k}={v}" for k, v in payload.items() if not k.startswith('_')]
+            if partes:
+                detalle = " | ".join(partes)
+        return f"[{tipo}] desde {origen}: {detalle}" if detalle else f"[{tipo}] desde {origen}"
 
-                    # 2. Actualizar precio desde Binance
-                    try:
-                        from .trading.goat_btc.core.binance_executor import get_precio_actual
-                        precio = get_precio_actual()
-                        if precio:
-                            self.estado.btc_precio_actual = precio
-                    except Exception:
-                        pass
+    def manejar_evento(self, evento: dict):
+        """Handler para el Event Bus. Clasifica y escribe en cola."""
+        try:
+            tipo = evento.get('tipo', 'desconocido')
+            origen = evento.get('origen', 'desconocido')
+            mensaje = self._generar_mensaje(evento)
+            prioridad = self._clasificar_prioridad(tipo)
 
-                    # 3. Detectar anomalías
-                    nuevas_anomalias = self.anomaly_detector.evaluar(self.estado)
-                    for anom in nuevas_anomalias:
-                        self.estado.alertas_pendientes.append(anom)
-                        self._enviar_alerta_telegram(anom)
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute("""
+                    INSERT INTO cola_cerebro (evento_id, tipo_evento, origen, mensaje, prioridad)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (evento.get('id'), tipo, origen, mensaje, prioridad))
+                conn.commit()
 
-                    # 4. Actualizar horario operativo
-                    self.estado.sergio_en_horario_operativo = determinar_horario_operativo()
+            logger.info(f"Cerebro encoló evento {tipo} (prioridad {prioridad})")
+        except Exception as e:
+            logger.error(f"Error en manejar_evento: {e}")
 
+    def _notificar_prioridad_1(self):
+        """Revisa cola_cerebro cada 10s y envía prioridad-1 no enviados."""
+        while self._corriendo:
+            try:
+                with sqlite3.connect(self.db_path) as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        SELECT id, mensaje FROM cola_cerebro
+                        WHERE prioridad = 1 AND leido = 0 AND enviado_telegram = 0
+                        ORDER BY id ASC LIMIT 5
+                    """)
+                    pendientes = cursor.fetchall()
+
+                for row_id, mensaje in pendientes:
+                    texto = f"\U0001f6a8 <b>Cerebro QH — Alerta Prioridad 1</b>\n\n{mensaje}"
+                    ok = _enviar_telegram(texto)
+                    with sqlite3.connect(self.db_path) as conn:
+                        if ok:
+                            conn.execute("UPDATE cola_cerebro SET leido=1, enviado_telegram=1 WHERE id=?", (row_id,))
+                        else:
+                            conn.execute("UPDATE cola_cerebro SET enviado_telegram=1, leido=1 WHERE id=?", (row_id,))
+                        conn.commit()
             except Exception as e:
-                logger.error(f"Error en loop Cerebro: {e}")
+                logger.error(f"Error en notificar_prioridad_1: {e}")
+            time.sleep(10)
 
-            time.sleep(POLL_INTERVAL)
-        logger.info("🧠 Cerebro loop finalizado")
-
-    def start(self):
-        """Inicia el loop background."""
-        if self._running:
-            return
-        self._running = True
-        self._thread = threading.Thread(target=self._loop, daemon=True)
-        self._thread.start()
-        logger.info("🧠 Cerebro corriendo en background")
-
-    def stop(self):
-        self._running = False
-
-    # ── Alertas a Telegram ──────────────────────────────────────────────────
-
-    def _enviar_alerta_telegram(self, alerta: Alerta):
-        """Envía alerta directa a Sergio por Telegram."""
+    def iniciar(self, event_bus):
+        """Inicia el cerebro: registra handler en Event Bus y arranca notificador."""
         try:
-            import requests
-            token = os.getenv('TELEGRAM_TOKEN', '')
-            chat_id = os.getenv('USER_TELEGRAM_ID', '')
-            if token and chat_id:
-                url = f"https://api.telegram.org/bot{token}/sendMessage"
-                prefijo = "🚨" if alerta.severidad == "CRITICA" else "⚠️"
-                texto = f"{prefijo} <b>Cerebro: {alerta.nombre}</b>\n{alerta.mensaje}"
-                requests.post(url, json={
-                    'chat_id': chat_id, 'text': texto, 'parse_mode': 'HTML',
-                }, timeout=5)
+            self.event_bus = event_bus
+            event_bus.suscribir('*', self.manejar_evento)
+            self._corriendo = True
+            hilo = threading.Thread(target=self._notificar_prioridad_1, daemon=True)
+            hilo.start()
+            logger.info("AgenteCerebro iniciado — escuchando todos los eventos")
         except Exception as e:
-            logger.warning(f"Error enviando alerta Telegram: {e}")
+            logger.error(f"Error iniciando AgenteCerebro: {e}")
 
-    # ── API pública (compatible con agi_telegram.py) ─────────────────────────
+    def detener(self):
+        """Detiene el cerebro."""
+        self._corriendo = False
+        logger.info("AgenteCerebro detenido")
 
-    def generar_briefing_para_agi(self) -> str:
-        """
-        Genera briefing completo del estado actual.
-        Usado por agi_telegram.py línea 859.
-        """
-        if CEREBRO_MODULES_OK and self.event_reader:
-            self.event_reader.sincronizar(self.estado, max_eventos=20)
-            return construir_contexto_completo(self.estado)
-
-        # Legacy fallback
-        return self._generar_briefing_legacy()
-
-    def _generar_briefing_legacy(self) -> str:
-        """Fallback legacy con consulta SQLite directa."""
+    def obtener_pendientes(self, prioridad_min: int = 1, limite: int = 20):
+        """Obtiene mensajes no leídos desde la prioridad dada."""
         try:
-            import sqlite3
-            conn = sqlite3.connect(self.db_path)
-            try:
-                agentes = conn.execute(
-                    "SELECT estado, COUNT(*) FROM agentes GROUP BY estado"
-                ).fetchall()
-                agentes_str = " | ".join([f"{e}: {c}" for e, c in agentes]) if agentes else "Sin datos"
-            except Exception:
-                agentes_str = "Sin datos"
-            try:
-                alertas = conn.execute(
-                    "SELECT descripcion FROM alertas WHERE estado='activa' ORDER BY fecha DESC LIMIT 3"
-                ).fetchall()
-                alertas_str = "\n".join([f"  ⚠️ {a[0]}" for a in alertas]) if alertas else "  ✅ Sin alertas activas"
-            except Exception:
-                alertas_str = "  Sin datos"
-            conn.close()
-            return f"""
-⚡ BRIEFING QUANTUMHIVE — {datetime.now().strftime('%d/%m/%Y %H:%M')} ARG
-
-📊 AGENTES: {agentes_str}
-
-⚠️ ALERTAS ACTIVAS:
-{alertas_str}
-"""
-        except Exception as e:
-            logger.error(f"Error generando briefing legacy: {e}")
-            return "⚡ Error generando briefing."
-
-    def obtener_contexto_para_agi(self, limite: int = 20, solo_no_leidos: bool = True) -> str:
-        """Legacy: retorna contexto desde SQLite. Mantiene compatibilidad."""
-        try:
-            import sqlite3
             with sqlite3.connect(self.db_path) as conn:
-                if solo_no_leidos:
-                    rows = conn.execute("""
-                        SELECT tipo, resumen, prioridad, timestamp
-                        FROM contexto_agi WHERE leido = 0
-                        ORDER BY CASE prioridad WHEN 'critica' THEN 1 WHEN 'normal' THEN 2 ELSE 3 END,
-                        timestamp DESC LIMIT ?
-                    """, (limite,)).fetchall()
-                else:
-                    rows = conn.execute("""
-                        SELECT tipo, resumen, prioridad, timestamp
-                        FROM contexto_agi ORDER BY timestamp DESC LIMIT ?
-                    """, (limite,)).fetchall()
-            if not rows:
-                return "📋 Sin novedades recientes."
-            contexto = "📋 NOVEDADES DE LA COLMENA:\n"
-            for tipo, resumen, prioridad, timestamp in rows:
-                contexto += f"• {resumen}\n"
-            return contexto
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT id, fecha, tipo_evento, origen, mensaje, prioridad
+                    FROM cola_cerebro
+                    WHERE leido = 0 AND prioridad <= ?
+                    ORDER BY prioridad ASC, fecha DESC
+                    LIMIT ?
+                """, (prioridad_min, limite))
+                return cursor.fetchall()
         except Exception as e:
-            logger.error(f"Error obteniendo contexto legacy: {e}")
-            return "📋 Sin novedades recientes."
+            logger.error(f"Error obteniendo pendientes: {e}")
+            return []
 
-    def marcar_leidos(self):
-        """Legacy: marca contexto como leído en SQLite."""
+    def marcar_leidos(self, ids: list):
+        """Marca mensajes como leídos."""
         try:
-            import sqlite3
             with sqlite3.connect(self.db_path) as conn:
-                conn.execute("UPDATE contexto_agi SET leido = 1 WHERE leido = 0")
+                placeholders = ','.join('?' * len(ids))
+                conn.execute(f"UPDATE cola_cerebro SET leido=1 WHERE id IN ({placeholders})", ids)
                 conn.commit()
         except Exception as e:
             logger.error(f"Error marcando leídos: {e}")
 
-    def ejecutar(self):
-        """Punto de entrada."""
-        return self.generar_briefing_para_agi()
 
-
-# ── Instancia global ─────────────────────────────────────────────────────────
-
+# Instancia singleton a nivel módulo (importada por agi_telegram.py)
 agente_cerebro = AgenteCerebro()
-
-
-# ── Entry point ──────────────────────────────────────────────────────────────
-
-if __name__ == "__main__":
-    import sys
-
-    # Iniciar cerebro en background
-    agente_cerebro.start()
-
-    # Iniciar API Flask en puerto CEREBRO_PORT
-    logger.info(f"🧠 Cerebro API en puerto {CEREBRO_PORT}")
-    cerebro_api.run(host='0.0.0.0', port=CEREBRO_PORT, debug=False)
