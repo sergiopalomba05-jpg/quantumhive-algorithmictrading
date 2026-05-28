@@ -122,120 +122,91 @@ if CEREBRO_DISPONIBLE and EVENT_BUS_AVAILABLE and event_bus:
 
 app = Flask(__name__)
 
-# ── Contexto Global: GitHub API pública + fallback local ──
-GITHUB_API_BASE = "https://api.github.com/repos/sergiopalomba05-jpg/quantumhive-algorithmictrading"
+# ── Contexto Global: RAW GitHub + API pública ──
+RAW_BASE = "https://raw.githubusercontent.com/sergiopalomba05-jpg/quantumhive-algorithmictrading/master"
+API_BASE = "https://api.github.com/repos/sergiopalomba05-jpg/quantumhive-algorithmictrading/contents"
 BASE_LOCAL = os.path.dirname(os.path.abspath(__file__))
-MAESTRO_PATH = os.path.join(BASE_LOCAL, "QUANTUM_ESTADO_MAESTRO.md")
-INVENTARIO_PATH = os.path.join(BASE_LOCAL, "INVENTARIO_TOTAL_QH.md")
-DIOSMADRE_DIR = os.path.join(os.path.dirname(BASE_LOCAL), "diosmadre")
 CONTEXTO_MAESTRO = ""
 CONTEXTO_INVENTARIO = ""
 CONTEXTO_DIOSMADRE = ""
 
-def _cargar_desde_github(ruta_api):
+def leer_archivo_repo(ruta):
     try:
-        url = f"{GITHUB_API_BASE}/contents/{ruta_api}"
-        headers = {"Accept": "application/vnd.github.v3.raw"}
-        r = requests.get(url, headers=headers, timeout=10)
+        r = requests.get(f"{RAW_BASE}/{ruta}", timeout=10)
         if r.status_code == 200:
-            return r.text
+            content = r.text
+            if len(content) > 30000:
+                content = content[:30000] + "\n\n...[truncado]"
+            return content
     except Exception as e:
-        logger.warning(f"GitHub API error ({ruta_api}): {e}")
+        logger.warning(f"RAW error ({ruta}): {e}")
+    local = os.path.join(BASE_LOCAL, ruta)
+    if os.path.exists(local):
+        with open(local, encoding='utf-8') as f:
+            return f.read()
     return None
 
-def _cargar_archivo_fallback(ruta_local, nombre, global_var):
+def listar_directorio_repo(ruta):
     try:
-        if os.path.exists(ruta_local):
-            with open(ruta_local, encoding='utf-8') as f:
-                globals()[global_var] = f.read()
-            logger.info(f"{nombre} cargado desde local ({len(globals()[global_var])} bytes)")
-            return True
-    except Exception as e:
-        logger.warning(f"Error cargando {nombre}: {e}")
-    logger.warning(f"{nombre} NO disponible")
-    return False
-
-def _cargar_diosmadre():
-    partes = []
-    for archivo in ["PART_1_IDENTIDAD_ESTRUCTURA_TECNOLOGIA.md",
-                    "PART_2A_PRODUCTOS_PROCESOS.md",
-                    "PART_2B_VENTAS_MODELO_NEGOCIO.md",
-                    "PART_3_FINANZAS_IP_VISION.md"]:
-        contenido = _cargar_desde_github(f"diosmadre/{archivo}")
-        if contenido:
-            partes.append(f"## {archivo}\n{contenido[:8000]}")
-        elif os.path.isdir(DIOSMADRE_DIR):
-            ruta_local = os.path.join(DIOSMADRE_DIR, archivo)
-            if os.path.exists(ruta_local):
-                with open(ruta_local, encoding='utf-8') as f:
-                    contenido = f.read()
-                partes.append(f"## {archivo}\n{contenido[:8000]}")
-    if partes:
-        globals()['CONTEXTO_DIOSMADRE'] = "\n\n---\n\n".join(partes)
-        logger.info(f"diosmadre/ cargado: {len(partes)} archivos")
-
-def listar_directorio_github(ruta_api):
-    try:
-        url = f"{GITHUB_API_BASE}/contents/{ruta_api}"
         headers = {"Accept": "application/vnd.github.v3.json"}
-        r = requests.get(url, headers=headers, timeout=10)
+        r = requests.get(f"{API_BASE}/{ruta}", headers=headers, timeout=10)
         if r.status_code != 200:
             return None
         items = r.json()
         if not isinstance(items, list):
             return None
-        lineas = [f"📁 {ruta_api or '/'}"]
+        lineas = [f"📁 {ruta}"]
         for item in items:
-            tipo = "📁" if item['type'] == 'dir' else "📄"
-            nombre = item['name']
+            t = "📁" if item['type'] == 'dir' else "📄"
+            n = item['name']
             if item['type'] == 'dir':
-                lineas.append(f"  {tipo}  {nombre}/")
+                lineas.append(f"  {t}  {n}/")
             else:
-                lineas.append(f"  {tipo}  {nombre} ({item.get('size', 0)} bytes)")
+                lineas.append(f"  {t}  {n} ({item.get('size',0)} bytes)")
         return "\n".join(lineas)
     except Exception as e:
-        logger.warning(f"GitHub API error listando ({ruta_api}): {e}")
-    return None
-
-def leer_archivo_github(ruta_api):
-    contenido = _cargar_desde_github(ruta_api)
-    if contenido:
-        if len(contenido) > 30000:
-            contenido = contenido[:30000] + "\n\n...[truncado]"
-        return contenido
+        logger.warning(f"API list error ({ruta}): {e}")
     return None
 
 def explorar_repositorio(pregunta=""):
     partes = []
     q = pregunta.lower()
-    if any(p in q for p in ["agente", "división", "macrodiv", "empresa", "colmena", "estructura", "organiz", "cuántos", "qué hay", "cómo está", "directorio"]):
-        inv = leer_archivo_github("INVENTARIO_TOTAL_QH.md")
+    if any(p in q for p in ["agente","división","macrodiv","empresa","colmena","estructura","organiz","cuántos","qué hay","cómo está","directorio","pendiente","falta"]):
+        inv = leer_archivo_repo("INVENTARIO_TOTAL_QH.md")
         if inv:
             partes.append("## INVENTARIO DE AGENTES\n" + inv[:6000])
-        maestro = leer_archivo_github("QUANTUM_ESTADO_MAESTRO.md")
+        maestro = leer_archivo_repo("QUANTUM_ESTADO_MAESTRO.md")
         if maestro:
             partes.append("## ESTRUCTURA DEL PROYECTO\n" + maestro[:4000])
-        raiz = listar_directorio_github("automatizacion/agentes")
+        raiz = listar_directorio_repo("automatizacion/agentes")
         if raiz:
             partes.append("## DIRECTORIO AGENTES\n" + raiz)
+    if any(p in q for p in ["pendiente","falta","falta crear","por hacer","ideas","visión"]):
+        vision = leer_archivo_repo("agi_memoria_github/vision_ceo.md")
+        if vision:
+            partes.append("## IDEAS/ VISIÓN PENDIENTE\n" + vision[:4000])
+        decisiones = leer_archivo_repo("agi_memoria_github/banco_decisiones.md")
+        if decisiones:
+            partes.append("## DECISIONES REGISTRADAS\n" + decisiones[:4000])
     return "\n\n---\n\n".join(partes) if partes else None
 
 # Cargar variables de entorno
 load_dotenv()
 
-CONTEXTO_MAESTRO = _cargar_desde_github("QUANTUM_ESTADO_MAESTRO.md") or ""
-if not CONTEXTO_MAESTRO:
-    _cargar_archivo_fallback(MAESTRO_PATH, "Contexto maestro", "CONTEXTO_MAESTRO")
-else:
-    logger.info(f"Contexto maestro cargado desde GitHub API ({len(CONTEXTO_MAESTRO)} bytes)")
-
-CONTEXTO_INVENTARIO = _cargar_desde_github("INVENTARIO_TOTAL_QH.md") or ""
-if not CONTEXTO_INVENTARIO:
-    _cargar_archivo_fallback(INVENTARIO_PATH, "Inventario total", "CONTEXTO_INVENTARIO")
-else:
-    logger.info(f"Inventario cargado desde GitHub API ({len(CONTEXTO_INVENTARIO)} bytes)")
-
-_cargar_diosmadre()
+CONTEXTO_MAESTRO = leer_archivo_repo("QUANTUM_ESTADO_MAESTRO.md") or ""
+if CONTEXTO_MAESTRO:
+    logger.info(f"Contexto maestro cargado ({len(CONTEXTO_MAESTRO)} bytes)")
+CONTEXTO_INVENTARIO = leer_archivo_repo("INVENTARIO_TOTAL_QH.md") or ""
+if CONTEXTO_INVENTARIO:
+    logger.info(f"Inventario cargado ({len(CONTEXTO_INVENTARIO)} bytes)")
+partes_dios = []
+for archivo in ["PART_1_IDENTIDAD_ESTRUCTURA_TECNOLOGIA.md","PART_2A_PRODUCTOS_PROCESOS.md","PART_2B_VENTAS_MODELO_NEGOCIO.md","PART_3_FINANZAS_IP_VISION.md"]:
+    c = leer_archivo_repo(f"diosmadre/{archivo}")
+    if c:
+        partes_dios.append(f"## {archivo}\n{c[:8000]}")
+if partes_dios:
+    CONTEXTO_DIOSMADRE = "\n\n---\n\n".join(partes_dios)
+    logger.info(f"diosmadre/ cargado: {len(partes_dios)} archivos")
 
 # Variables de entorno
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN', '').strip()
@@ -324,50 +295,44 @@ def generar_audio(texto: str) -> str:
 ROOT_DIR = Path(__file__).resolve().parents[2]
 QUANTUM_ESTADO_PATH = ROOT_DIR / "QUANTUM_ESTADO.md"
 SYSTEM_PROMPT = """
-═══ PROTOCOLO DE HONESTIDAD ABSOLUTA ═══
+═══ CEO I — PROTOCOLO DE DATOS VIVOS ═══
 
 Eres el CEO I de QuantumHive.
-Tu base de datos es el repositorio público de GitHub en tiempo real.
 
 REGLAS QUE NUNCA PODÉS VIOLAR:
 
-1. PROHIBIDO INVENTAR CIFRAS, AGENTES, DIVISIONES O CUALQUIER DATO.
-   Todo lo que respondas debe estar basado en los archivos locales.
+1. No inventes NADA. Solo respondés con datos de las URLs RAW de GitHub.
+   Los archivos ya están inyectados en tu contexto: INVENTARIO_TOTAL_QH.md,
+   QUANTUM_ESTADO_MAESTRO.md, diosmadre/*.md, agi_memoria_github/*.
 
-2. LECTURA DE ARCHIVOS LOCALES:
-   - Si te preguntan por AGENTES → leé INVENTARIO_TOTAL_QH.md del disco local.
-     El sistema ya inyectó el contexto del repositorio en tu prompt.
-   - Si te preguntan por ESTRUCTURA → leé QUANTUM_ESTADO_MAESTRO.md.
-   - Si te preguntan por la VISIÓN/MACROS de la empresa → leé los archivos
-     en diosmadre/ que están inyectados en tu contexto.
-   - Si te preguntan por un agente específico y no aparece en el contexto:
-     → "Ese agente no ha sido creado todavía."
-   - Si te preguntan cuántas macros o divisiones tenemos → respondé
-     basándote en QUANTUM_ESTADO_MAESTRO.md e INVENTARIO_TOTAL_QH.md.
+2. LECTURA:
+   - AGENTES → INVENTARIO_TOTAL_QH.md
+   - ESTRUCTURA → QUANTUM_ESTADO_MAESTRO.md
+   - MACROS / VISIÓN → diosmadre/*.md
+   - PENDIENTE / IDEAS → agi_memoria_github/vision_ceo.md
+   - DECISIONES → agi_memoria_github/banco_decisiones.md
 
-3. SI EL ARCHIVO NO ESTÁ DISPONIBLE:
-   → "No tengo acceso a esa información en este momento."
+3. Si un agente no está en INVENTARIO_TOTAL_QH.md:
+   → "Ese agente no ha sido creado todavía."
 
-4. PRECIOS DE MERCADO — REGLA CRÍTICA:
-   - NUNCA inventes precios de BTC, US30 ni ningún activo.
-   - El precio real lo obtenés del Cerebro vía API interna (puerto 5001).
-   - Si el Cerebro no responde → "No tengo datos en tiempo real ahora."
+4. Si un archivo no carga → "ERROR_DE_DATOS"
 
-5. CONEXIONES REALES:
+5. Si no hay ideas pendientes en vision_ceo.md:
+   → "No hay nada pendiente por crear."
+
+6. PRECIOS DE MERCADO:
+   - NUNCA inventes. Obtenelos del Cerebro (puerto 5001).
+   - Si no hay datos → "No tengo datos en tiempo real ahora."
+
+7. CONEXIONES REALES:
    - Telegram ✅
    - Memoria GitHub (persistencia entre sesiones) ✅
    - Cerebro (puerto 5001) ✅
-   - Archivos locales del repositorio en disco ✅
+   - RAW GitHub público ✅
 
-6. CONEXIONES QUE NO TENÉS:
-   - NO podés comunicarte con el Arquitecto directamente ❌
-   - NO podés ejecutar código ni modificar archivos ❌
-   - NO podés acceder a MT5 ni plataformas externas ❌
-
-RECORDÁ: Un "no sé" honesto vale infinito más que una respuesta inventada.
 ═══════════════════════════════════════
 
-Eres el CEO I de QuantumHive. Hablas como un ingeniero senior. Respuestas directas y naturales, sin prefijos ni etiquetas. Cuando el usuario te envie una IMAGEN, vos podes verla y analizarla."""
+Eres el CEO I. Respuestas directas, sin prefijos. Cuando el usuario te envie una IMAGEN, vos podes verla y analizarla."""
 
 
 @dataclass
