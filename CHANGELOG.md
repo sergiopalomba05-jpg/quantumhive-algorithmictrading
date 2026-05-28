@@ -1,6 +1,12 @@
 # CHANGELOG
 
 Todos los cambios notables del proyecto.
+## [2026-05-28] - FEAT
+**Commit:** 381658a1
+**Módulo:** arquitecto
+- HF Space 2 (quantumhive-arquitecto): arquitecto.py, gestor_github.py, ejecutor_codigo.py, gestor_tareas.py. AGI detecta ordenes y las redirige al Arquitecto. POST /cerebro para recibir resultados.
+
+
 ## [2026-05-28] - FIX
 **Commit:** e0fdfdf0
 **Módulo:** agi_telegram
