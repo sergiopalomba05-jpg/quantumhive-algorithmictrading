@@ -22,9 +22,27 @@ jobs:
         run: python automatizacion/utils/generar_inventario.py
 
       - name: Commit y push del estado maestro
+        id: commit
         run: |
           git config user.name "QuantumHive-Bot"
           git config user.email "bot@quantumhive.ai"
           git add QUANTUM_ESTADO_MAESTRO.md INVENTARIO_TOTAL_QH.md
-          git diff --staged --quiet || git commit -m "auto: actualizar estado maestro [skip ci]"
-          git push
+          if git diff --staged --quiet; then
+            echo "No hay cambios en los archivos de estado"
+            echo "cambios=false" >> $GITHUB_OUTPUT
+          else
+            git commit -m "auto: actualizar estado maestro [skip ci]"
+            git push
+            echo "cambios=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Reiniciar HF Space AGI para que cargue el nuevo contexto
+        if: steps.commit.outputs.cambios == 'true'
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          echo "Reiniciando Space quantumhive/quantumhive-agi..."
+          curl -s -X POST "https://huggingface.co/api/spaces/quantumhive/quantumhive-agi/restart" \
+            -H "Authorization: Bearer $HF_TOKEN"
+          echo ""
+          echo "Space reiniciado. Esperando que AGI cargue el contexto actualizado..."

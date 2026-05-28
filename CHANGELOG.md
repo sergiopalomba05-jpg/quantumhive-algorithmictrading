@@ -1,6 +1,12 @@
 # CHANGELOG
 
 Todos los cambios notables del proyecto.
+## [2026-05-28] - FEAT
+**Commit:** c69d4b4e
+**Módulo:** github_actions
+- GH Action restart AGI Space: paso final reinicia HF Space para cargar nuevo contexto. HF_TOKEN como secret.
+
+
 ## [2026-05-28] - FIX
 **Commit:** ee93e4d2
 **Módulo:** agi_telegram
