@@ -1,6 +1,12 @@
 # CHANGELOG
 
 Todos los cambios notables del proyecto.
+## [2026-05-28] - FIX
+**Commit:** ee93e4d2
+**Módulo:** agi_telegram
+- Contexto AGI: GitHub API autenticada para repo privado, fallback local, GITHUB_TOKEN en AGI Space, INVENTARIO regenerado, GH Action mejorado
+
+
 ## [2026-05-28] - FEAT
 **Commit:** 381658a1
 **Módulo:** arquitecto

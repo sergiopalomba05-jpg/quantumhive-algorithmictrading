@@ -18,10 +18,13 @@ jobs:
       - name: Ejecutar mapear_empresa.py
         run: python automatizacion/utils/mapear_empresa.py
 
+      - name: Generar INVENTARIO_TOTAL_QH.md
+        run: python automatizacion/utils/generar_inventario.py
+
       - name: Commit y push del estado maestro
         run: |
           git config user.name "QuantumHive-Bot"
           git config user.email "bot@quantumhive.ai"
-          git add QUANTUM_ESTADO_MAESTRO.md
+          git add QUANTUM_ESTADO_MAESTRO.md INVENTARIO_TOTAL_QH.md
           git diff --staged --quiet || git commit -m "auto: actualizar estado maestro [skip ci]"
           git push
