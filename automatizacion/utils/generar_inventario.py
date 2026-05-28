@@ -45,6 +45,12 @@ DESCRIPCION_DIVISIONES = {
     'd12_crecimiento': (
         'División de crecimiento: AGI WhatsApp para atención al cliente.'
     ),
+    'biblioteca_fabrica': (
+        'Biblioteca de fábrica: repositorio de bots rentables y estrategias empaquetadas.'
+    ),
+    'data': (
+        'Datos y reportes auxiliares de la colmena.'
+    ),
     'agi_core': (
         'Núcleo del sistema AGI: LLM wrapper con rotación OpenRouter/Groq/Ollama, '
         'event bus, action router, approval gate, keys vault, memory loader, '
@@ -170,20 +176,6 @@ def escanear():
     with open(SALIDA, 'w', encoding='utf-8') as f:
         f.write('# INVENTARIO TOTAL QH — QuantumHive Algorithmic Trading\n\n')
         f.write('**Generado:** ' + __import__('datetime').datetime.now().strftime('%d/%m/%Y %H:%M:%S') + '\n\n')
-        f.write('## Estructura organizacional\n\n')
-        f.write('QuantumHive se organiza en 6 macrodivisiones operativas más núcleo AGI y utilidades:\n\n')
-        f.write('| División | Propósito | Agentes |\n')
-        f.write('|----------|-----------|---------|\n')
-        f.write('| **PropFirms** | Gestión de cuentas en firms de fondeo | 7 agentes |\n')
-        f.write('| **Fondeo** | Programa de fondeo (challenges → fondeadas) | 5 agentes |\n')
-        f.write('| **Sala Inversión** | Pool de capital colectivo | 5 agentes |\n')
-        f.write('| **UCI** | Captación de inteligencia de trading | 5 agentes |\n')
-        f.write('| **Fábrica Bots** | Creación y venta de bots | 12 agentes |\n')
-        f.write('| **Recursos Gratis** | Recursos gratuitos para la colmena | 7 agentes |\n')
-        f.write('| **Trading (GOAT BTC)** | Trading algorítmico BTC | 15 módulos |\n')
-        f.write('| **AGI Core** | Núcleo del sistema AGI | 8 módulos |\n')
-        f.write('| **Cerebro** | Monitoreo y orquestación | 5 módulos |\n\n')
-
         f.write('---\n\n')
 
         # Primero: archivos raíz de agentes/

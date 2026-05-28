@@ -152,6 +152,66 @@ def _cargar_contexto_remoto(ruta_api, nombre, global_var, archivo_local):
     logger.warning(f"{nombre} NO disponible")
     return False
 
+def listar_directorio_repo(ruta=""):
+    """Lista archivos y subdirectorios del repo desde GitHub API."""
+    if not GITHUB_TOKEN_CTX:
+        return None
+    try:
+        url = f"https://api.github.com/repos/sergiopalomba05-jpg/quantumhive-algorithmictrading/contents/{ruta}"
+        headers = {"Authorization": f"token {GITHUB_TOKEN_CTX}", "Accept": "application/vnd.github.v3.json"}
+        r = requests.get(url, headers=headers, timeout=10)
+        if r.status_code != 200:
+            return None
+        items = r.json()
+        if not isinstance(items, list):
+            return None
+        lineas = [f"📁 {ruta or '/'}"]
+        for item in items:
+            tipo = "📁" if item['type'] == 'dir' else "📄"
+            nombre = item['name']
+            if item['type'] == 'dir':
+                lineas.append(f"  {tipo}  {nombre}/")
+            else:
+                size = item.get('size', 0)
+                lineas.append(f"  {tipo}  {nombre} ({size} bytes)")
+        return "\n".join(lineas)
+    except Exception as e:
+        logger.warning(f"Error listando directorio ({ruta}): {e}")
+    return None
+
+def leer_archivo_repo(ruta):
+    """Lee contenido de un archivo del repositorio desde GitHub API."""
+    if not GITHUB_TOKEN_CTX:
+        return None
+    try:
+        url = f"https://api.github.com/repos/sergiopalomba05-jpg/quantumhive-algorithmictrading/contents/{ruta}"
+        headers = {"Authorization": f"token {GITHUB_TOKEN_CTX}", "Accept": "application/vnd.github.v3.raw"}
+        r = requests.get(url, headers=headers, timeout=10)
+        if r.status_code == 200:
+            content = r.text
+            if len(content) > 30000:
+                content = content[:30000] + "\n\n...[truncado]"
+            return content
+    except Exception as e:
+        logger.warning(f"Error leyendo archivo ({ruta}): {e}")
+    return None
+
+def explorar_repositorio(pregunta=""):
+    """Explora el repo vía GitHub API según la pregunta. Devuelve contexto relevante."""
+    partes = []
+    q = pregunta.lower()
+    if any(p in q for p in ["agente", "división", "macrodiv", "empresa", "colmena", "estructura", "organiz", "cuántos", "qué hay", "cómo está", "directorio"]):
+        inv = leer_archivo_repo("INVENTARIO_TOTAL_QH.md")
+        if inv:
+            partes.append("## INVENTARIO DE AGENTES\n" + inv[:6000])
+        maestro = leer_archivo_repo("QUANTUM_ESTADO_MAESTRO.md")
+        if maestro:
+            partes.append("## ESTRUCTURA DEL PROYECTO\n" + maestro[:4000])
+        raiz = listar_directorio_repo("automatizacion/agentes")
+        if raiz:
+            partes.append("## DIRECTORIO AGENTES\n" + raiz)
+    return "\n\n---\n\n".join(partes) if partes else None
+
 # Cargar variables de entorno
 load_dotenv()
 
@@ -269,16 +329,19 @@ REGLAS QUE NUNCA PODÉS VIOLAR:
    Necesitás pasárselo al Arquitecto manualmente."
 
 4. CONEXIONES REALES QUE TENÉS:
-   - Podés recibir señales de goat_btc via API interna ✅
-   - Podés responder mensajes de Telegram ✅
-   - Podés acceder a tu memoria en GitHub y Supabase ✅
-   - Podés obtener datos en tiempo real del Cerebro (puerto 5001) ✅
+    - Podés recibir señales de goat_btc via API interna ✅
+    - Podés responder mensajes de Telegram ✅
+    - Podés acceder a tu memoria en GitHub y Supabase ✅
+    - Podés obtener datos en tiempo real del Cerebro (puerto 5001) ✅
+    - Podés leer CUALQUIER archivo del repositorio de GitHub en tiempo real ✅
+      Usá la función `leer_del_repositorio("ruta/al/archivo.py")` para obtener
+      el contenido de cualquier archivo del proyecto.
 
 5. CONEXIONES QUE NO TENÉS:
-   - NO podés comunicarte con Cascade directamente ❌
-   - NO podés ver si Cascade está trabajando ❌
-   - NO podés ejecutar código ni modificar archivos ❌
-   - NO podés acceder a MT5 ni a plataformas externas ❌
+    - NO podés comunicarte con Cascade directamente ❌
+    - NO podés ver si Cascade está trabajando ❌
+    - NO podés ejecutar código ni modificar archivos ❌
+    - NO podés acceder a MT5 ni a plataformas externas ❌
 
 6. PRECIOS DE MERCADO — REGLA CRÍTICA:
    - NUNCA inventes precios de BTC, US30 ni ningún activo.
@@ -1104,6 +1167,12 @@ def procesar_mensaje_con_llm(message_text, tipo_mensaje: str = "general", image_
         contexto_realidad = _construir_contexto_realidad(message_text, tipo_mensaje)
         if contexto_realidad:
             system_prompt_dinamico += contexto_realidad
+
+        # Repo context: AGI puede leer el repositorio según la pregunta
+        repo_ctx = explorar_repositorio(message_text)
+        if repo_ctx:
+            system_prompt_dinamico += "\n\n---\n## CONTEXTO DEL REPOSITORIO (vivo)\n" + repo_ctx
+            logger.info(f"Contexto de repositorio inyectado ({len(repo_ctx)} chars)")
         
         # 2. Cargar historial de conversación (últimos 10 intercambios)
         historial = obtener_historial_conversacion(memoria.db_path, limite=10)
