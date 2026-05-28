@@ -20,7 +20,7 @@ Nivel 5: Infraestructura
 ## PROYECTO
 Empresa: QuantumHive Algorithmic Trading
 CEO: Sergio Palomba
-Repo: sergiopalomba05-jpg/agi-whatsapp-railway (branch: main)
+Repo: sergiopalomba05-jpg/quantumhive-algorithmictrading (branch: master)
 Deploy: Render Free — quantumhive-agi-telegram.onrender.com
 Lenguaje: Python 3.10+ | Todo en español
 Directorio principal: C:\Users\sergio\QUANTUMHIVE_ALGORITHMICTRADING\
