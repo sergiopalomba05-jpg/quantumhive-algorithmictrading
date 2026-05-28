@@ -1,0 +1,27 @@
+name: Actualizar Estado Maestro
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  mapear:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Ejecutar mapear_empresa.py
+        run: python automatizacion/utils/mapear_empresa.py
+
+      - name: Commit y push del estado maestro
+        run: |
+          git config user.name "QuantumHive-Bot"
+          git config user.email "bot@quantumhive.ai"
+          git add QUANTUM_ESTADO_MAESTRO.md
+          git diff --staged --quiet || git commit -m "auto: actualizar estado maestro [skip ci]"
+          git push
