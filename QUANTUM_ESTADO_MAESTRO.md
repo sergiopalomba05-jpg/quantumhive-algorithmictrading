@@ -1,6 +1,6 @@
 # QUANTUM_ESTADO_MAESTRO.md
 ## Mapa Completo de Activos — QuantumHive Algorithmic Trading
-**Generado:** 28/05/2026 16:14:19
+**Generado:** 28/05/2026 21:08:37
 
 ### 📊 Resumen Global
 - **Total agentes/scripts Python:** 90
@@ -22,7 +22,7 @@
 ## AGENTES / AGI_MEMORY
 
 [PY] ├── challenge_mode.py (6.2 KB)
-[PY] ├── github_memory.py (8.4 KB)
+[PY] ├── github_memory.py (8.5 KB)
 [PY] ├── intent_classifier.py (5.7 KB)
 [PY] └── memory_manager.py (7.7 KB)
 
@@ -170,7 +170,7 @@
 
 ### AGENTES / AGI_MEMORY
 - `automatizacion/agentes/agi_memory/challenge_mode.py` (6.2 KB)
-- `automatizacion/agentes/agi_memory/github_memory.py` (8.4 KB)
+- `automatizacion/agentes/agi_memory/github_memory.py` (8.5 KB)
 - `automatizacion/agentes/agi_memory/intent_classifier.py` (5.7 KB)
 - `automatizacion/agentes/agi_memory/memory_manager.py` (7.7 KB)
 
