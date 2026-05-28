@@ -898,10 +898,18 @@ def construir_mensaje_sistema(db_conn, tipo_mensaje: str) -> str:
     # Novedades de la Colmena en tiempo real (Agente Cerebro — fallback directo)
     if CEREBRO_DISPONIBLE and agente_cerebro:
         try:
-            briefing = agente_cerebro.generar_briefing_para_agi()
-            # Marcar como leídos solo si es una consulta general o de estado
-            if tipo_mensaje in ["general", "estado"]:
-                agente_cerebro.marcar_leidos()
+            eventos = agente_cerebro.obtener_pendientes(prioridad_min=1, limite=20)
+            if eventos:
+                lineas = ["<b>NOVEDADES DE LA COLMENA (TIEMPO REAL)</b>"]
+                for e in eventos:
+                    prio = {1: "CRÍTICA", 2: "IMPORTANTE", 3: "INFO"}.get(e[5], "INFO")
+                    lineas.append(f"• [{prio}] {e[2]} desde {e[3]}: {e[4]}")
+                briefing = "\n".join(lineas)
+                if tipo_mensaje in ["general", "estado"]:
+                    ids = [e[0] for e in eventos]
+                    agente_cerebro.marcar_leidos(ids)
+            else:
+                briefing = "<b>NOVEDADES DE LA COLMENA (TIEMPO REAL)</b>\n• Sin novedades"
             partes.append(f"\n\n---\n## NOVEDADES DE LA COLMENA (TIEMPO REAL)\n{briefing}")
         except Exception as e:
             logger.error(f"Error cargando briefing de Agente Cerebro: {e}")

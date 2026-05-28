@@ -1,6 +1,12 @@
 # CHANGELOG
 
 Todos los cambios notables del proyecto.
+## [2026-05-28] - FIX
+**Commit:** e0fdfdf0
+**Módulo:** agi_telegram
+- Corregidos bugs en agi_telegram.py: generar_briefing_para_agi -> obtener_pendientes(), marcar_leidos(ids) con IDs reales
+
+
 ## [2026-05-28] - FEAT
 **Commit:** ad28bc94
 **Módulo:** agente_cerebro
