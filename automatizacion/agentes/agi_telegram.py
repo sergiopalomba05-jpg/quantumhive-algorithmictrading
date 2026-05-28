@@ -899,9 +899,9 @@ def construir_mensaje_sistema(db_conn, tipo_mensaje: str) -> str:
 
     # Contexto global: Estado Maestro + Inventario de la empresa
     if CONTEXTO_MAESTRO:
-        partes.append(f"\n\n---\n## ESTRUCTURA COMPLETA DE LA EMPRESA (QUANTUM_ESTADO_MAESTRO)\n{CONTEXTO_MAESTRO[:4000]}")
+        partes.append(f"\n\n---\n## ESTRUCTURA COMPLETA DE LA EMPRESA (QUANTUM_ESTADO_MAESTRO)\n{CONTEXTO_MAESTRO[:8000]}")
     if CONTEXTO_INVENTARIO:
-        partes.append(f"\n\n---\n## INVENTARIO DE AGENTES\n{CONTEXTO_INVENTARIO[:4000]}")
+        partes.append(f"\n\n---\n## INVENTARIO DE AGENTES\n{CONTEXTO_INVENTARIO[:8000]}")
 
     # Memoria persistente de GitHub (entre sesiones)
     if github_memory:
