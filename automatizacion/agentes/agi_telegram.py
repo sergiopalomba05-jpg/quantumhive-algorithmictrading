@@ -122,7 +122,8 @@ if CEREBRO_DISPONIBLE and EVENT_BUS_AVAILABLE and event_bus:
 
 app = Flask(__name__)
 
-# ── Contexto Global: archivos locales ──
+# ── Contexto Global: GitHub API pública + fallback local ──
+GITHUB_API_BASE = "https://api.github.com/repos/sergiopalomba05-jpg/quantumhive-algorithmictrading"
 BASE_LOCAL = os.path.dirname(os.path.abspath(__file__))
 MAESTRO_PATH = os.path.join(BASE_LOCAL, "QUANTUM_ESTADO_MAESTRO.md")
 INVENTARIO_PATH = os.path.join(BASE_LOCAL, "INVENTARIO_TOTAL_QH.md")
@@ -131,7 +132,18 @@ CONTEXTO_MAESTRO = ""
 CONTEXTO_INVENTARIO = ""
 CONTEXTO_DIOSMADRE = ""
 
-def _cargar_archivo_local(ruta_local, nombre, global_var):
+def _cargar_desde_github(ruta_api):
+    try:
+        url = f"{GITHUB_API_BASE}/contents/{ruta_api}"
+        headers = {"Accept": "application/vnd.github.v3.raw"}
+        r = requests.get(url, headers=headers, timeout=10)
+        if r.status_code == 200:
+            return r.text
+    except Exception as e:
+        logger.warning(f"GitHub API error ({ruta_api}): {e}")
+    return None
+
+def _cargar_archivo_fallback(ruta_local, nombre, global_var):
     try:
         if os.path.exists(ruta_local):
             with open(ruta_local, encoding='utf-8') as f:
@@ -140,69 +152,70 @@ def _cargar_archivo_local(ruta_local, nombre, global_var):
             return True
     except Exception as e:
         logger.warning(f"Error cargando {nombre}: {e}")
-    logger.warning(f"{nombre} NO disponible en {ruta_local}")
+    logger.warning(f"{nombre} NO disponible")
     return False
 
 def _cargar_diosmadre():
     partes = []
-    if os.path.isdir(DIOSMADRE_DIR):
-        for archivo in sorted(os.listdir(DIOSMADRE_DIR)):
-            if archivo.endswith('.md'):
-                ruta = os.path.join(DIOSMADRE_DIR, archivo)
-                try:
-                    with open(ruta, encoding='utf-8') as f:
-                        contenido = f.read()
-                    partes.append(f"## {archivo}\n{contenido[:8000]}")
-                except Exception as e:
-                    logger.warning(f"Error leyendo {archivo}: {e}")
-        if partes:
-            globals()['CONTEXTO_DIOSMADRE'] = "\n\n---\n\n".join(partes)
-            logger.info(f"diosmadre/ cargado: {len(partes)} archivos")
-    else:
-        logger.warning(f"Carpeta diosmadre/ no encontrada en {DIOSMADRE_DIR}")
+    for archivo in ["PART_1_IDENTIDAD_ESTRUCTURA_TECNOLOGIA.md",
+                    "PART_2A_PRODUCTOS_PROCESOS.md",
+                    "PART_2B_VENTAS_MODELO_NEGOCIO.md",
+                    "PART_3_FINANZAS_IP_VISION.md"]:
+        contenido = _cargar_desde_github(f"diosmadre/{archivo}")
+        if contenido:
+            partes.append(f"## {archivo}\n{contenido[:8000]}")
+        elif os.path.isdir(DIOSMADRE_DIR):
+            ruta_local = os.path.join(DIOSMADRE_DIR, archivo)
+            if os.path.exists(ruta_local):
+                with open(ruta_local, encoding='utf-8') as f:
+                    contenido = f.read()
+                partes.append(f"## {archivo}\n{contenido[:8000]}")
+    if partes:
+        globals()['CONTEXTO_DIOSMADRE'] = "\n\n---\n\n".join(partes)
+        logger.info(f"diosmadre/ cargado: {len(partes)} archivos")
 
-def listar_directorio_local(ruta_base, ruta_relativa=""):
+def listar_directorio_github(ruta_api):
     try:
-        ruta_completa = os.path.join(ruta_base, ruta_relativa) if ruta_relativa else ruta_base
-        if not os.path.isdir(ruta_completa):
+        url = f"{GITHUB_API_BASE}/contents/{ruta_api}"
+        headers = {"Accept": "application/vnd.github.v3.json"}
+        r = requests.get(url, headers=headers, timeout=10)
+        if r.status_code != 200:
             return None
-        lineas = [f"📁 {ruta_relativa or '/'}"]
-        for entry in sorted(os.listdir(ruta_completa)):
-            entry_path = os.path.join(ruta_completa, entry)
-            if os.path.isdir(entry_path):
-                lineas.append(f"  📁  {entry}/")
+        items = r.json()
+        if not isinstance(items, list):
+            return None
+        lineas = [f"📁 {ruta_api or '/'}"]
+        for item in items:
+            tipo = "📁" if item['type'] == 'dir' else "📄"
+            nombre = item['name']
+            if item['type'] == 'dir':
+                lineas.append(f"  {tipo}  {nombre}/")
             else:
-                size = os.path.getsize(entry_path)
-                lineas.append(f"  📄  {entry} ({size} bytes)")
+                lineas.append(f"  {tipo}  {nombre} ({item.get('size', 0)} bytes)")
         return "\n".join(lineas)
     except Exception as e:
-        logger.warning(f"Error listando directorio local ({ruta_relativa}): {e}")
+        logger.warning(f"GitHub API error listando ({ruta_api}): {e}")
     return None
 
-def leer_archivo_local(ruta):
-    try:
-        if os.path.exists(ruta):
-            with open(ruta, encoding='utf-8') as f:
-                content = f.read()
-            if len(content) > 30000:
-                content = content[:30000] + "\n\n...[truncado]"
-            return content
-    except Exception as e:
-        logger.warning(f"Error leyendo archivo local ({ruta}): {e}")
+def leer_archivo_github(ruta_api):
+    contenido = _cargar_desde_github(ruta_api)
+    if contenido:
+        if len(contenido) > 30000:
+            contenido = contenido[:30000] + "\n\n...[truncado]"
+        return contenido
     return None
 
 def explorar_repositorio(pregunta=""):
     partes = []
     q = pregunta.lower()
     if any(p in q for p in ["agente", "división", "macrodiv", "empresa", "colmena", "estructura", "organiz", "cuántos", "qué hay", "cómo está", "directorio"]):
-        inv = leer_archivo_local(os.path.join(BASE_LOCAL, "INVENTARIO_TOTAL_QH.md"))
+        inv = leer_archivo_github("INVENTARIO_TOTAL_QH.md")
         if inv:
             partes.append("## INVENTARIO DE AGENTES\n" + inv[:6000])
-        maestro = leer_archivo_local(os.path.join(BASE_LOCAL, "QUANTUM_ESTADO_MAESTRO.md"))
+        maestro = leer_archivo_github("QUANTUM_ESTADO_MAESTRO.md")
         if maestro:
             partes.append("## ESTRUCTURA DEL PROYECTO\n" + maestro[:4000])
-        agentes_dir = os.path.join(os.path.dirname(BASE_LOCAL), "automatizacion", "agentes")
-        raiz = listar_directorio_local(agentes_dir) if os.path.isdir(agentes_dir) else listar_directorio_local(BASE_LOCAL, "automatizacion/agentes")
+        raiz = listar_directorio_github("automatizacion/agentes")
         if raiz:
             partes.append("## DIRECTORIO AGENTES\n" + raiz)
     return "\n\n---\n\n".join(partes) if partes else None
@@ -210,8 +223,18 @@ def explorar_repositorio(pregunta=""):
 # Cargar variables de entorno
 load_dotenv()
 
-_cargar_archivo_local(MAESTRO_PATH, "Contexto maestro", "CONTEXTO_MAESTRO")
-_cargar_archivo_local(INVENTARIO_PATH, "Inventario total", "CONTEXTO_INVENTARIO")
+CONTEXTO_MAESTRO = _cargar_desde_github("QUANTUM_ESTADO_MAESTRO.md") or ""
+if not CONTEXTO_MAESTRO:
+    _cargar_archivo_fallback(MAESTRO_PATH, "Contexto maestro", "CONTEXTO_MAESTRO")
+else:
+    logger.info(f"Contexto maestro cargado desde GitHub API ({len(CONTEXTO_MAESTRO)} bytes)")
+
+CONTEXTO_INVENTARIO = _cargar_desde_github("INVENTARIO_TOTAL_QH.md") or ""
+if not CONTEXTO_INVENTARIO:
+    _cargar_archivo_fallback(INVENTARIO_PATH, "Inventario total", "CONTEXTO_INVENTARIO")
+else:
+    logger.info(f"Inventario cargado desde GitHub API ({len(CONTEXTO_INVENTARIO)} bytes)")
+
 _cargar_diosmadre()
 
 # Variables de entorno
@@ -304,7 +327,7 @@ SYSTEM_PROMPT = """
 ═══ PROTOCOLO DE HONESTIDAD ABSOLUTA ═══
 
 Eres el CEO I de QuantumHive.
-Tu base de datos es el repositorio público en disco local.
+Tu base de datos es el repositorio público de GitHub en tiempo real.
 
 REGLAS QUE NUNCA PODÉS VIOLAR:
 
