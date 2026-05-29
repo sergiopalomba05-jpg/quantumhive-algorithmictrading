@@ -338,26 +338,30 @@ REGLAS QUE NUNCA PODÉS VIOLAR:
 
 Eres el CEO I. Respuestas directas, sin prefijos. Cuando el usuario te envie una IMAGEN, vos podes verla y analizarla."""
 
-# ── INYECCIÓN FORZADA DE DATOS DE LA EMPRESA ──
-_txt_inv = ""
-_txt_mae = ""
-_ruta_app = BASE_LOCAL
-for _nombre, _var in [("INVENTARIO_TOTAL_QH.md", "_txt_inv"), ("QUANTUM_ESTADO_MAESTRO.md", "_txt_mae")]:
-    _ruta = os.path.join(_ruta_app, _nombre)
-    if os.path.exists(_ruta):
-        with open(_ruta, encoding='utf-8') as _f:
-            globals()[_var] = _f.read()
-if _txt_inv or _txt_mae:
-    _bloque = "═══ DATOS REALES DE LA EMPRESA (inyectados al arranque) ═══\n"
-    if _txt_inv:
-        _bloque += f"\n## INVENTARIO DE AGENTES\n{_txt_inv}\n"
-    if _txt_mae:
-        _bloque += f"\n## ESTRUCTURA DEL PROYECTO\n{_txt_mae}\n"
-    _bloque += "═══════════════════════════════════════════════════════════\n\n"
-    SYSTEM_PROMPT = _bloque + SYSTEM_PROMPT
-    logger.info(f"DEBUG: Longitud del prompt inyectado: {len(SYSTEM_PROMPT)} chars")
-else:
-    logger.warning("DEBUG: No se pudo cargar INVENTARIO ni MAESTRO del disco")
+# ── CONSCIENCIA INTEGRAL: ADN de la empresa inyectado al arranque ──
+ADN_ARCHIVOS = [
+    "INVENTARIO_TOTAL_QH.md",
+    "QUANTUM_ESTADO_MAESTRO.md",
+    "diosmadre/PART_1_IDENTIDAD_ESTRUCTURA_TECNOLOGIA.md",
+    "diosmadre/PART_2A_PRODUCTOS_PROCESOS.md",
+    "diosmadre/PART_2B_VENTAS_MODELO_NEGOCIO.md",
+    "diosmadre/PART_3_FINANZAS_IP_VISION.md",
+]
+def _cargar_adn_empresa():
+    partes = []
+    for archivo in ADN_ARCHIVOS:
+        contenido = leer_archivo_repo(archivo)
+        if contenido:
+            partes.append(f"## {archivo}\n{contenido}")
+            logger.info(f"ADN cargado: {archivo} ({len(contenido)} chars)")
+        else:
+            logger.warning(f"ADN no disponible: {archivo}")
+    if not partes:
+        return ""
+    return "[BASE_DE_DATOS_QUANTUMHIVE_REAL]\n" + "\n\n---\n\n".join(partes) + "\n[/BASE_DE_DATOS_QUANTUMHIVE_REAL]"
+ADN_QUANTUMHIVE = _cargar_adn_empresa()
+if ADN_QUANTUMHIVE:
+    logger.info(f"DEBUG: ADN_QUANTUMHIVE total: {len(ADN_QUANTUMHIVE)} chars")
 
 
 @dataclass
@@ -963,6 +967,10 @@ def construir_mensaje_sistema(db_conn, tipo_mensaje: str) -> str:
     # System prompt base (SYSTEM_PROMPT ya está definido)
     system_base = SYSTEM_PROMPT
     partes = [system_base]
+
+    # INYECCIÓN DEL ADN DE LA EMPRESA — bloque completo al inicio del prompt
+    if ADN_QUANTUMHIVE:
+        partes.insert(0, ADN_QUANTUMHIVE)
 
     # Contexto global: Estado Maestro + Inventario de la empresa
     if CONTEXTO_MAESTRO:
