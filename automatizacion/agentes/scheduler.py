@@ -263,12 +263,16 @@ class QuantumHiveScheduler:
 
         # Agente Cerebro — briefing horario para AGI
         if CEREBRO_DISPONIBLE and agente_cerebro:
-            self.scheduler.add_job(
-                func=agente_cerebro.ejecutar,
-                trigger=IntervalTrigger(hours=1),
-                id='agente_cerebro_briefing',
-                name='Agente Cerebro — briefing horario para AGI'
-            )
+            try:
+                if hasattr(agente_cerebro, 'ejecutar'):
+                    self.scheduler.add_job(
+                        func=agente_cerebro.ejecutar,
+                        trigger=IntervalTrigger(hours=1),
+                        id='agente_cerebro_briefing',
+                        name='Agente Cerebro — briefing horario para AGI'
+                    )
+            except Exception as e:
+                logger.error(f"Error registrando Agente Cerebro en scheduler: {e}")
 
         # Grafana Reporter — actualiza métricas cada 5 minutos
         try:

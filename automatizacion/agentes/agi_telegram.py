@@ -338,18 +338,10 @@ REGLAS QUE NUNCA PODÉS VIOLAR:
 
 Eres el CEO I. Respuestas directas, sin prefijos. Cuando el usuario te envie una IMAGEN, vos podes verla y analizarla."""
 
-# ── CONSCIENCIA INTEGRAL: ADN de la empresa inyectado al arranque ──
-ADN_ARCHIVOS = [
-    "INVENTARIO_TOTAL_QH.md",
-    "QUANTUM_ESTADO_MAESTRO.md",
-    "diosmadre/PART_1_IDENTIDAD_ESTRUCTURA_TECNOLOGIA.md",
-    "diosmadre/PART_2A_PRODUCTOS_PROCESOS.md",
-    "diosmadre/PART_2B_VENTAS_MODELO_NEGOCIO.md",
-    "diosmadre/PART_3_FINANZAS_IP_VISION.md",
-]
-def _cargar_adn_empresa():
+# ── CONSCIENCIA INTEGRAL: ADN de la empresa — dos niveles ──
+def _cargar_adn(nombres):
     partes = []
-    for archivo in ADN_ARCHIVOS:
+    for archivo in nombres:
         contenido = leer_archivo_repo(archivo)
         if contenido:
             partes.append(f"## {archivo}\n{contenido}")
@@ -359,9 +351,64 @@ def _cargar_adn_empresa():
     if not partes:
         return ""
     return "[BASE_DE_DATOS_QUANTUMHIVE_REAL]\n" + "\n\n---\n\n".join(partes) + "\n[/BASE_DE_DATOS_QUANTUMHIVE_REAL]"
-ADN_QUANTUMHIVE = _cargar_adn_empresa()
-if ADN_QUANTUMHIVE:
-    logger.info(f"DEBUG: ADN_QUANTUMHIVE total: {len(ADN_QUANTUMHIVE)} chars")
+
+_ADN_BASE_FILES = ["INVENTARIO_TOTAL_QH.md", "QUANTUM_ESTADO_MAESTRO.md", "diosmadre/PART_1_IDENTIDAD_ESTRUCTURA_TECNOLOGIA.md"]
+_ADN_EXT_FILES  = ["diosmadre/PART_2A_PRODUCTOS_PROCESOS.md", "diosmadre/PART_2B_VENTAS_MODELO_NEGOCIO.md", "diosmadre/PART_3_FINANZAS_IP_VISION.md"]
+
+ADN_BASE   = _cargar_adn(_ADN_BASE_FILES)
+ADN_EXT = _cargar_adn(_ADN_EXT_FILES)
+
+if ADN_BASE:
+    logger.info(f"DEBUG: ADN_BASE total: {len(ADN_BASE)} chars")
+if ADN_EXT:
+    logger.info(f"DEBUG: ADN_EXT total: {len(ADN_EXT)} chars")
+
+
+# ── RUTEADOR DE VERDAD: responde desde ADN sin pasar por el LLM ──
+_KEYWORDS_DIRECTAS = {
+    "precio":    _ADN_EXT_FILES,
+    "suscripción": _ADN_EXT_FILES,
+    "costo":     _ADN_EXT_FILES,
+    "venta":     _ADN_EXT_FILES,
+    "pago":      _ADN_EXT_FILES,
+    "finanzas":  ["diosmadre/PART_3_FINANZAS_IP_VISION.md"],
+    "proyección": ["diosmadre/PART_3_FINANZAS_IP_VISION.md"],
+    "ip":        ["diosmadre/PART_3_FINANZAS_IP_VISION.md"],
+    "patente":   ["diosmadre/PART_3_FINANZAS_IP_VISION.md"],
+    "producto":  ["diosmadre/PART_2A_PRODUCTOS_PROCESOS.md"],
+    "proceso":   ["diosmadre/PART_2A_PRODUCTOS_PROCESOS.md"],
+    "modelo de negocio": ["diosmadre/PART_2B_VENTAS_MODELO_NEGOCIO.md"],
+}
+
+def obtener_respuesta_directa(mensaje: str) -> str:
+    """Busca keywords en el mensaje y retorna el fragmento de ADN sin llamar al LLM."""
+    if not mensaje:
+        return ""
+    q = mensaje.lower()
+
+    # Siempre buscar en ADN_BASE para preguntas de estructura
+    if any(p in q for p in ["agente","macrodiv","división","empresa","colmena","estructura","organiz","cuántos","qué hay","cómo está","directorio","dios","madre","fundador","visión"]):
+        return ADN_BASE
+
+    # Buscar en archivos extendidos según keyword
+    blancos = set()
+    for kw, archs in _KEYWORDS_DIRECTAS.items():
+        if kw in q:
+            for a in archs:
+                blancos.add(a)
+
+    if not blancos:
+        return ""
+
+    partes = []
+    for archivo in blancos:
+        contenido = leer_archivo_repo(archivo)
+        if contenido:
+            partes.append(f"## {archivo}\n{contenido}")
+    if partes:
+        bloque = "# RESPUESTA DIRECTA (sin IA)\n" + "\n\n---\n\n".join(partes)
+        return bloque
+    return ""
 
 
 @dataclass
@@ -969,8 +1016,8 @@ def construir_mensaje_sistema(db_conn, tipo_mensaje: str) -> str:
     partes = [system_base]
 
     # INYECCIÓN DEL ADN DE LA EMPRESA — bloque completo al inicio del prompt
-    if ADN_QUANTUMHIVE:
-        partes.insert(0, ADN_QUANTUMHIVE)
+    if ADN_BASE:
+        partes.insert(0, ADN_BASE)
 
     # Contexto global: Estado Maestro + Inventario de la empresa
     if CONTEXTO_MAESTRO:
@@ -1197,6 +1244,14 @@ def procesar_mensaje_con_llm(message_text, tipo_mensaje: str = "general", image_
             "role": "user",
             "content": message_text
         })
+        
+        # 3.5 Ruteador de Verdad: responder desde ADN sin llamar al LLM
+        respuesta_directa = obtener_respuesta_directa(message_text)
+        if respuesta_directa:
+            logger.info("Respuesta directa desde ADN (sin LLM)")
+            guardar_en_historial(memoria.db_path, "user", message_text)
+            guardar_en_historial(memoria.db_path, "assistant", respuesta_directa)
+            return respuesta_directa
         
         # 4. Usar wrapper (Groq → Gemini → OpenRouter → Error Real)
         from agi_core.llm_wrapper import LLMMessage
