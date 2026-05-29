@@ -125,12 +125,20 @@ app = Flask(__name__)
 # ── Contexto Global: RAW GitHub + API pública ──
 RAW_BASE = "https://raw.githubusercontent.com/sergiopalomba05-jpg/quantumhive-algorithmictrading/master"
 API_BASE = "https://api.github.com/repos/sergiopalomba05-jpg/quantumhive-algorithmictrading/contents"
-BASE_LOCAL = os.path.dirname(os.path.abspath(__file__))
+BASE_LOCAL = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 CONTEXTO_MAESTRO = ""
 CONTEXTO_INVENTARIO = ""
 CONTEXTO_DIOSMADRE = ""
 
 def leer_archivo_repo(ruta):
+    """LOCAL FIRST → RAW FALLBACK. Lee del disco local, si no de RAW GitHub."""
+    local = os.path.join(BASE_LOCAL, ruta)
+    if os.path.exists(local):
+        with open(local, encoding='utf-8') as f:
+            content = f.read()
+        if len(content) > 30000:
+            content = content[:30000] + "\n\n...[truncado]"
+        return content
     try:
         r = requests.get(f"{RAW_BASE}/{ruta}", timeout=10)
         if r.status_code == 200:
@@ -140,10 +148,6 @@ def leer_archivo_repo(ruta):
             return content
     except Exception as e:
         logger.warning(f"RAW error ({ruta}): {e}")
-    local = os.path.join(BASE_LOCAL, ruta)
-    if os.path.exists(local):
-        with open(local, encoding='utf-8') as f:
-            return f.read()
     return None
 
 def listar_directorio_repo(ruta):
@@ -171,7 +175,7 @@ def listar_directorio_repo(ruta):
 def explorar_repositorio(pregunta=""):
     partes = []
     q = pregunta.lower()
-    if any(p in q for p in ["agente","división","macrodiv","empresa","colmena","estructura","organiz","cuántos","qué hay","cómo está","directorio","pendiente","falta"]):
+    if any(p in q for p in ["agente","división","macrodiv","empresa","colmena","estructura","organiz","cuántos","qué hay","cómo está","directorio","pendiente","falta","dios","madre"]):
         inv = leer_archivo_repo("INVENTARIO_TOTAL_QH.md")
         if inv:
             partes.append("## INVENTARIO DE AGENTES\n" + inv[:6000])
@@ -2165,5 +2169,18 @@ if __name__ == '__main__':
     logger.info(f"Telegram Token: {TELEGRAM_TOKEN[:10]}..." if TELEGRAM_TOKEN else "Telegram Token: NO CONFIGURADO")
     logger.info(f"User Telegram ID: {USER_TELEGRAM_ID}" if USER_TELEGRAM_ID else "User Telegram ID: NO CONFIGURADO")
     logger.info(f"Motor LLM actual: {get_llm_engine()}")
+    if TELEGRAM_TOKEN and USER_TELEGRAM_ID:
+        inv_ok = os.path.exists(os.path.join(BASE_LOCAL, "INVENTARIO_TOTAL_QH.md"))
+        dios_ok = os.path.isdir(os.path.join(BASE_LOCAL, "diosmadre"))
+        texto = (
+            f"🤖 *Sistema AGI v2.0 iniciado en rama MAIN*\n"
+            f"Inventario local detectado: {'✅ OK' if inv_ok else '❌ NO'}\n"
+            f"DiosMadre local detectado: {'✅ OK' if dios_ok else '❌ NO'}"
+        )
+        try:
+            url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+            requests.post(url, json={'chat_id': USER_TELEGRAM_ID, 'text': texto, 'parse_mode': 'Markdown'}, timeout=10)
+        except Exception as e:
+            logger.warning(f"No se pudo enviar mensaje de inicio: {e}")
     
     app.run(host='0.0.0.0', port=5000, debug=True)
