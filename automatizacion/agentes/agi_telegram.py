@@ -338,6 +338,27 @@ REGLAS QUE NUNCA PODÉS VIOLAR:
 
 Eres el CEO I. Respuestas directas, sin prefijos. Cuando el usuario te envie una IMAGEN, vos podes verla y analizarla."""
 
+# ── INYECCIÓN FORZADA DE DATOS DE LA EMPRESA ──
+_txt_inv = ""
+_txt_mae = ""
+_ruta_app = BASE_LOCAL
+for _nombre, _var in [("INVENTARIO_TOTAL_QH.md", "_txt_inv"), ("QUANTUM_ESTADO_MAESTRO.md", "_txt_mae")]:
+    _ruta = os.path.join(_ruta_app, _nombre)
+    if os.path.exists(_ruta):
+        with open(_ruta, encoding='utf-8') as _f:
+            globals()[_var] = _f.read()
+if _txt_inv or _txt_mae:
+    _bloque = "═══ DATOS REALES DE LA EMPRESA (inyectados al arranque) ═══\n"
+    if _txt_inv:
+        _bloque += f"\n## INVENTARIO DE AGENTES\n{_txt_inv}\n"
+    if _txt_mae:
+        _bloque += f"\n## ESTRUCTURA DEL PROYECTO\n{_txt_mae}\n"
+    _bloque += "═══════════════════════════════════════════════════════════\n\n"
+    SYSTEM_PROMPT = _bloque + SYSTEM_PROMPT
+    logger.info(f"DEBUG: Longitud del prompt inyectado: {len(SYSTEM_PROMPT)} chars")
+else:
+    logger.warning("DEBUG: No se pudo cargar INVENTARIO ni MAESTRO del disco")
+
 
 @dataclass
 class MensajeMemoria:
