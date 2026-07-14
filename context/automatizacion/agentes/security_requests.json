@@ -1,0 +1,22 @@
+{
+  "RENDER_API_KEY_agente_render": {
+    "id": "RENDER_API_KEY_agente_render",
+    "credencial": "RENDER_API_KEY",
+    "solicitante": "agente_render",
+    "razon": "Gesti\u00f3n de servicios Render",
+    "fecha_solicitud": "2026-05-02T05:03:21.155698",
+    "estado": "pendiente",
+    "aprobado_por": null,
+    "fecha_aprobacion": null
+  },
+  "RENDER_SERVICE_ID_agente_render": {
+    "id": "RENDER_SERVICE_ID_agente_render",
+    "credencial": "RENDER_SERVICE_ID",
+    "solicitante": "agente_render",
+    "razon": "Gesti\u00f3n de servicios Render",
+    "fecha_solicitud": "2026-05-02T05:03:21.165801",
+    "estado": "pendiente",
+    "aprobado_por": null,
+    "fecha_aprobacion": null
+  }
+}

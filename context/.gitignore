@@ -1,0 +1,91 @@
+﻿# QUANTUMHIVE - Git Ignore
+# Archivos con credenciales y datos sensibles
+
+# Archivos de entorno
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
+venv/
+env/
+ENV/
+.venv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Archivos grandes (dataset exentos de tracking por tamaño)
+datasets/
+*.csv
+*.zip
+*.parquet
+*.h5
+
+# Node modules (AI Town)
+quantum_bridge/node_modules/
+quantum_bridge/.next/
+quantum_bridge/.turbo/
+quantum_bridge/dist/
+quantum_bridge/build/
+
+# Modelos entrenados (ejecutables binarios, no código fuente)
+models/
+*.onnx
+*.pt
+*.pth
+*.joblib
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# PyCharm
+.idea/
+
+# VSCode
+.vscode/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Cache
+.cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Windsurf y Trae IDE
+.windsurf/swe-1-6-memory.json
+.trae/memory/trae-memory.json

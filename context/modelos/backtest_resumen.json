@@ -1,0 +1,33 @@
+{
+  "timestamp": "2026-04-27T06:31:56.533015",
+  "modelo": "C:\\Users\\sergio\\QUANTUMHIVE_ALGORITHMICTRADING\\modelos\\modelo_unificado\\modelo_final.zip",
+  "dataset": {
+    "inicio": "2022-01-03 14:00:00",
+    "fin": "2024-12-30 21:59:00",
+    "velas": 367827
+  },
+  "resultados": {
+    "balance_inicial": 10000.0,
+    "balance_final": -169090.84814801867,
+    "pnl_total": -179090.84814801766,
+    "retorno_pct": -1790.9084814801765,
+    "trades_totales": 29388,
+    "wins": 18953,
+    "losses": 10435,
+    "winrate_pct": 64.49230978630733,
+    "avg_win": -6.178176422318574,
+    "avg_loss": -5.941147140950091,
+    "profit_factor": 1.8887544758519117,
+    "max_drawdown_pct": 1790.7499017926866,
+    "sharpe_anual": 0.11231289769166533
+  },
+  "distribucion_tipos": {
+    "REV": 728,
+    "CONT": 14750,
+    "SCALP": 13910
+  },
+  "distribucion_direccion": {
+    "BUY": 16793,
+    "SELL": 12595
+  }
+}

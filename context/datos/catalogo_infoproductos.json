@@ -1,0 +1,433 @@
+{
+  "bot_mecanico_2879a669": {
+    "producto_id": "bot_mecanico_2879a669",
+    "tipo": "bot_mecanico",
+    "estado": "EN_DESARROLLO",
+    "version": "1.0",
+    "fecha_creacion": "2026-04-27T07:26:48.814141+00:00",
+    "fecha_ultima_actualizacion": "2026-04-27T07:26:48.814141+00:00",
+    "autor": "QuantumHive Academy",
+    "titulo": "Bot Mecanico Rentable desde Cero — MQL5 Masterclass",
+    "descripcion": "Crea Expert Advisors mecanicos en MQL5 sin IA. Backtesting, optimizacion, gestion de riesgo.",
+    "nivel": "Intermedio",
+    "duracion_horas": 12,
+    "precio_usd": 297,
+    "precio_lanzamiento_usd": 207,
+    "prerequisitos": [
+      "Conocimiento basico de trading",
+      "MT5 instalado"
+    ],
+    "modulos": [
+      {
+        "modulo_id": "bot_mecanico_M01",
+        "orden": 1,
+        "titulo": "Fundamentos MQL5 y arquitectura EA",
+        "lecciones": [
+          {
+            "leccion_id": "bot_mecanico_M01_L01",
+            "titulo": "Leccion 1: Fundamentos MQL5 y arquitectura EA — Parte 1",
+            "tipo": "video",
+            "duracion_min": 20,
+            "materiales": [],
+            "ejercicio": false
+          },
+          {
+            "leccion_id": "bot_mecanico_M01_L02",
+            "titulo": "Leccion 2: Fundamentos MQL5 y arquitectura EA — Parte 2",
+            "tipo": "practico",
+            "duracion_min": 25,
+            "materiales": [],
+            "ejercicio": false
+          },
+          {
+            "leccion_id": "bot_mecanico_M01_L03",
+            "titulo": "Leccion 3: Fundamentos MQL5 y arquitectura EA — Parte 3",
+            "tipo": "video",
+            "duracion_min": 30,
+            "materiales": [],
+            "ejercicio": false
+          },
+          {
+            "leccion_id": "bot_mecanico_M01_L04",
+            "titulo": "Leccion 4: Fundamentos MQL5 y arquitectura EA — Parte 4",
+            "tipo": "practico",
+            "duracion_min": 35,
+            "materiales": [],
+            "ejercicio": true
+          }
+        ],
+        "objetivo": "Dominar fundamentos mql5 y arquitectura ea para aplicar en un bot funcional."
+      },
+      {
+        "modulo_id": "bot_mecanico_M02",
+        "orden": 2,
+        "titulo": "Indicadores tecnicos y senales de entrada",
+        "lecciones": [
+          {
+            "leccion_id": "bot_mecanico_M02_L01",
+            "titulo": "Leccion 1: Indicadores tecnicos y senales de entrada — Parte 1",
+            "tipo": "video",
+            "duracion_min": 20,
+            "materiales": [],
+            "ejercicio": false
+          },
+          {
+            "leccion_id": "bot_mecanico_M02_L02",
+            "titulo": "Leccion 2: Indicadores tecnicos y senales de entrada — Parte 2",
+            "tipo": "practico",
+            "duracion_min": 25,
+            "materiales": [],
+            "ejercicio": false
+          },
+          {
+            "leccion_id": "bot_mecanico_M02_L03",
+            "titulo": "Leccion 3: Indicadores tecnicos y senales de entrada — Parte 3",
+            "tipo": "video",
+            "duracion_min": 30,
+            "materiales": [],
+            "ejercicio": false
+          },
+          {
+            "leccion_id": "bot_mecanico_M02_L04",
+            "titulo": "Leccion 4: Indicadores tecnicos y senales de entrada — Parte 4",
+            "tipo": "practico",
+            "duracion_min": 35,
+            "materiales": [],
+            "ejercicio": false
+          },
+          {
+            "leccion_id": "bot_mecanico_M02_L05",
+            "titulo": "Leccion 5: Indicadores tecnicos y senales de entrada — Parte 5",
+            "tipo": "video",
+            "duracion_min": 40,
+            "materiales": [],
+            "ejercicio": true
+          }
+        ],
+        "objetivo": "Dominar indicadores tecnicos y senales de entrada para aplicar en un bot funcional."
+      },
+      {
+        "modulo_id": "bot_mecanico_M03",
+        "orden": 3,
+        "titulo": "Gestion de riesgo y position sizing",
+        "lecciones": [
+          {
+            "leccion_id": "bot_mecanico_M03_L01",
+            "titulo": "Leccion 1: Gestion de riesgo y position sizing — Parte 1",
+            "tipo": "video",
+            "duracion_min": 20,
+            "materiales": [],
+            "ejercicio": false
+          },
+          {
+            "leccion_id": "bot_mecanico_M03_L02",
+            "titulo": "Leccion 2: Gestion de riesgo y position sizing — Parte 2",
+            "tipo": "practico",
+            "duracion_min": 25,
+            "materiales": [],
+            "ejercicio": false
+          },
+          {
+            "leccion_id": "bot_mecanico_M03_L03",
+            "titulo": "Leccion 3: Gestion de riesgo y position sizing — Parte 3",
+            "tipo": "video",
+            "duracion_min": 30,
+            "materiales": [],
+            "ejercicio": true
+          }
+        ],
+        "objetivo": "Dominar gestion de riesgo y position sizing para aplicar en un bot funcional."
+      },
+      {
+        "modulo_id": "bot_mecanico_M04",
+        "orden": 4,
+        "titulo": "Backtesting robusto con reportes",
+        "lecciones": [
+          {
+            "leccion_id": "bot_mecanico_M04_L01",
+            "titulo": "Leccion 1: Backtesting robusto con reportes — Parte 1",
+            "tipo": "video",
+            "duracion_min": 20,
+            "materiales": [],
+            "ejercicio": false
+          },
+          {
+            "leccion_id": "bot_mecanico_M04_L02",
+            "titulo": "Leccion 2: Backtesting robusto con reportes — Parte 2",
+            "tipo": "practico",
+            "duracion_min": 25,
+            "materiales": [],
+            "ejercicio": false
+          },
+          {
+            "leccion_id": "bot_mecanico_M04_L03",
+            "titulo": "Leccion 3: Backtesting robusto con reportes — Parte 3",
+            "tipo": "video",
+            "duracion_min": 30,
+            "materiales": [],
+            "ejercicio": false
+          },
+          {
+            "leccion_id": "bot_mecanico_M04_L04",
+            "titulo": "Leccion 4: Backtesting robusto con reportes — Parte 4",
+            "tipo": "practico",
+            "duracion_min": 35,
+            "materiales": [],
+            "ejercicio": true
+          }
+        ],
+        "objetivo": "Dominar backtesting robusto con reportes para aplicar en un bot funcional."
+      },
+      {
+        "modulo_id": "bot_mecanico_M05",
+        "orden": 5,
+        "titulo": "Optimizacion walk-forward analysis",
+        "lecciones": [
+          {
+            "leccion_id": "bot_mecanico_M05_L01",
+            "titulo": "Leccion 1: Optimizacion walk-forward analysis — Parte 1",
+            "tipo": "video",
+            "duracion_min": 20,
+            "materiales": [],
+            "ejercicio": false
+          },
+          {
+            "leccion_id": "bot_mecanico_M05_L02",
+            "titulo": "Leccion 2: Optimizacion walk-forward analysis — Parte 2",
+            "tipo": "practico",
+            "duracion_min": 25,
+            "materiales": [],
+            "ejercicio": false
+          },
+          {
+            "leccion_id": "bot_mecanico_M05_L03",
+            "titulo": "Leccion 3: Optimizacion walk-forward analysis — Parte 3",
+            "tipo": "video",
+            "duracion_min": 30,
+            "materiales": [],
+            "ejercicio": false
+          },
+          {
+            "leccion_id": "bot_mecanico_M05_L04",
+            "titulo": "Leccion 4: Optimizacion walk-forward analysis — Parte 4",
+            "tipo": "practico",
+            "duracion_min": 35,
+            "materiales": [],
+            "ejercicio": false
+          },
+          {
+            "leccion_id": "bot_mecanico_M05_L05",
+            "titulo": "Leccion 5: Optimizacion walk-forward analysis — Parte 5",
+            "tipo": "video",
+            "duracion_min": 40,
+            "materiales": [],
+            "ejercicio": true
+          }
+        ],
+        "objetivo": "Dominar optimizacion walk-forward analysis para aplicar en un bot funcional."
+      },
+      {
+        "modulo_id": "bot_mecanico_M06",
+        "orden": 6,
+        "titulo": "Despliegue en cuenta demo y live",
+        "lecciones": [
+          {
+            "leccion_id": "bot_mecanico_M06_L01",
+            "titulo": "Leccion 1: Despliegue en cuenta demo y live — Parte 1",
+            "tipo": "video",
+            "duracion_min": 20,
+            "materiales": [],
+            "ejercicio": false
+          },
+          {
+            "leccion_id": "bot_mecanico_M06_L02",
+            "titulo": "Leccion 2: Despliegue en cuenta demo y live — Parte 2",
+            "tipo": "practico",
+            "duracion_min": 25,
+            "materiales": [],
+            "ejercicio": false
+          },
+          {
+            "leccion_id": "bot_mecanico_M06_L03",
+            "titulo": "Leccion 3: Despliegue en cuenta demo y live — Parte 3",
+            "tipo": "video",
+            "duracion_min": 30,
+            "materiales": [],
+            "ejercicio": true
+          }
+        ],
+        "objetivo": "Dominar despliegue en cuenta demo y live para aplicar en un bot funcional."
+      },
+      {
+        "modulo_id": "bot_mecanico_M07",
+        "orden": 7,
+        "titulo": "Mantenimiento y actualizacion del bot",
+        "lecciones": [
+          {
+            "leccion_id": "bot_mecanico_M07_L01",
+            "titulo": "Leccion 1: Mantenimiento y actualizacion del bot — Parte 1",
+            "tipo": "video",
+            "duracion_min": 20,
+            "materiales": [],
+            "ejercicio": false
+          },
+          {
+            "leccion_id": "bot_mecanico_M07_L02",
+            "titulo": "Leccion 2: Mantenimiento y actualizacion del bot — Parte 2",
+            "tipo": "practico",
+            "duracion_min": 25,
+            "materiales": [],
+            "ejercicio": false
+          },
+          {
+            "leccion_id": "bot_mecanico_M07_L03",
+            "titulo": "Leccion 3: Mantenimiento y actualizacion del bot — Parte 3",
+            "tipo": "video",
+            "duracion_min": 30,
+            "materiales": [],
+            "ejercicio": false
+          },
+          {
+            "leccion_id": "bot_mecanico_M07_L04",
+            "titulo": "Leccion 4: Mantenimiento y actualizacion del bot — Parte 4",
+            "tipo": "practico",
+            "duracion_min": 35,
+            "materiales": [],
+            "ejercicio": true
+          }
+        ],
+        "objetivo": "Dominar mantenimiento y actualizacion del bot para aplicar en un bot funcional."
+      }
+    ],
+    "materiales": {
+      "videos_grabacion": [],
+      "pdfs_descargables": [],
+      "codigo_fuente": [
+        "plantilla_ea_basico.mq5",
+        "plantilla_ea_avanzado.mq5",
+        "script_backtest.py",
+        "optimizador_parametros.py"
+      ],
+      "plantillas": [
+        "guion_video_template.md",
+        "slide_presentation.pptx",
+        "checklist_produccion.md"
+      ]
+    },
+    "pipeline_produccion": [
+      {
+        "fase": "pre_produccion",
+        "semana": 1,
+        "tareas": [
+          "Definir objetivos finales",
+          "Validar estructura con beta testers",
+          "Preparar grabacion"
+        ],
+        "estado": "pendiente"
+      },
+      {
+        "fase": "grabacion",
+        "semana": 2,
+        "modulo_id": "bot_mecanico_M01",
+        "tareas": [
+          "Grabar 4 lecciones",
+          "Editar videos",
+          "Crear PDFs"
+        ],
+        "estado": "pendiente"
+      },
+      {
+        "fase": "grabacion",
+        "semana": 3,
+        "modulo_id": "bot_mecanico_M02",
+        "tareas": [
+          "Grabar 5 lecciones",
+          "Editar videos",
+          "Crear PDFs"
+        ],
+        "estado": "pendiente"
+      },
+      {
+        "fase": "grabacion",
+        "semana": 4,
+        "modulo_id": "bot_mecanico_M03",
+        "tareas": [
+          "Grabar 3 lecciones",
+          "Editar videos",
+          "Crear PDFs"
+        ],
+        "estado": "pendiente"
+      },
+      {
+        "fase": "grabacion",
+        "semana": 5,
+        "modulo_id": "bot_mecanico_M04",
+        "tareas": [
+          "Grabar 4 lecciones",
+          "Editar videos",
+          "Crear PDFs"
+        ],
+        "estado": "pendiente"
+      },
+      {
+        "fase": "grabacion",
+        "semana": 6,
+        "modulo_id": "bot_mecanico_M05",
+        "tareas": [
+          "Grabar 5 lecciones",
+          "Editar videos",
+          "Crear PDFs"
+        ],
+        "estado": "pendiente"
+      },
+      {
+        "fase": "grabacion",
+        "semana": 7,
+        "modulo_id": "bot_mecanico_M06",
+        "tareas": [
+          "Grabar 3 lecciones",
+          "Editar videos",
+          "Crear PDFs"
+        ],
+        "estado": "pendiente"
+      },
+      {
+        "fase": "grabacion",
+        "semana": 8,
+        "modulo_id": "bot_mecanico_M07",
+        "tareas": [
+          "Grabar 4 lecciones",
+          "Editar videos",
+          "Crear PDFs"
+        ],
+        "estado": "pendiente"
+      },
+      {
+        "fase": "post_produccion",
+        "semana": 9,
+        "tareas": [
+          "Revision calidad",
+          "Pruebas de acceso",
+          "Configurar plataforma de venta"
+        ],
+        "estado": "pendiente"
+      },
+      {
+        "fase": "lanzamiento",
+        "semana": 10,
+        "tareas": [
+          "Crear landing page",
+          "Configurar checkout",
+          "Email marketing",
+          "Abrir ventas"
+        ],
+        "estado": "pendiente"
+      }
+    ],
+    "bonus": [],
+    "garantia_dias": 7,
+    "plataforma_venta": "hotmart",
+    "afiliados_activos": false,
+    "comision_afiliado_pct": 40
+  }
+}

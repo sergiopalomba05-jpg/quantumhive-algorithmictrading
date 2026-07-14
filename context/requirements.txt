@@ -1,0 +1,71 @@
+# QuantumHive — Core Dependencies (Python 3.13)
+gymnasium>=0.29.1
+stable-baselines3>=2.3.2
+torch>=2.2.0
+pandas>=2.2.0
+numpy>=2.0.0
+pyyaml>=6.0.1
+pytz>=2024.1
+onnx>=1.15.0
+onnxruntime>=1.17.0
+
+# MetaTrader5 Python API
+MetaTrader5>=5.0.4200
+
+# Scheduler
+APScheduler>=3.10.4
+
+# Visualizacion y reportes
+matplotlib>=3.8.0
+Pillow>=10.2.0
+fpdf2>=2.7.0
+
+# PDF parsing
+pdfplumber>=0.10.0
+PyPDF2>=3.0.0
+
+# CNN / Entrenamiento visual
+torchvision>=0.17.0
+
+# CrewAI (agentes)
+crewai>=0.28.0
+
+# HTTP / Webhook
+requests>=2.31.0
+
+# Otros
+python-dotenv>=1.0.0
+
+# Infra / Monitoreo
+psutil>=5.9.0
+
+# Almacenamiento / DataFrames
+pyarrow>=15.0.0
+
+# Testing
+pytest>=8.0.0
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# División 18 — UCI (Unidad de Conocimiento e Inteligencia)
+# ═══════════════════════════════════════════════════════════════════════════════
+# Video → Audio → Transcripción → Conocimiento estructurado
+yt-dlp>=2024.1.0
+openai-whisper>=20231117
+
+# PDF parsing alternativo
+PyMuPDF>=1.23.0
+
+# Base de conocimiento vectorial (ChromaDB o FAISS)
+chromadb>=0.4.0
+faiss-cpu>=1.7.4
+
+# Embeddings semánticos
+sentence-transformers>=2.2.0
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# División 3 — Señales Externas y Copy Trading Automático
+# ═══════════════════════════════════════════════════════════════════════════════
+# Recepción de señales desde canales Telegram en vivo
+Telethon>=1.34.0
+
+# Replicación de operaciones en MetaTrader 5 (ya incluido arriba: MetaTrader5>=5.0.4200)

@@ -1,0 +1,33 @@
+---
+auto_execution_mode: 0
+description: Crear un agente nuevo en la Colmena de QuantumHive
+---
+Crear un nuevo agente para QuantumHive siguiendo este protocolo:
+
+PASO 1 — Verificar que no existe:
+Buscar en automatizacion/agentes/ y subdirectorios
+si ya existe un agente con función similar.
+Si existe → reportar a Sergio antes de crear uno nuevo.
+
+PASO 2 — Estructura obligatoria del agente:
+- Docstring completo con descripción, autor, fecha
+- Clase principal con nombre descriptivo de su función
+- __init__ con conexión a SQLite si necesita persistencia
+- Métodos públicos completamente implementados (no pass)
+- Manejo de errores en cada método con try/except
+- Logging configurado con logger = logging.getLogger(__name__)
+- Integración con Event Bus si el agente publica o suscribe eventos
+- if __name__ == "__main__": con ejemplo de uso
+
+PASO 3 — Registrar en sistema:
+Si tiene jobs periódicos → agregar en scheduler.py
+Si publica/suscribe eventos → registrar en handlers_colmena.py
+Si necesita credenciales → registrar nombres en agente_seguridad.py
+
+PASO 4 — Finalizar:
+from automatizacion.utils.changelog import registrar_cambio
+registrar_cambio(descripcion="Nuevo agente: nombre — función", archivos=["ruta"])
+git add [archivo del agente + scheduler.py si se modificó]
+git commit -m "feat: nuevo agente [nombre] — [función]"
+git push
+Reportar commit.

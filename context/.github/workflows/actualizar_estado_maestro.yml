@@ -1,0 +1,54 @@
+name: Actualizar Estado Maestro
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+
+jobs:
+  mapear:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Ejecutar mapear_empresa.py
+        run: python automatizacion/utils/mapear_empresa.py
+
+      - name: Generar INVENTARIO_TOTAL_QH.md
+        run: python automatizacion/utils/generar_inventario.py
+
+      - name: Commit y push del estado maestro
+        id: commit
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          git config user.name "QuantumHive-Bot"
+          git config user.email "bot@quantumhive.ai"
+          git add QUANTUM_ESTADO_MAESTRO.md INVENTARIO_TOTAL_QH.md
+          if git diff --staged --quiet; then
+            echo "No hay cambios en los archivos de estado"
+            echo "cambios=false" >> $GITHUB_OUTPUT
+          else
+            git commit -m "auto: actualizar estado maestro [skip ci]"
+            git remote set-url origin "https://sergiopalomba05-jpg:${GH_TOKEN}@github.com/sergiopalomba05-jpg/quantumhive-algorithmictrading.git"
+            git push
+            echo "cambios=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Reiniciar HF Space AGI para que cargue el nuevo contexto
+        if: steps.commit.outputs.cambios == 'true'
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          echo "Reiniciando Space quantumhive/quantumhive-agi..."
+          curl -s -X POST "https://huggingface.co/api/spaces/quantumhive/quantumhive-agi/restart" \
+            -H "Authorization: Bearer $HF_TOKEN"
+          echo ""
+          echo "Space reiniciado. Esperando que AGI cargue el contexto actualizado..."

@@ -1,0 +1,20 @@
+flask
+requests
+openpyxl
+beautifulsoup4
+gunicorn
+gTTS
+anthropic
+python-dotenv
+supabase
+apscheduler==3.10.4
+pytz
+# Alternativas gratuitas de IA
+openai
+groq
+whisper
+google-genai
+Pillow
+
+# Seguridad y encriptación
+cryptography

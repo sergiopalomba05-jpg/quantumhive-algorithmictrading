@@ -1,0 +1,20 @@
+{
+  "nombre": "Sergio Palomba",
+  "rol": "CEO & Founder",
+  "empresa": "QuantumHive Algorithmic Trading",
+  "objetivo": "Construir un sistema de trading algorítmico autónomo y escalable",
+  "preferencias": {
+    "estilo_comunicacion": "directo, técnico, orientado a resultados",
+    "horarios_trabajo": "flexible, prioriza eficiencia",
+    "metodologia": "iterativa, data-driven"
+  },
+  "proyectos_activos": [
+    "AGI Telegram Bot",
+    "AI Town Integration",
+    "QuantumHive Dashboard",
+    "Sistema de Trading Algorítmico"
+  ],
+  "total_interacciones": 0,
+  "ultima_interaccion": null,
+  "fecha_registro": "2026-05-01"
+}

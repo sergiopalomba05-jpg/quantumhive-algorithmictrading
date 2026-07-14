@@ -1,0 +1,726 @@
+{
+  "ultima_actualizacion": "2026-05-02T13:44:00-03:00",
+  "total_agentes_creados": 25,
+  "total_agentes_planificados": 65,
+  "notas": "Este archivo centraliza todos los agentes del proyecto. Actualizar al crear nuevos agentes.",
+  "agentes_creados": [
+    {
+      "id": "001",
+      "nombre": "agente_ai_town.py",
+      "ubicacion": "automatizacion/agentes/agente_ai_town.py",
+      "descripcion": "Detecta errores en AI Town, clona el proyecto, integra archivos en quantum_bridge, configura Convex",
+      "estado": "creado",
+      "division": "general"
+    },
+    {
+      "id": "002",
+      "nombre": "agente_configurar_webhook_meta.py",
+      "ubicacion": "automatizacion/agentes/agente_configurar_webhook_meta.py",
+      "descripcion": "Configura webhook de WhatsApp en Meta Business Suite",
+      "estado": "creado",
+      "division": "comunicaciones"
+    },
+    {
+      "id": "003",
+      "nombre": "agente_crear_bot_telegram.py",
+      "ubicacion": "automatizacion/agentes/agente_crear_bot_telegram.py",
+      "descripcion": "Automatiza creación y configuración de bot de Telegram para AGI",
+      "estado": "creado",
+      "division": "comunicaciones"
+    },
+    {
+      "id": "004",
+      "nombre": "agente_experto_errores.py",
+      "ubicacion": "automatizacion/agentes/agente_experto_errores.py",
+      "descripcion": "Investiga y soluciona errores complejos en el sistema",
+      "estado": "creado",
+      "division": "operaciones"
+    },
+    {
+      "id": "005",
+      "nombre": "agente_gestor_gmail.py",
+      "ubicacion": "automatizacion/agentes/agente_gestor_gmail.py",
+      "descripcion": "Gestiona múltiples cuentas Gmail para obtener tokens de APIs gratuitas",
+      "estado": "creado",
+      "division": "recursos"
+    },
+    {
+      "id": "006",
+      "nombre": "agente_git_commit.py",
+      "ubicacion": "automatizacion/agentes/agente_git_commit.py",
+      "descripcion": "Automatiza commit y push de cambios en git",
+      "estado": "creado",
+      "division": "operaciones"
+    },
+    {
+      "id": "007",
+      "nombre": "agente_informes_logs.py",
+      "ubicacion": "automatizacion/agentes/agente_informes_logs.py",
+      "descripcion": "Genera informes de logs, detecta patrones de errores recurrentes",
+      "estado": "creado",
+      "division": "operaciones"
+    },
+    {
+      "id": "008",
+      "nombre": "agente_investigacion_modelos.py",
+      "ubicacion": "automatizacion/agentes/agente_investigacion_modelos.py",
+      "descripcion": "Investiga y mantiene registro actualizado de modelos IA disponibles/descontinuados",
+      "estado": "creado",
+      "division": "innovacion"
+    },
+    {
+      "id": "009",
+      "nombre": "agente_limpiador_basura.py",
+      "ubicacion": "automatizacion/agentes/agente_limpiador_basura.py",
+      "descripcion": "Elimina datos basura de logs y archivos temporales",
+      "estado": "creado",
+      "division": "operaciones"
+    },
+    {
+      "id": "010",
+      "nombre": "agente_optimizador_procesos.py",
+      "ubicacion": "automatizacion/agentes/agente_optimizador_procesos.py",
+      "descripcion": "Analiza rendimiento de procesos, detecta ineficiencias, propone mejoras",
+      "estado": "creado",
+      "division": "operaciones"
+    },
+    {
+      "id": "011",
+      "nombre": "agente_render.py",
+      "ubicacion": "automatizacion/agentes/agente_render.py",
+      "descripcion": "Gestiona deployment en Render, monitorea logs, actualiza variables de entorno",
+      "estado": "creado",
+      "division": "devops"
+    },
+    {
+      "id": "012",
+      "nombre": "agente_seguridad.py",
+      "ubicacion": "automatizacion/agentes/agente_seguridad.py",
+      "descripcion": "Gestiona credenciales encriptadas, solicitudes de aprobación, logging de accesos",
+      "estado": "creado",
+      "division": "seguridad"
+    },
+    {
+      "id": "013",
+      "nombre": "agente_analizador_rendimiento.py",
+      "ubicacion": "automatizacion/agentes/division_biblioteca_fabrica_bots/agente_analizador_rendimiento.py",
+      "descripcion": "Genera planillas Excel/CSV con PnL, WR, PF, drawdown, equity curve",
+      "estado": "creado",
+      "division": "fabrica_bots"
+    },
+    {
+      "id": "014",
+      "nombre": "agente_combinador_estrategias.py",
+      "ubicacion": "automatizacion/agentes/division_biblioteca_fabrica_bots/agente_combinador_estrategias.py",
+      "descripcion": "Combina estrategias e indicadores optimizados individualmente",
+      "estado": "creado",
+      "division": "fabrica_bots"
+    },
+    {
+      "id": "015",
+      "nombre": "agente_estructurador_estrategias.py",
+      "ubicacion": "automatizacion/agentes/division_biblioteca_fabrica_bots/agente_estructurador_estrategias.py",
+      "descripcion": "Limpia, filtra y organiza estrategias por categorías y entornos",
+      "estado": "creado",
+      "division": "fabrica_bots"
+    },
+    {
+      "id": "016",
+      "nombre": "agente_filtro_combinaciones.py",
+      "ubicacion": "automatizacion/agentes/division_biblioteca_fabrica_bots/agente_filtro_combinaciones.py",
+      "descripcion": "Detecta combinaciones ya probadas fallidas, protege modelos rentables originales",
+      "estado": "creado",
+      "division": "fabrica_bots"
+    },
+    {
+      "id": "017",
+      "nombre": "agente_marketing_bots.py",
+      "ubicacion": "automatizacion/agentes/division_biblioteca_fabrica_bots/agente_marketing_bots.py",
+      "descripcion": "Genera información de marketing para bots rentables con personalidad",
+      "estado": "creado",
+      "division": "fabrica_bots"
+    },
+    {
+      "id": "018",
+      "nombre": "agente_recolector_estrategias.py",
+      "ubicacion": "automatizacion/agentes/division_biblioteca_fabrica_bots/agente_recolector_estrategias.py",
+      "descripcion": "Recolecta estrategias, indicadores, scripts de trading de la web",
+      "estado": "creado",
+      "division": "fabrica_bots"
+    },
+    {
+      "id": "019",
+      "nombre": "agente_walk_forward_analysis.py",
+      "ubicacion": "automatizacion/agentes/division_biblioteca_fabrica_bots/agente_walk_forward_analysis.py",
+      "descripcion": "Divide datos en períodos, detecta overfitting antes de producción",
+      "estado": "creado",
+      "division": "fabrica_bots"
+    },
+    {
+      "id": "020",
+      "nombre": "agente_administrador_recursos.py",
+      "ubicacion": "automatizacion/agentes/division_recursos_gratis/agente_administrador_recursos.py",
+      "descripcion": "Centraliza y gestiona información de todos los recolectores, asigna recursos",
+      "estado": "creado",
+      "division": "recursos_gratis"
+    },
+    {
+      "id": "021",
+      "nombre": "agente_gestor_nubes.py",
+      "ubicacion": "automatizacion/agentes/division_recursos_gratis/agente_gestor_nubes.py",
+      "descripcion": "Distribuye procesos de entrenamiento en nubes gratuitas, balancea carga",
+      "estado": "creado",
+      "division": "recursos_gratis"
+    },
+    {
+      "id": "022",
+      "nombre": "agente_investigador_gpus.py",
+      "ubicacion": "automatizacion/agentes/division_recursos_gratis/agente_investigador_gpus.py",
+      "descripcion": "Investiga GPUs gratuitas (Colab, Kaggle, etc.)",
+      "estado": "creado",
+      "division": "recursos_gratis"
+    },
+    {
+      "id": "023",
+      "nombre": "agente_recolector_nubes.py",
+      "ubicacion": "automatizacion/agentes/division_recursos_gratis/agente_recolector_nubes.py",
+      "descripcion": "Recolecta nubes gratuitas, VPS gratuitos, periodos de prueba",
+      "estado": "creado",
+      "division": "recursos_gratis"
+    },
+    {
+      "id": "024",
+      "nombre": "agente_recolector_recursos_varios.py",
+      "ubicacion": "automatizacion/agentes/division_recursos_gratis/agente_recolector_recursos_varios.py",
+      "descripcion": "Recolecta APIs, datasets, herramientas gratuitas",
+      "estado": "creado",
+      "division": "recursos_gratis"
+    },
+    {
+      "id": "025",
+      "nombre": "agente_reporteador.py",
+      "ubicacion": "automatizacion/agentes/division_recursos_gratis/agente_reporteador.py",
+      "descripcion": "Genera informes de estado de recursos, alerta sobre caducidad",
+      "estado": "creado",
+      "division": "recursos_gratis"
+    }
+  ],
+  "agentes_planificados": [
+    {
+      "id": "P001",
+      "nombre": "agente_recolector.py",
+      "division": "1 - Enjambre de Trading",
+      "estado": "operativo",
+      "descripcion": "Descarga automática de todos los timeframes"
+    },
+    {
+      "id": "P002",
+      "nombre": "agente_riesgo.py",
+      "division": "1 - Enjambre de Trading",
+      "estado": "operativo",
+      "descripcion": "Monitorea drawdown en tiempo real"
+    },
+    {
+      "id": "P003",
+      "nombre": "agente_auditoria.py",
+      "division": "1 - Enjambre de Trading",
+      "estado": "operativo",
+      "descripcion": "Audita operaciones 24hs, anomalías"
+    },
+    {
+      "id": "P004",
+      "nombre": "agente_compliance.py",
+      "division": "1 - Enjambre de Trading",
+      "estado": "operativo",
+      "descripcion": "Verifica FTMO challenge/live"
+    },
+    {
+      "id": "P005",
+      "nombre": "agente_optimizador.py",
+      "division": "1 - Enjambre de Trading",
+      "estado": "operativo",
+      "descripcion": "Análisis de skills, ajuste automático score_min"
+    },
+    {
+      "id": "P006",
+      "nombre": "agente_entrenador.py",
+      "division": "1 - Enjambre de Trading",
+      "estado": "pendiente",
+      "descripcion": "Detecta necesidad de reentrenamiento, lanza jobs en Kaggle"
+    },
+    {
+      "id": "P007",
+      "nombre": "agente_tester.py",
+      "division": "1 - Enjambre de Trading",
+      "estado": "pendiente",
+      "descripcion": "Backtesting automático con datos históricos"
+    },
+    {
+      "id": "P008",
+      "nombre": "agente_challenge.py",
+      "division": "2 - Gestión de Fondeo",
+      "estado": "operativo",
+      "descripcion": "Gestiona pase de challenge"
+    },
+    {
+      "id": "P009",
+      "nombre": "agente_cuentas_fondeadas.py",
+      "division": "2 - Gestión de Fondeo",
+      "estado": "operativo",
+      "descripcion": "Registra cuentas fondeadas activas"
+    },
+    {
+      "id": "P010",
+      "nombre": "agente_cobro_fondeo.py",
+      "division": "2 - Gestión de Fondeo",
+      "estado": "pendiente",
+      "descripcion": "Cobra parte QuantumHive cuando PropFirm paga"
+    },
+    {
+      "id": "P011",
+      "nombre": "agente_afiliaciones.py",
+      "division": "2 - Gestión de Fondeo",
+      "estado": "pendiente",
+      "descripcion": "Acuerdos con PropFirms oficiales"
+    },
+    {
+      "id": "P012",
+      "nombre": "agente_onboarding_cliente.py",
+      "division": "2 - Gestión de Fondeo",
+      "estado": "pendiente",
+      "descripcion": "Alta de nuevo cliente en challenge"
+    },
+    {
+      "id": "P013",
+      "nombre": "agente_formateador_senales.py",
+      "division": "3 - Grupo de Señales",
+      "estado": "operativo",
+      "descripcion": "Formatea mensaje para Telegram"
+    },
+    {
+      "id": "P014",
+      "nombre": "agente_gestor_grupos.py",
+      "division": "3 - Grupo de Señales",
+      "estado": "operativo",
+      "descripcion": "Gestiona trial 3 días / pago semanal / pago mensual"
+    },
+    {
+      "id": "P015",
+      "nombre": "agente_cobro_senales.py",
+      "division": "3 - Grupo de Señales",
+      "estado": "pendiente",
+      "descripcion": "Links de pago automáticos"
+    },
+    {
+      "id": "P016",
+      "nombre": "agente_retencion.py",
+      "division": "3 - Grupo de Señales",
+      "estado": "pendiente",
+      "descripcion": "Detecta clientes sin renovar"
+    },
+    {
+      "id": "P017",
+      "nombre": "agente_captacion_senales.py",
+      "division": "3 - Grupo de Señales",
+      "estado": "pendiente",
+      "descripcion": "Publica resultados en redes"
+    },
+    {
+      "id": "P018",
+      "nombre": "agente_contenido_instagram.py",
+      "division": "4 - Marketing",
+      "estado": "operativo",
+      "descripcion": "Genera imágenes con resultados reales"
+    },
+    {
+      "id": "P019",
+      "nombre": "agente_viral_seo.py",
+      "division": "4 - Marketing",
+      "estado": "pendiente",
+      "descripcion": "Optimiza contenido para viralización y SEO"
+    },
+    {
+      "id": "P020",
+      "nombre": "agente_captacion_dms.py",
+      "division": "4 - Marketing",
+      "estado": "pendiente",
+      "descripcion": "Responde DMs automáticamente"
+    },
+    {
+      "id": "P021",
+      "nombre": "agente_cierre_ventas.py",
+      "division": "4 - Marketing",
+      "estado": "pendiente",
+      "descripcion": "Cierra ventas automáticamente"
+    },
+    {
+      "id": "P022",
+      "nombre": "agente_creador_infoproductos.py",
+      "division": "5 - Infoproductos",
+      "estado": "pendiente",
+      "descripcion": "Usa Claude API para crear cursos completos"
+    },
+    {
+      "id": "P023",
+      "nombre": "agente_publicador_hotmart.py",
+      "division": "5 - Infoproductos",
+      "estado": "pendiente",
+      "descripcion": "Publica cursos en Hotmart/Udemy/Teachable"
+    },
+    {
+      "id": "P024",
+      "nombre": "agente_marketplace_productos.py",
+      "division": "5 - Infoproductos",
+      "estado": "pendiente",
+      "descripcion": "Gestiona marketplace propio + MQL5 Market"
+    },
+    {
+      "id": "P025",
+      "nombre": "agente_afiliados.py",
+      "division": "5 - Infoproductos",
+      "estado": "pendiente",
+      "descripcion": "Tracking de afiliados y pagos automáticos"
+    },
+    {
+      "id": "P026",
+      "nombre": "agente_enterprise_sales.py",
+      "division": "6 - High Ticket",
+      "estado": "pendiente",
+      "descripcion": "Venta del framework QuantumHive a hedge funds"
+    },
+    {
+      "id": "P027",
+      "nombre": "agente_gestor_licencias.py",
+      "division": "6 - High Ticket",
+      "estado": "pendiente",
+      "descripcion": "Gestiona licencias SaaS mensuales"
+    },
+    {
+      "id": "P028",
+      "nombre": "agente_soporte_tecnico.py",
+      "division": "6 - High Ticket",
+      "estado": "pendiente",
+      "descripcion": "Soporte dedicado a clientes enterprise"
+    },
+    {
+      "id": "P029",
+      "nombre": "agente_propfirm.py",
+      "division": "7 - PropFirm",
+      "estado": "pendiente",
+      "descripcion": "Fondea traders con los propios bots de QuantumHive"
+    },
+    {
+      "id": "P030",
+      "nombre": "orquestador.py",
+      "division": "7 - PropFirm",
+      "estado": "operativo",
+      "descripcion": "Coordina todos los agentes de Division 1"
+    },
+    {
+      "id": "P031",
+      "nombre": "agente_control_calidad.py",
+      "division": "8 - Fábrica de Bots",
+      "estado": "pendiente",
+      "descripcion": "Backtest automático, aprobación/rechazo de bots"
+    },
+    {
+      "id": "P032",
+      "nombre": "agente_pricing.py",
+      "division": "8 - Fábrica de Bots",
+      "estado": "pendiente",
+      "descripcion": "Análisis mercado EAs, precio óptimo"
+    },
+    {
+      "id": "P033",
+      "nombre": "agente_catalogo.py",
+      "division": "8 - Fábrica de Bots",
+      "estado": "pendiente",
+      "descripcion": "Catálogo productos, descripciones, métricas"
+    },
+    {
+      "id": "P034",
+      "nombre": "agente_limpieza_datos.py",
+      "division": "9 - Limpieza",
+      "estado": "pendiente",
+      "descripcion": "Elimina datos antiguos, comprime parquet"
+    },
+    {
+      "id": "P035",
+      "nombre": "agente_limpieza_modelos.py",
+      "division": "9 - Limpieza",
+      "estado": "pendiente",
+      "descripcion": "Archiva ONNX obsoletos"
+    },
+    {
+      "id": "P036",
+      "nombre": "agente_limpieza_logs.py",
+      "division": "9 - Limpieza",
+      "estado": "pendiente",
+      "descripcion": "Rota logs >30 días, comprime .gz"
+    },
+    {
+      "id": "P037",
+      "nombre": "agente_limpieza_prompts.py",
+      "division": "9 - Limpieza",
+      "estado": "pendiente",
+      "descripcion": "Archiva prompts de sesiones anteriores"
+    },
+    {
+      "id": "P038",
+      "nombre": "agente_analytics_web.py",
+      "division": "10 - Diseño Web",
+      "estado": "pendiente",
+      "descripcion": "Google Analytics / Plausible, funnel conversiones"
+    },
+    {
+      "id": "P039",
+      "nombre": "agente_seo.py",
+      "division": "10 - Diseño Web",
+      "estado": "pendiente",
+      "descripcion": "Keywords competidores, contenido, posicionamiento"
+    },
+    {
+      "id": "P040",
+      "nombre": "agente_ab_testing.py",
+      "division": "10 - Diseño Web",
+      "estado": "pendiente",
+      "descripcion": "Variantes landing pages, conversión"
+    },
+    {
+      "id": "P041",
+      "nombre": "agente_diseno_contenido.py",
+      "division": "10 - Diseño Web",
+      "estado": "pendiente",
+      "descripcion": "Assets visuales web automáticos"
+    },
+    {
+      "id": "P042",
+      "nombre": "agente_bienvenida.py",
+      "division": "11 - Atención Cliente",
+      "estado": "operativo",
+      "descripcion": "Primer contacto, califica lead"
+    },
+    {
+      "id": "P043",
+      "nombre": "agente_especialista_senales.py",
+      "division": "11 - Atención Cliente",
+      "estado": "pendiente",
+      "descripcion": "Expertos en grupo de señales"
+    },
+    {
+      "id": "P044",
+      "nombre": "agente_especialista_fondeo.py",
+      "division": "11 - Atención Cliente",
+      "estado": "pendiente",
+      "descripcion": "Expertos en gestión de challenges"
+    },
+    {
+      "id": "P045",
+      "nombre": "agente_especialista_bots.py",
+      "division": "11 - Atención Cliente",
+      "estado": "pendiente",
+      "descripcion": "Expertos en venta de EAs / bots"
+    },
+    {
+      "id": "P046",
+      "nombre": "agente_closer.py",
+      "division": "11 - Atención Cliente",
+      "estado": "operativo",
+      "descripcion": "Cierra ventas, links pago"
+    },
+    {
+      "id": "P047",
+      "nombre": "agente_onboarding_ventas.py",
+      "division": "11 - Atención Cliente",
+      "estado": "pendiente",
+      "descripcion": "Acceso post-pago, instrucciones"
+    },
+    {
+      "id": "P048",
+      "nombre": "agente_retencion_ventas.py",
+      "division": "11 - Atención Cliente",
+      "estado": "pendiente",
+      "descripcion": "Clientes inactivos, campaña retención"
+    },
+    {
+      "id": "P049",
+      "nombre": "agente_ceo_estrategico.py",
+      "division": "12 - Crecimiento",
+      "estado": "pendiente",
+      "descripcion": "Evalúa métricas globales diarias"
+    },
+    {
+      "id": "P050",
+      "nombre": "agente_scout.py",
+      "division": "12 - Crecimiento",
+      "estado": "pendiente",
+      "descripcion": "Busca repos / papers / herramientas nuevas"
+    },
+    {
+      "id": "P051",
+      "nombre": "agente_clasificador.py",
+      "division": "12 - Crecimiento",
+      "estado": "pendiente",
+      "descripcion": "Evalúa hallazgos del scout"
+    },
+    {
+      "id": "P052",
+      "nombre": "agente_entrenador_bots.py",
+      "division": "12 - Crecimiento",
+      "estado": "pendiente",
+      "descripcion": "Monitorea métricas bots, decide reentrenar"
+    },
+    {
+      "id": "P053",
+      "nombre": "agente_entrenador_divisiones.py",
+      "division": "12 - Crecimiento",
+      "estado": "pendiente",
+      "descripcion": "Monitorea KPIs divisiones, ajusta agentes"
+    },
+    {
+      "id": "P054",
+      "nombre": "agente_supervisor_global.py",
+      "division": "12 - Crecimiento",
+      "estado": "operativo",
+      "descripcion": "Cruza datos áreas, detecta cuellos de botella"
+    },
+    {
+      "id": "P055",
+      "nombre": "agente_premios.py",
+      "division": "12 - Crecimiento",
+      "estado": "pendiente",
+      "descripcion": "Registra mejoras >5% en 7 días"
+    },
+    {
+      "id": "P056",
+      "nombre": "agente_terminos.py",
+      "division": "13 - Legal",
+      "estado": "pendiente",
+      "descripcion": "Términos de servicio versionados"
+    },
+    {
+      "id": "P057",
+      "nombre": "agente_contratos.py",
+      "division": "13 - Legal",
+      "estado": "pendiente",
+      "descripcion": "Contratos PDF clientes fondeo"
+    },
+    {
+      "id": "P058",
+      "nombre": "agente_regulaciones.py",
+      "division": "13 - Legal",
+      "estado": "pendiente",
+      "descripcion": "Monitorea regulaciones por país"
+    },
+    {
+      "id": "P059",
+      "nombre": "agente_propfirm_compliance.py",
+      "division": "13 - Legal",
+      "estado": "pendiente",
+      "descripcion": "Reglas PropFirms, alerta cambios"
+    },
+    {
+      "id": "P060",
+      "nombre": "agente_privacidad.py",
+      "division": "13 - Legal",
+      "estado": "pendiente",
+      "descripcion": "GDPR, eliminación datos"
+    },
+    {
+      "id": "P061",
+      "nombre": "agente_monitoreo_sistema.py",
+      "division": "14 - Infraestructura",
+      "estado": "operativo",
+      "descripcion": "Verifica procesos críticos cada 5 min"
+    },
+    {
+      "id": "P062",
+      "nombre": "agente_backup.py",
+      "division": "14 - Infraestructura",
+      "estado": "operativo",
+      "descripcion": "Backup diario ONNX / SQLite / config"
+    },
+    {
+      "id": "P063",
+      "nombre": "agente_actualizaciones.py",
+      "division": "14 - Infraestructura",
+      "estado": "pendiente",
+      "descripcion": "Versiones nuevas dependencias"
+    },
+    {
+      "id": "P064",
+      "nombre": "agente_performance.py",
+      "division": "14 - Infraestructura",
+      "estado": "pendiente",
+      "descripcion": "CPU/RAM/disco, alerta >80%"
+    },
+    {
+      "id": "P065",
+      "nombre": "agente_alertas_criticas.py",
+      "division": "14 - Infraestructura",
+      "estado": "operativo",
+      "descripcion": "Alertas por niveles: VERDE → NEGRO"
+    },
+    {
+      "id": "P066",
+      "nombre": "agente_dashboard_ejecutivo.py",
+      "division": "15 - Business Intelligence",
+      "estado": "operativo",
+      "descripcion": "Reporte diario KPIs todas las divisiones"
+    },
+    {
+      "id": "P067",
+      "nombre": "agente_metricas_trading.py",
+      "division": "15 - Business Intelligence",
+      "estado": "pendiente",
+      "descripcion": "Winrate, PF, DD, Sharpe diario"
+    },
+    {
+      "id": "P068",
+      "nombre": "agente_metricas_negocio.py",
+      "division": "15 - Business Intelligence",
+      "estado": "operativo",
+      "descripcion": "MRR, churn, LTV, CAC, proyecciones"
+    },
+    {
+      "id": "P069",
+      "nombre": "agente_alertas_negocio.py",
+      "division": "15 - Business Intelligence",
+      "estado": "pendiente",
+      "descripcion": "Alerta si KPI cae bajo umbral"
+    },
+    {
+      "id": "P070",
+      "nombre": "agente_reportes_inversores.py",
+      "division": "15 - Business Intelligence",
+      "estado": "pendiente",
+      "descripcion": "PDF mensual profesional"
+    }
+  ],
+  "archivos_relacionados": [
+    {
+      "nombre": "agi_telegram.py",
+      "ubicacion": "automatizacion/agentes/agi_telegram.py",
+      "tipo": "bot_principal",
+      "descripcion": "Bot principal AGI con Claude API, memoria SQLite, webhook Telegram"
+    },
+    {
+      "nombre": "scheduler.py",
+      "ubicacion": "automatizacion/agentes/scheduler.py",
+      "tipo": "scheduler",
+      "descripcion": "Scheduler de jobs periódicos (heartbeat, briefing, cleanup)"
+    },
+    {
+      "nombre": "event_bus.py",
+      "ubicacion": "automatizacion/agentes/event_bus.py",
+      "tipo": "event_bus",
+      "descripcion": "Event Bus con SQLite para comunicación entre agentes"
+    },
+    {
+      "nombre": "handlers_colmena.py",
+      "ubicacion": "automatizacion/agentes/handlers_colmena.py",
+      "tipo": "handlers",
+      "descripcion": "Handlers de eventos de la Colmena"
+    }
+  ]
+}

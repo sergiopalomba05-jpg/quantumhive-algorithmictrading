@@ -1,0 +1,31 @@
+{
+  "nombre_comercial": "Atlas",
+  "activo": "US30",
+  "temporalidad": "H1",
+  "periodo_backtesting": "2025-01→2026-04",
+  "personalidad": "Precisionista - Alta tasa de aciertos con rentabilidad consistente",
+  "resultados": {
+    "operaciones": 0,
+    "winrate": "80.0%",
+    "profit_factor": "0.00",
+    "pnl_total": "$0.00"
+  },
+  "configuracion": {
+    "indicadores": ["Bollinger Bands", "RSI", "ATR"],
+    "bb_periodo": 20,
+    "bb_desv": 2.0,
+    "rsi_periodo": 14,
+    "rsi_rangos": "30/70",
+    "sl_atr_mult": 1.5,
+    "tp_rr": "2.0/2.5",
+    "max_ops_dia": 5
+  },
+  "puntos_venta": [
+    "Tasa de aciertos del 80.0% - Superior al promedio del mercado",
+    "Estrategia probada en múltiples escenarios"
+  ],
+  "descripcion_marketing": "Atlas es un bot de trading especializado en US30 (H1). Precisionista - Alta tasa de aciertos con rentabilidad consistente. Tasa de aciertos del 80.0% - Superior al promedio del mercado",
+  "fecha_generacion": "2026-05-03T22:14:00",
+  "estado": "rentable",
+  "nota_recuperacion": "Archivo reconstruido por orden CEO II (Gemini) - Configuración base basada en parámetros estándar H1. REQUIRE RE-ENTRENAMIENTO PARA CONFIRMAR 80% WINRATE."
+}

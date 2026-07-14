@@ -1,0 +1,8 @@
+traders:
+  - id: trader_001
+    plataforma: youtube
+    seguidores_aprox: 0
+    estrategia_tipo: "pendiente_definir"
+    estado: IDENTIFICADO
+    contactos: []
+    notas: ""

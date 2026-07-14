@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuantumHive — Dashboard Completo v5</title>
+<style>
+  :root {
+    --bg: #0A0A0F;
+    --bg2: #1a1a2e;
+    --bg3: #16213e;
+    --card: #1a1a2e;
+    --text: #F5F5F5;
+    --text2: #a0a0a0;
+    --border: #333;
+    --accent: #C9A84C;
+    --accent-hover: #E8D48B;
+    --accent-light: #D4B96A;
+    --status-activo: #00FF88;
+    --status-pendiente: #888888;
+    --status-en-curso: #3b82f6;
+    --status-futuro: #6366f1;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 20px; min-height: 100vh; }
+  
+  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; padding: 20px; background: linear-gradient(135deg, var(--bg2), var(--bg3)); border-radius: 16px; border: 1px solid var(--border); }
+  .header-left { display: flex; align-items: center; gap: 20px; }
+  .logo-placeholder { 
+    width: 60px; 
+    height: 60px; 
+    background: linear-gradient(135deg, var(--accent), var(--accent-light)); 
+    border-radius: 50%; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    border: 3px solid var(--accent-hover);
+    overflow: hidden;
+  }
+  .logo-placeholder svg { width: 40px; height: 40px; }
+  h1 { font-size: 28px; font-weight: 700; background: linear-gradient(135deg, var(--accent), var(--accent-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .subtitle { font-size: 14px; color: var(--text2); margin-top: 4px; }
+  .version { font-size: 12px; color: var(--text2); background: var(--bg3); padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); }
+  
+  /* Grid de Macros */
+  .macros-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 25px; margin-bottom: 30px; }
+  
+  .macro-card {
+    background: linear-gradient(135deg, var(--card), var(--bg3));
+    border: 3px solid var(--accent);
+    border-radius: 16px;
+    padding: 20px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+  }
+  .macro-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    border-color: var(--accent-hover);
+    box-shadow: 0 20px 40px rgba(201, 168, 76, 0.3);
+  }
+  
+  .macro-header { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
+  .macro-icon { font-size: 36px; }
+  .macro-title { font-size: 16px; font-weight: 700; color: var(--accent); }
+  .macro-desc { font-size: 12px; color: var(--text2); margin-top: 5px; line-height: 1.4; }
+  
+  .macro-stats { display: flex; gap: 15px; margin-bottom: 15px; }
+  .stat { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); }
+  .stat-number { font-weight: 700; color: var(--text); }
+  
+  /* Divisiones */
+  .divisions-list { display: flex; flex-direction: column; gap: 10px; }
+  .division-item {
+    background: var(--bg2);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .division-item:hover {
+    border-color: var(--accent);
+    background: var(--bg3);
+  }
+  .division-header { display: flex; align-items: center; justify-content: space-between; }
+  .division-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .division-count { font-size: 11px; color: var(--text2); background: var(--bg3); padding: 3px 8px; border-radius: 4px; }
+  
+  /* Tooltip de división */
+  .division-tooltip {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 10px;
+    margin-top: 5px;
+    z-index: 100;
+    display: none;
+    font-size: 11px;
+    color: var(--text2);
+    line-height: 1.4;
+  }
+  .division-item:hover .division-tooltip { display: block; }
+  
+  /* Agentes */
+  .agents-list {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    background: var(--bg2);
+    border-radius: 8px;
+    margin-top: 5px;
+  }
+  .agents-list.expanded { max-height: 1000px; }
+  
+  .agent-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .agent-item:last-child { border-bottom: none; }
+  
+  .agent-name { font-weight: 600; color: var(--text); flex: 1; }
+  .agent-func { color: var(--text2); font-size: 11px; flex: 2; }
+  
+  /* Colores de estado */
+  .status-badge {
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .status-badge.activo { background: rgba(0, 255, 136, 0.2); color: var(--status-activo); border: 1px solid var(--status-activo); }
+  .status-badge.planificado { background: rgba(136, 136, 136, 0.2); color: var(--status-pendiente); border: 1px solid var(--status-pendiente); }
+  .status-badge.en_desarrollo { background: rgba(59, 130, 246, 0.2); color: var(--status-en-curso); border: 1px solid var(--status-en-curso); }
+  .status-badge.futuro { background: rgba(99, 102, 241, 0.2); color: var(--status-futuro); border: 1px solid var(--status-futuro); }
+  
+  /* Consola de acciones urgentes */
+  .urgent-console {
+    background: linear-gradient(135deg, var(--bg2), var(--bg3));
+    border: 2px solid var(--danger);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 30px;
+  }
+  .urgent-console h2 { font-size: 16px; color: var(--danger); margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+  .urgent-list { display: flex; flex-direction: column; gap: 10px; }
+  .urgent-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px;
+    background: var(--bg2);
+    border-radius: 8px;
+    border-left: 4px solid;
+  }
+  .urgent-item.critical { border-color: var(--danger); }
+  .urgent-item.high { border-color: var(--warn); }
+  .urgent-item.medium { border-color: var(--info); }
+  .urgent-item.low { border-color: var(--status-pendiente); }
+  
+  .urgent-priority { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; }
+  .urgent-priority.critical { background: var(--danger); color: white; }
+  .urgent-priority.high { background: var(--warn); color: black; }
+  .urgent-priority.medium { background: var(--info); color: white; }
+  .urgent-priority.low { background: var(--status-pendiente); color: white; }
+  
+  .urgent-text { flex: 1; font-size: 13px; }
+  .urgent-action { background: var(--status-activo); border: none; border-radius: 6px; width: 30px; height: 30px; cursor: pointer; font-weight: bold; }
+  
+  /* Resumen de estados */
+  .status-summary {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+    padding: 15px 20px;
+    background: var(--bg2);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+  .status-summary-item { display: flex; align-items: center; gap: 8px; }
+  .status-dot { width: 12px; height: 12px; border-radius: 50%; }
+  .status-dot.activo { background: var(--status-activo); }
+  .status-dot.planificado { background: var(--status-pendiente); }
+  .status-dot.en_desarrollo { background: var(--status-en-curso); }
+  .status-dot.futuro { background: var(--status-futuro); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="logo-placeholder">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="50,10 85,30 85,70 50,90 15,70 15,30" fill="none" stroke="#D4B96A" stroke-width="2"/>
+        <polygon points="50,25 70,35 70,65 50,75 30,65 30,35" fill="none" stroke="#C9A84C" stroke-width="1.5"/>
+        <circle cx="50" cy="50" r="12" fill="#C9A84C"/>
+        <circle cx="50" cy="50" r="8" fill="#1a1a2e"/>
+        <circle cx="46" cy="47" r="2" fill="#00FF88"/>
+        <circle cx="54" cy="47" r="2" fill="#00FF88"/>
+        <line x1="50" y1="38" x2="50" y2="42" stroke="#D4B96A" stroke-width="2"/>
+        <line x1="50" y1="58" x2="50" y2="62" stroke="#D4B96A" stroke-width="2"/>
+        <line x1="45" y1="40" x2="40" y2="35" stroke="#C9A84C" stroke-width="1.5"/>
+        <line x1="55" y1="40" x2="60" y2="35" stroke="#C9A84C" stroke-width="1.5"/>
+        <circle cx="40" cy="35" r="1.5" fill="#C9A84C"/>
+        <circle cx="60" cy="35" r="1.5" fill="#C9A84C"/>
+      </svg>
+    </div>
+    <div>
+      <h1>QuantumHive</h1>
+      <div class="subtitle">132 Agentes — 11 Macrodivisiones — Sistema de Gestión de Capital</div>
+    </div>
+  </div>
+  <span class="version">v5.0 — Dashboard Profesional Completo</span>
+</header>
+
+<!-- Resumen de Estados -->
+<div class="status-summary">
+  <div class="status-summary-item">
+    <div class="status-dot activo"></div>
+    <span>Activo: 46</span>
+  </div>
+  <div class="status-summary-item">
+    <div class="status-dot planificado"></div>
+    <span>Planificado: 58</span>
+  </div>
+  <div class="status-summary-item">
+    <div class="status-dot en_desarrollo"></div>
+    <span>En Desarrollo: 0</span>
+  </div>
+  <div class="status-summary-item">
+    <div class="status-dot futuro"></div>
+    <span>Futuro: 28</span>
+  </div>
+</div>
+
+<!-- Consola de Acciones Urgentes -->
+<div class="urgent-console">
+  <h2>🚨 Consola de Acciones Urgentes</h2>
+  <div class="urgent-list">
+    <div class="urgent-item critical">
+      <span class="urgent-priority critical">CRÍTICO</span>
+      <span class="urgent-text">Verificar integridad datos trading - anomalías detectadas</span>
+      <button class="urgent-action" onclick="this.parentElement.style.opacity='0.3'">✓</button>
+    </div>
+    <div class="urgent-item high">
+      <span class="urgent-priority high">ALTA</span>
+      <span class="urgent-text">Actualización pendiente: agente_ceo_estrategico requiere revisión</span>
+      <button class="urgent-action" onclick="this.parentElement.style.opacity='0.3'">✓</button>
+    </div>
+    <div class="urgent-item medium">
+      <span class="urgent-priority medium">MEDIA</span>
+      <span class="urgent-text">Backup diario programado para las 02:00 UTC</span>
+      <button class="urgent-action" onclick="this.parentElement.style.opacity='0.3'">✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- Grid de Macros -->
+<div class="macros-container" id="macros-grid">
+  <!-- Se carga dinámicamente con JavaScript -->
+</div>
+
+<script>
+// Datos completos de CONTEXTO_AGENTES.md - 132 agentes
+const MACROS = {
+  MACRO1: {
+    nombre: 'MACRO 1 — Trading Core',
+    descripcion: 'Enjambre CFDs, gestión de fondeo, sala colmena, GVCA. Núcleo de operaciones de trading automatizado.',
+    icono: '📊',
+    divisiones: [
+      { id: 'D1', nombre: 'D1 — Enjambre CFDs', desc: 'Auditoría, compliance, optimización, recolección de datos' },
+      { id: 'D2', nombre: 'D2 — Fondeo', desc: 'Gestión de challenges y cuentas fondeadas' },
+      { id: 'D2B', nombre: 'D2B — PropFirms Dispersión', desc: 'Gestión dispersa con anti-detección' },
+      { id: 'D16', nombre: 'D16 — Sala Colmena', desc: 'Capital en vivo, gestión 20/80' },
+      { id: 'GVCA', nombre: 'GVCA — Gestión VPS', desc: 'Bot manager, VPS manager, anti-detección' }
+    ],
+    agentes: [
+      { nombre: 'agente_auditoria', funcion: 'Audita operaciones 24h, anomalias, integridad, reporte', estado: 'activo', division: 'D1' },
+      { nombre: 'agente_compliance', funcion: 'Verifica FTMO challenge/live, zona riesgo 80%, pausas, progreso', estado: 'activo', division: 'D1' },
+      { nombre: 'agente_optimizador', funcion: 'Análisis skills, ajuste automático score_min (55-75), degradación modelo', estado: 'activo', division: 'D1' },
+      { nombre: 'agente_recolector', funcion: 'Descarga datos de MT5 todos los timeframes', estado: 'activo', division: 'D1' },
+      { nombre: 'agente_challenge', funcion: 'Gestión pase challenge por cliente', estado: 'activo', division: 'D2' },
+      { nombre: 'agente_cuentas_fondeadas', funcion: 'Registro cuentas fondeadas, balance, DD, cobro QH', estado: 'activo', division: 'D2' },
+      { nombre: 'agente_cobro_fondeo', funcion: 'Cobro parte QH cuando PropFirm paga', estado: 'activo', division: 'D2' },
+      { nombre: 'agente_afiliaciones', funcion: 'Acuerdos con PropFirms, cupones, comisiones', estado: 'activo', division: 'D2' },
+      { nombre: 'agente_onboarding_cliente', funcion: 'Alta nuevo cliente, asigna bot challenge', estado: 'activo', division: 'D2' },
+      { nombre: 'selector_cuenta', funcion: 'Asigna cuenta por servidor MT5, firma, riesgo residual', estado: 'planificado', division: 'D2B' },
+      { nombre: 'dispersor_cuentas', funcion: 'Delay/variación únicos por cuenta para evitar detección', estado: 'planificado', division: 'D2B' },
+      { nombre: 'monitor_dd_prop', funcion: 'Alerta contra límites de firma', estado: 'planificado', division: 'D2B' },
+      { nombre: 'gestor_rotacion', funcion: 'Congelamiento por racha perdedora, scheduling diario, retiros', estado: 'planificado', division: 'D2B' },
+      { nombre: 'agente_pool_capital', funcion: 'Tracking capital por cliente, porcentaje pool, PnL proporcional', estado: 'planificado', division: 'D16' },
+      { nombre: 'agente_distribucion_ganancias', funcion: 'Cálculo 80/20 por sesión, comprobantes por cliente', estado: 'planificado', division: 'D16' },
+      { nombre: 'agente_sala_visual', funcion: 'Métricas en vivo: PnL día, capital total, ops abiertas, equity', estado: 'planificado', division: 'D16' },
+      { nombre: 'agente_retiros', funcion: 'Gestiona solicitudes retiro, verifica fondos, transferencia API', estado: 'planificado', division: 'D16' },
+      { nombre: 'agente_ceo_sala', funcion: 'Supervisa sala, kill-switch si DD>5% pool, reporte dashboard', estado: 'planificado', division: 'D16' },
+      { nombre: 'bot_manager', funcion: 'Monitorea estado, logs, métricas, reinicio automático por bot', estado: 'planificado', division: 'GVCA' },
+      { nombre: 'vps_manager', funcion: 'Provisioning, escalado, rotación, costos VPS', estado: 'planificado', division: 'GVCA' },
+      { nombre: 'anti_deteccion', funcion: 'Fingerprint único por instancia, proxies rotativos', estado: 'planificado', division: 'GVCA' },
+      { nombre: 'compliance_prop', funcion: 'Verifica TOS de cada firma, detecta cambios, ajusta bot', estado: 'planificado', division: 'GVCA' },
+      { nombre: 'cloud_infra', funcion: 'Orquestación containers, balanceo, failover', estado: 'planificado', division: 'GVCA' }
+    ]
+  },
+  MACRO2: {
+    nombre: 'MACRO 2 — Operaciones Internas',
+    descripcion: 'Limpieza, crecimiento, DevOps, BI, logística de recursos, gestión de contexto y seguridad.',
+    icono: '⚙️',
+    divisiones: [
+      { id: 'D9', nombre: 'D9 — Limpieza/Mantenimiento', desc: 'The Cleaner, The Optimizer' },
+      { id: 'D12', nombre: 'D12 — Crecimiento/Optimización', desc: 'Sistema de reputación DGCR' },
+      { id: 'D13', nombre: 'D13 — Legal/Compliance', desc: 'Compliance regulatorio' },
+      { id: 'D14', nombre: 'D14 — DevOps/Infraestructura', desc: 'Monitoreo, backups, actualizaciones' },
+      { id: 'D15', nombre: 'D15 — BI/Dashboard CEO', desc: 'Métricas en vivo, reportes' },
+      { id: 'DLRI', nombre: 'DLRI — Logística Recursos', desc: 'The Broker, The Hunter' },
+      { id: 'UGCC', nombre: 'UGCC — Gestión Conocimiento', desc: 'Divide archivos, mantiene índice maestro' },
+      { id: 'USEC', nombre: 'USEC — Seguridad', desc: 'Vault, Firewall, Anti-Colapso' }
+    ],
+    agentes: [
+      { nombre: 'the_cleaner', funcion: 'Comprime logs >7 días, elimina duplicados, hot/cold storage', estado: 'planificado', division: 'D9' },
+      { nombre: 'the_optimizer', funcion: 'Monitorea latencia agentes, mueve a modelos rápidos', estado: 'planificado', division: 'D9' },
+      { nombre: 'agente_limpieza_datos', funcion: 'Elimina datos antiguos, comprime parquet', estado: 'activo', division: 'D9' },
+      { nombre: 'agente_limpieza_modelos', funcion: 'Archiva ONNX obsoletos', estado: 'activo', division: 'D9' },
+      { nombre: 'agente_limpieza_logs', funcion: 'Rota logs >30 días, comprime .gz', estado: 'activo', division: 'D9' },
+      { nombre: 'agente_limpieza_prompts', funcion: 'Archiva prompts de sesiones anteriores', estado: 'activo', division: 'D9' },
+      { nombre: 'agente_ceo_estrategico', funcion: 'Evalúa métricas globales diarias', estado: 'activo', division: 'D12' },
+      { nombre: 'agente_scout', funcion: 'Busca repos/papers/herramientas nuevas', estado: 'activo', division: 'D12' },
+      { nombre: 'agente_clasificador', funcion: 'Evalúa hallazgos del scout', estado: 'activo', division: 'D12' },
+      { nombre: 'agente_entrenador_bots', funcion: 'Monitorea métricas bots, decide reentrenar', estado: 'activo', division: 'D12' },
+      { nombre: 'agente_entrenador_divisiones', funcion: 'Monitorea KPIs divisiones', estado: 'activo', division: 'D12' },
+      { nombre: 'agente_supervisor_global', funcion: 'Cruza datos áreas, detecta cuellos', estado: 'activo', division: 'D12' },
+      { nombre: 'agente_premios', funcion: 'Registra mejoras >5% en 7 días', estado: 'activo', division: 'D12' },
+      { nombre: 'auditor_sppr', funcion: 'Califica outputs agentes, actualiza score', estado: 'planificado', division: 'D12' },
+      { nombre: 'agente_terminos', funcion: 'Términos de servicio versionados', estado: 'activo', division: 'D13' },
+      { nombre: 'agente_contratos', funcion: 'Contratos PDF clientes fondeo', estado: 'activo', division: 'D13' },
+      { nombre: 'agente_regulaciones', funcion: 'Monitorea regulaciones por país', estado: 'activo', division: 'D13' },
+      { nombre: 'agente_propfirm_compliance', funcion: 'Reglas PropFirms, alerta cambios TOS', estado: 'activo', division: 'D13' },
+      { nombre: 'agente_privacidad', funcion: 'GDPR, eliminación datos', estado: 'activo', division: 'D13' },
+      { nombre: 'agente_monitoreo_sistema', funcion: 'Verifica procesos cada 5 min, reinicia', estado: 'activo', division: 'D14' },
+      { nombre: 'agente_backup', funcion: 'Backup diario ONNX/SQLite/config', estado: 'activo', division: 'D14' },
+      { nombre: 'agente_actualizaciones', funcion: 'Versiones nuevas dependencias', estado: 'activo', division: 'D14' },
+      { nombre: 'agente_performance', funcion: 'CPU/RAM/disco, alerta >80%', estado: 'activo', division: 'D14' },
+      { nombre: 'agente_alertas_criticas', funcion: 'Alertas por niveles VERDE->NEGRO', estado: 'activo', division: 'D14' },
+      { nombre: 'agente_dashboard_ejecutivo', funcion: 'Reporte diario KPIs todas divisiones', estado: 'activo', division: 'D15' },
+      { nombre: 'agente_metricas_trading', funcion: 'Winrate, PF, DD, Sharpe diario', estado: 'activo', division: 'D15' },
+      { nombre: 'agente_metricas_negocio', funcion: 'MRR, churn, LTV, CAC, proyecciones', estado: 'activo', division: 'D15' },
+      { nombre: 'agente_alertas_negocio', funcion: 'Alerta si KPI cae bajo umbral', estado: 'activo', division: 'D15' },
+      { nombre: 'agente_reportes_inversores', funcion: 'PDF mensual profesional', estado: 'activo', division: 'D15' },
+      { nombre: 'the_broker', funcion: 'Administra API keys, asigna por nivel reputación', estado: 'planificado', division: 'DLRI' },
+      { nombre: 'the_hunter', funcion: 'Busca APIs gratuitas, créditos bienvenida', estado: 'planificado', division: 'DLRI' },
+      { nombre: 'ugcc_manager', funcion: 'Divide archivos contexto, mantiene índice maestro', estado: 'planificado', division: 'UGCC' },
+      { nombre: 'vault', funcion: 'Credenciales, rotación automática keys, cifrado', estado: 'planificado', division: 'USEC' },
+      { nombre: 'firewall', funcion: 'Control accesos, detección anomalías uso', estado: 'planificado', division: 'USEC' },
+      { nombre: 'anti_colapso', funcion: 'Monitorea CPU/RAM/disco/tokens, frena procesos', estado: 'planificado', division: 'USEC' },
+      { nombre: 'backup_usec', funcion: 'Snapshot automático antes cambio mayor', estado: 'planificado', division: 'USEC' },
+      { nombre: 'guardrails', funcion: 'Valida outputs entre divisiones, frena código contradictorio', estado: 'planificado', division: 'USEC' }
+    ]
+  },
+  MACRO3: {
+    nombre: 'MACRO 3 — Marketing y Ventas',
+    descripcion: 'Señales, marketing, infoproductos, high ticket, atención, expansión multinacional, humanización, monetización inteligente.',
+    icono: '📢',
+    divisiones: [
+      { id: 'D3', nombre: 'D3 — Señales/Telegram', desc: 'Gestión de señales y grupos' },
+      { id: 'D4', nombre: 'D4 — Marketing/Captación', desc: 'Instagram, contenido, CRM' },
+      { id: 'D5', nombre: 'D5 — Infoproductos/EAs', desc: 'Cursos, EAs, licencias' },
+      { id: 'D11', nombre: 'D11 — Ventas/Atención', desc: 'Soporte, closers, onboarding' },
+      { id: 'Humanizacion', nombre: 'Humanización Agentes', desc: 'Comportamiento humano simulado' },
+      { id: 'UMI-LT', nombre: 'UMI Low Ticket', desc: 'Oportunidades ingreso rápido' },
+      { id: 'UMI-HT', nombre: 'UMI High Ticket', desc: 'Empresas objetivo, contactos C-level' },
+      { id: 'UMI-DIR', nombre: 'UMI Director', desc: 'Estrategia precios global' },
+      { id: 'UCMI', nombre: 'UCMI — Unidad Captación Masiva', desc: 'Influencers, ganchos masivos' }
+    ],
+    agentes: [
+      { nombre: 'agente_formateador_senales', funcion: 'Formatea señales para Telegram', estado: 'activo', division: 'D3' },
+      { nombre: 'agente_gestor_grupos', funcion: 'Gestiona accesos trial/pago/expiración', estado: 'activo', division: 'D3' },
+      { nombre: 'agente_cobro_senales', funcion: 'Cobro suscripciones MP/Stripe', estado: 'activo', division: 'D3' },
+      { nombre: 'agente_retencion', funcion: 'Clientes sin renovar, descuento recuperación', estado: 'activo', division: 'D3' },
+      { nombre: 'agente_captacion_senales', funcion: 'Publica resultados en redes, gestiona DMs', estado: 'activo', division: 'D3' },
+      { nombre: 'agente_partnerships_traders', funcion: 'Pipeline con traders reconocidos', estado: 'activo', division: 'D4' },
+      { nombre: 'agente_captacion_seguidores', funcion: 'Post-acuerdo con rate limit 50/día', estado: 'activo', division: 'D4' },
+      { nombre: 'agente_naming_bots', funcion: 'Generador nombres técnicos propios para bots', estado: 'activo', division: 'D4' },
+      { nombre: 'agente_analytics_web', funcion: 'Google Analytics/Plausible, funnel', estado: 'activo', division: 'D4' },
+      { nombre: 'agente_seo', funcion: 'Keywords competidores, contenido, posicionamiento', estado: 'activo', division: 'D4' },
+      { nombre: 'agente_ab_testing', funcion: 'Variantes landing pages, conversión', estado: 'activo', division: 'D4' },
+      { nombre: 'agente_diseno_contenido', funcion: 'Assets visuales web automáticos', estado: 'activo', division: 'D4' },
+      { nombre: 'agente_creador_infoproductos', funcion: 'Estructuras modulares, guiones, pipeline', estado: 'activo', division: 'D5' },
+      { nombre: 'agente_analista_tendencias', funcion: 'Nichos hot, pricing, estrategias lanzamiento', estado: 'activo', division: 'D5' },
+      { nombre: 'agente_entrenador_ventas', funcion: 'Copywriting, email marketing, funnels', estado: 'activo', division: 'D5' },
+      { nombre: 'agente_bienvenida', funcion: 'Primer contacto, califica lead, deriva', estado: 'activo', division: 'D11' },
+      { nombre: 'agente_especialista_senales', funcion: 'Experto grupo señales', estado: 'activo', division: 'D11' },
+      { nombre: 'agente_especialista_fondeo', funcion: 'Experto gestión challenges', estado: 'activo', division: 'D11' },
+      { nombre: 'agente_especialista_bots', funcion: 'Experto venta EAs/bots', estado: 'activo', division: 'D11' },
+      { nombre: 'agente_closer', funcion: 'Cierra ventas, links pago, seguimiento', estado: 'activo', division: 'D11' },
+      { nombre: 'agente_onboarding_ventas', funcion: 'Acceso post-pago, instrucciones', estado: 'activo', division: 'D11' },
+      { nombre: 'agente_retencion_ventas', funcion: 'Clientes inactivos, campaña retención', estado: 'activo', division: 'D11' },
+      { nombre: 'humanizador_agentes', funcion: 'Comportamiento humano simulado, variación semántica', estado: 'planificado', division: 'Humanizacion' },
+      { nombre: 'explorador_lt', funcion: 'Detecta oportunidades ingreso rápido, bajo costo', estado: 'planificado', division: 'UMI-LT' },
+      { nombre: 'optimizador_division_lt', funcion: 'Adapta productos existentes a formatos low ticket', estado: 'planificado', division: 'UMI-LT' },
+      { nombre: 'afiliados_externos', funcion: 'Gestiona red afiliados fuera ecosistema Colmena', estado: 'planificado', division: 'UMI-LT' },
+      { nombre: 'lanzamientos_rapidos', funcion: 'Micro-productos en <72h desde idea', estado: 'planificado', division: 'UMI-LT' },
+      { nombre: 'pricing_dinamico', funcion: 'Ajusta precios según demanda, competencia', estado: 'planificado', division: 'UMI-LT' },
+      { nombre: 'explorador_ht', funcion: 'Identifica empresas objetivo, contactos C-level', estado: 'planificado', division: 'UMI-HT' },
+      { nombre: 'propuestas_enterprise', funcion: 'Genera propuestas personalizadas, ROI calculado', estado: 'planificado', division: 'UMI-HT' },
+      { nombre: 'nicho_hunter', funcion: 'Descubre nichos desatendidos con alto poder adquisitivo', estado: 'planificado', division: 'UMI-HT' },
+      { nombre: 'partnerships_estrategicos', funcion: 'Alianzas con propfirms, brokers, plataformas', estado: 'planificado', division: 'UMI-HT' },
+      { nombre: 'mentorship_pipeline', funcion: 'Gestiona lista espera mentorship Sergio', estado: 'planificado', division: 'UMI-HT' },
+      { nombre: 'director_umi', funcion: 'Consolida estrategia precios global, evita canibalización', estado: 'planificado', division: 'UMI-DIR' },
+      { nombre: 'metricas_monetizacion', funcion: 'ARPU, LTV, CAC por canal, cohort analysis', estado: 'planificado', division: 'UMI-DIR' },
+      { nombre: 'ceo_ucmi', funcion: 'Supervisa flujos captación, mide CPA', estado: 'futuro', division: 'UCMI' },
+      { nombre: 'gancho_masivo', funcion: 'Crea grupos Telegram lanzamiento', estado: 'futuro', division: 'UCMI' },
+      { nombre: 'explorador_puntos_calientes', funcion: 'Escanea Twitter/Reddit/Telegram comunidades', estado: 'futuro', division: 'UCMI' },
+      { nombre: 'influencer_hunter', funcion: 'Encuentra influencers nicho, engagement real', estado: 'futuro', division: 'UCMI' },
+      { nombre: 'closer_influencers', funcion: 'Contacta influencers, presenta propuesta', estado: 'futuro', division: 'UCMI' }
+    ]
+  },
+  MACRO4: {
+    nombre: 'MACRO 4 — Fábrica de Bots',
+    descripcion: 'Producción de EAs, tienda interna, UCI, cursos genéricos, pipeline automatizado.',
+    icono: '🏭',
+    divisiones: [
+      { id: 'D8', nombre: 'D8 — Fábrica de Bots', desc: 'Catálogo, QA, tienda' },
+      { id: 'D18', nombre: 'D18 — UCI Conocimiento IA', desc: 'Whisper, base vectorial, recolector' },
+      { id: 'Pipeline', nombre: 'Pipeline Fábrica', desc: 'Clonador, Backtester, Publisher' }
+    ],
+    agentes: [
+      { nombre: 'agente_control_calidad', funcion: 'Backtest automático, aprobación/rechazo', estado: 'activo', division: 'D8' },
+      { nombre: 'agente_pricing', funcion: 'Análisis mercado EAs, precio óptimo', estado: 'activo', division: 'D8' },
+      { nombre: 'agente_catalogo', funcion: 'Catálogo productos, descripciones, métricas', estado: 'activo', division: 'D8' },
+      { nombre: 'agente_recolector_videos', funcion: 'Recibe URLs YouTube, descarga audio yt-dlp', estado: 'planificado', division: 'D18' },
+      { nombre: 'agente_procesador_pdfs', funcion: 'Procesa PDFs estrategias, extrae patrones', estado: 'planificado', division: 'D18' },
+      { nombre: 'agente_generador_cnn', funcion: 'Captura pantallazos MT5, etiqueta auto', estado: 'planificado', division: 'D18' },
+      { nombre: 'agente_base_conocimiento', funcion: 'Indexa conocimiento en ChromaDB/FAISS', estado: 'planificado', division: 'D18' },
+      { nombre: 'agente_clonador', funcion: 'Genera variantes bot con distintos activos', estado: 'futuro', division: 'Pipeline' },
+      { nombre: 'backtester_automatico', funcion: 'Corre backtest cada clon, reporte WR/DD', estado: 'futuro', division: 'Pipeline' },
+      { nombre: 'publisher', funcion: 'Sube bot aprobado MQL5 Market', estado: 'futuro', division: 'Pipeline' },
+      { nombre: 'experimentador', funcion: 'Combina estrategias, prueba cerebro ONNX', estado: 'futuro', division: 'Pipeline' },
+      { nombre: 'qa_fabrica', funcion: 'Test obligatorio antes publicar', estado: 'futuro', division: 'Pipeline' }
+    ]
+  },
+  MACRO5: {
+    nombre: 'MACRO 5 — Innovación y Proyectos',
+    descripcion: 'Partners, enjambre Smart Money, enjambre correlación cruzada, nuevas divisiones.',
+    icono: '🚀',
+    divisiones: [
+      { id: 'D17', nombre: 'D17 — Ecosistema Partners', desc: 'White label, partnerships' },
+      { id: 'Proyecto2', nombre: 'Proyecto 2 — Smart Money', desc: 'Order Flow, DOM, BOS, CHoCH, FVG' },
+      { id: 'Proyecto3', nombre: 'Proyecto 3 — Correlación', desc: 'Detector correlación rolling, arbitraje' }
+    ],
+    agentes: [
+      { nombre: 'gestor_partners', funcion: 'Onboarding partners, licencia tecnología', estado: 'planificado', division: 'D17' },
+      { nombre: 'monitor_track_record', funcion: 'Valida requisitos entrada partner', estado: 'planificado', division: 'D17' },
+      { nombre: 'desarrollador_smart_money', funcion: 'Implementa Order Flow, DOM, BOS, CHoCH', estado: 'planificado', division: 'Proyecto2' },
+      { nombre: 'analista_correlacion', funcion: 'Detector correlación rolling, arbitraje estadístico', estado: 'planificado', division: 'Proyecto3' }
+    ]
+  },
+  MACRO6: {
+    nombre: 'MACRO 6 — Legal, Finanzas & Advisory',
+    descripcion: '6A Legal & Advisory: consejero legal, contratos, monitor regulatorio, IP Guardian. 6B Finanzas: CFO, contabilidad, cobros.',
+    icono: '⚖️',
+    divisiones: [
+      { id: '6A', nombre: '6A — Legal & Advisory', desc: 'Consejero legal, contratos, monitor regulatorio' },
+      { id: 'IP', nombre: 'IP Guardian', desc: 'Registro marca, documenta autoría Git' },
+      { id: '6B', nombre: '6B — Finanzas, Contabilidad y Cobros', desc: 'CFO, contabilidad, cobros internacional' }
+    ],
+    agentes: [
+      { nombre: 'consejero_legal_ia', funcion: 'Explica implicancias legales pre-acción', estado: 'planificado', division: '6A' },
+      { nombre: 'generador_contratos', funcion: 'Automatiza templates documentales', estado: 'planificado', division: '6A' },
+      { nombre: 'monitor_regulatorio', funcion: 'Monitorea cambios normativos 24h', estado: 'planificado', division: '6A' },
+      { nombre: 'validador_certificados', funcion: 'Genera diploma digital con hash verificable', estado: 'planificado', division: '6A' },
+      { nombre: 'ip_guardian', funcion: 'Registro marca QuantumHive, documenta autoría', estado: 'futuro', division: 'IP' },
+      { nombre: 'firmas_electronicas', funcion: 'Gestiona firma digital contratos', estado: 'futuro', division: 'IP' },
+      { nombre: 'legal_ucmi', funcion: 'Genera contratos automáticos influencers', estado: 'futuro', division: 'IP' },
+      { nombre: 'agente_cfo', funcion: 'Consolida informes financieros, reporte semanal', estado: 'futuro', division: '6B' },
+      { nombre: 'agente_contabilidad', funcion: 'Registra ingresos/egresos, genera balances', estado: 'futuro', division: '6B' },
+      { nombre: 'cobros_internacional', funcion: 'Infraestructura cobros USDT/crypto', estado: 'futuro', division: '6B' },
+      { nombre: 'bancos_y_cuentas', funcion: 'Apertura cuentas internacionales', estado: 'futuro', division: '6B' },
+      { nombre: 'finanzas_personales_sergio', funcion: 'Registra retiros CEO, presupuesto personal', estado: 'futuro', division: '6B' },
+      { nombre: 'agente_facturacion', funcion: 'Facturas automáticas por cliente', estado: 'futuro', division: '6B' }
+    ]
+  },
+  MACRO7: {
+    nombre: 'MACRO 7 — Colmena & Comunidad',
+    descripcion: 'Comunidad activa, jerarquías y rangos, afiliados, retención y engagement gamificado.',
+    icono: '🐝',
+    divisiones: [
+      { id: 'Jerarquias', nombre: 'Jerarquías Quanters', desc: 'Sistema de rangos y progreso' },
+      { id: 'Afiliados', nombre: 'Afiliados', desc: 'Tracking códigos únicos, comisiones recurrentes' },
+      { id: 'Retencion', nombre: 'Retención', desc: 'Sorteos, gamificación, notificaciones' }
+    ],
+    agentes: [
+      { nombre: 'gestor_rangos', funcion: 'Asigna y actualiza rangos, calcula progreso', estado: 'planificado', division: 'Jerarquias' },
+      { nombre: 'rastreador_afiliados', funcion: 'Tracking códigos únicos, comisiones recurrentes', estado: 'planificado', division: 'Afiliados' },
+      { nombre: 'sorteador_beneficios', funcion: 'Sorteos automáticos por nivel', estado: 'planificado', division: 'Retencion' },
+      { nombre: 'retencion_proactiva', funcion: 'Detecta inactividad, envía notificaciones', estado: 'planificado', division: 'Retencion' },
+      { nombre: 'gamificador_misiones', funcion: 'Genera misiones semanales, otorga puntos', estado: 'planificado', division: 'Retencion' }
+    ]
+  },
+  MACRO8: {
+    nombre: 'MACRO 8 — Desarrollo de Apps',
+    descripcion: 'App CEO, App Colmena, visual intelligence, dashboard navegación jerárquica.',
+    icono: '📱',
+    divisiones: [
+      { id: 'UVID', nombre: 'UVID — Visual Intelligence', desc: 'Design system, dashboard optimizer, QA visual' },
+      { id: 'AppCEO', nombre: 'App CEO (Fase 1)', desc: 'Backend FastAPI, frontend React Native' },
+      { id: 'AppColmena', nombre: 'App Colmena (Fase 2)', desc: 'Backend tenant separado, pagos Stripe/MP' }
+    ],
+    agentes: [
+      { nombre: 'arquitecto_visual', funcion: 'Define design_system.json, colores, tipografía', estado: 'planificado', division: 'UVID' },
+      { nombre: 'dashboard_optimizer', funcion: 'Backup versiones dashboard, A/B testing layouts', estado: 'planificado', division: 'UVID' },
+      { nombre: 'app_designer', funcion: 'Wireframes, máximo 3 toques por función', estado: 'planificado', division: 'UVID' },
+      { nombre: 'sala_virtual_designer', funcion: 'Prototipo interactivo casino cuántico', estado: 'planificado', division: 'UVID' },
+      { nombre: 'qa_visual', funcion: 'Checklist contraste, legibilidad móvil', estado: 'planificado', division: 'UVID' },
+      { nombre: 'ux_researcher', funcion: 'Detecta fricciones por analytics, heatmaps', estado: 'planificado', division: 'UVID' },
+      { nombre: 'desarrollador_app_ceo', funcion: 'Backend FastAPI, frontend React Native', estado: 'planificado', division: 'AppCEO' },
+      { nombre: 'desarrollador_app_colmena', funcion: 'Backend tenant separado, Firebase FCM', estado: 'planificado', division: 'AppColmena' }
+    ]
+  },
+  MACRO9: {
+    nombre: 'MACRO 9 — Academia QuantumHive',
+    descripcion: 'Universidad propia: tracks de trading manual, algorítmico, IA, crecimiento personal. Certificación verificable.',
+    icono: '🎓',
+    divisiones: [
+      { id: 'Academia', nombre: 'Academia Trading', desc: 'Cursos, certificaciones, mentorship' },
+      { id: 'Generador', nombre: 'Generador Cursos', desc: 'Cursos genéricos para Academia' }
+    ],
+    agentes: [
+      { nombre: 'generador_cursos_genericos', funcion: 'Crea cursos genéricos (video+PDF+quiz)', estado: 'planificado', division: 'Generador' },
+      { nombre: 'evaluador_examenes', funcion: 'Genera exámenes, califica automáticamente', estado: 'planificado', division: 'Academia' },
+      { nombre: 'pipeline_talento', funcion: 'Detecta alumnos destacados, evalúa proyectos', estado: 'planificado', division: 'Academia' },
+      { nombre: 'mentor_virtual', funcion: 'Responde dudas alumnos, guía por track', estado: 'planificado', division: 'Academia' }
+    ]
+  },
+  MACRO10: {
+    nombre: 'MACRO 10 — Universidad de Agentes',
+    descripcion: 'Sistema educativo para bots y agentes: recolector, conversor universal, profesor general, profesor CNN, mantenimiento, QA.',
+    icono: '🎓',
+    divisiones: [
+      { id: 'CEO', nombre: 'CEO Universidad', desc: 'Supervisa sistema educativo' },
+      { id: 'Aprendizaje', nombre: 'Aprendizaje', desc: 'Recolector, Conversor Universal' },
+      { id: 'Ensenanza', nombre: 'Enseñanza', desc: 'Profesor General, Profesor CNN' },
+      { id: 'Mantenimiento', nombre: 'Mantenimiento', desc: 'Monitorea rendimiento, envía a Universidad' },
+      { id: 'QA', nombre: 'QA Universidad', desc: 'Test validación conocimiento antes egreso' }
+    ],
+    agentes: [
+      { nombre: 'ceo_universidad', funcion: 'Supervisa sistema educativo, coordina flujo', estado: 'futuro', division: 'CEO' },
+      { nombre: 'recolector_conocimiento', funcion: 'Descarga videos YouTube, transcribe Whisper', estado: 'futuro', division: 'Aprendizaje' },
+      { nombre: 'conversor_universal', funcion: 'Convierte cualquier formato a PDF estructurado', estado: 'futuro', division: 'Aprendizaje' },
+      { nombre: 'profesor_general', funcion: 'Recibe PDF, extrae conceptos, genera curriculum', estado: 'futuro', division: 'Ensenanza' },
+      { nombre: 'profesor_cnn', funcion: 'Especialista imágenes setups, entrena modelo CNN', estado: 'futuro', division: 'Ensenanza' },
+      { nombre: 'mantenimiento_educativo', funcion: 'Monitorea rendimiento, detecta quien mejorar', estado: 'futuro', division: 'Mantenimiento' },
+      { nombre: 'qa_universidad', funcion: 'Test validación conocimiento antes egreso', estado: 'futuro', division: 'QA' }
+    ]
+  },
+  MACRO11: {
+    nombre: 'MACRO 11 — Comunicaciones QuantumHive',
+    descripcion: 'Canales centralizados: Telegram, WhatsApp Business, chatbots por landing, sistema de tickets, monitor.',
+    icono: '💬',
+    divisiones: [
+      { id: 'CEO', nombre: 'CEO Comunicaciones', desc: 'Supervisa canales, garantiza respuesta SLA' },
+      { id: 'Telegram', nombre: 'Telegram', desc: 'Administra grupos/canales, modera, responde' },
+      { id: 'WhatsApp', nombre: 'WhatsApp Business', desc: 'Atención personalizada clientes premium' },
+      { id: 'Chatbots', nombre: 'Chatbots', desc: 'Landing, Legal, Academia, Colmena' },
+      { id: 'Monitor', nombre: 'Monitor', desc: 'Detecta insatisfechos, alertas SLA' }
+    ],
+    agentes: [
+      { nombre: 'ceo_comunicaciones', funcion: 'Supervisa canales, garantiza respuesta SLA', estado: 'futuro', division: 'CEO' },
+      { nombre: 'telegram_manager', funcion: 'Administra grupos/canales, modera, responde', estado: 'futuro', division: 'Telegram' },
+      { nombre: 'whatsapp_business', funcion: 'Atención personalizada clientes premium', estado: 'futuro', division: 'WhatsApp' },
+      { nombre: 'chatbot_landing_pages', funcion: 'Chatbot por landing, entrenado producto', estado: 'futuro', division: 'Chatbots' },
+      { nombre: 'chatbot_legal', funcion: 'Resuelve dudas legales, escala MACRO 6A', estado: 'futuro', division: 'Chatbots' },
+      { nombre: 'chatbot_academia', funcion: 'Resuelve dudas cursos, integrado certificación', estado: 'futuro', division: 'Chatbots' },
+      { nombre: 'chatbot_colmena', funcion: 'Resuelve dudas challenges, estado cuenta', estado: 'futuro', division: 'Chatbots' },
+      { nombre: 'monitor_comunicaciones', funcion: 'Detecta insatisfechos, alertas SLA', estado: 'futuro', division: 'Monitor' }
+    ]
+  }
+};
+
+// Función para cargar macros
+function cargarMacros() {
+  const grid = document.getElementById('macros-grid');
+  grid.innerHTML = '';
+  
+  Object.entries(MACROS).forEach(([key, macro]) => {
+    const card = document.createElement('div');
+    card.className = 'macro-card';
+    
+    // Contar agentes por estado
+    const activos = macro.agentes.filter(a => a.estado === 'activo').length;
+    const planificados = macro.agentes.filter(a => a.estado === 'planificado').length;
+    const futuros = macro.agentes.filter(a => a.estado === 'futuro').length;
+    
+    card.innerHTML = `
+      <div class="macro-header">
+        <span class="macro-icon">${macro.icono}</span>
+        <div>
+          <div class="macro-title">${macro.nombre}</div>
+          <div class="macro-desc">${macro.descripcion}</div>
+        </div>
+      </div>
+      <div class="macro-stats">
+        <div class="stat"><span class="stat-number">${activos}</span> activos</div>
+        <div class="stat"><span class="stat-number">${planificados}</span> planificados</div>
+        <div class="stat"><span class="stat-number">${futuros}</span> futuros</div>
+      </div>
+      <div class="divisions-list">
+        ${macro.divisiones.map(div => `
+          <div class="division-item" onclick="toggleDivision(this)">
+            <div class="division-header">
+              <span class="division-name">${div.nombre}</span>
+              <span class="division-count">${macro.agentes.filter(a => a.division === div.id).length} agentes</span>
+            </div>
+            <div class="division-tooltip">${div.desc}</div>
+            <div class="agents-list">
+              ${macro.agentes.filter(a => a.division === div.id).map(agent => `
+                <div class="agent-item">
+                  <span class="agent-name">${agent.nombre}</span>
+                  <span class="agent-func">${agent.funcion}</span>
+                  <span class="status-badge ${agent.estado === 'activo' ? 'activo' : agent.estado === 'planificado' ? 'planificado' : 'futuro'}">${agent.estado}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    
+    grid.appendChild(card);
+  });
+}
+
+// Toggle división expandir/colapsar
+function toggleDivision(element) {
+  const agentsList = element.querySelector('.agents-list');
+  agentsList.classList.toggle('expanded');
+}
+
+// Inicializar
+cargarMacros();
+</script>
+
+</body>
+</html>
