@@ -9,33 +9,68 @@ import os, json, math
 OUT = os.path.dirname(os.path.abspath(__file__))
 T = 32  # tile size
 
-# === PALETTA CYBERPUNK ===
+# === PALETTA CYBERPUNK (MUCHO MAS CLARA) ===
 C = {
-    "bg":        (10, 10, 26),
-    "floor1":    (30, 30, 60),
-    "floor2":    (40, 40, 75),
-    "floor3":    (50, 50, 90),
-    "floor_line":(60, 60, 100),
-    "wall_d":    (20, 20, 50),
-    "wall_m":    (35, 35, 70),
-    "wall_l":    (50, 50, 85),
-    "neon":      (0, 212, 255),
-    "neon_d":    (0, 150, 200),
-    "gold":      (255, 215, 0),
-    "gold_d":    (180, 140, 0),
-    "green":     (0, 255, 80),
-    "red":       (255, 40, 40),
-    "blue":      (0, 150, 255),
-    "purple":    (180, 100, 255),
-    "cyan":      (0, 255, 230),
-    "srv1":      (40, 40, 80),
-    "srv2":      (50, 50, 95),
-    "screen_bg": (10, 25, 55),
-    "desk":      (55, 45, 75),
-    "desk_t":    (70, 60, 90),
-    "white":     (220, 220, 230),
-    "skin":      (200, 170, 140),
-    "shadow":    (10, 10, 25),
+    # Backgrounds
+    "bg":        (15, 15, 35),
+    # Floors - MUCHO mas claros
+    "floor1":    (35, 40, 70),      # suelo base
+    "floor2":    (50, 55, 90),      # lineas de grid
+    "floor3":    (65, 70, 110),     # centro de celda
+    "floor_glow":(80, 85, 130),     # glow sutil
+    # Walls
+    "wall_d":    (25, 25, 60),      # pared oscura
+    "wall_m":    (45, 45, 85),      # pared media
+    "wall_l":    (65, 65, 105),     # pared clara
+    "wall_top":  (75, 75, 115),     # tope de pared
+    # Neon colors - BRILLANTES
+    "neon":      (0, 220, 255),     # azul cyan
+    "neon_d":    (0, 160, 220),     # azul medio
+    "neon_g":    (0, 100, 180),     # azul oscuro glow
+    "gold":      (255, 220, 30),    # dorado brillante
+    "gold_d":    (200, 160, 20),    # dorado oscuro
+    "green":     (50, 255, 100),    # verde brillante
+    "green_d":   (30, 180, 60),     # verde oscuro
+    "red":       (255, 50, 50),     # rojo alerta
+    "red_d":     (180, 30, 30),     # rojo oscuro
+    "blue":      (30, 150, 255),    # azul
+    "purple":    (180, 100, 255),   # violeta
+    "cyan":      (30, 255, 240),    # cian
+    "orange":    (255, 160, 30),    # naranja
+    # Server/tech
+    "srv1":      (50, 50, 95),
+    "srv2":      (65, 65, 110),
+    "srv_led":   (100, 255, 120),
+    "screen_bg": (15, 35, 70),
+    "screen_l1": (0, 200, 255),
+    "screen_l2": (0, 255, 120),
+    "screen_l3": (255, 200, 0),
+    # Furniture
+    "desk":      (65, 55, 90),
+    "desk_t":    (80, 70, 105),
+    "desk_edge": (95, 85, 120),
+    "chair":     (55, 45, 80),
+    "chair_t":   (70, 60, 95),
+    # Cables
+    "cable1":    (0, 180, 220),
+    "cable2":    (0, 140, 180),
+    "cable3":    (80, 80, 140),
+    # Misc
+    "white":     (230, 230, 240),
+    "black":     (5, 5, 15),
+    "shadow":    (8, 8, 20),
+    "plant1":    (20, 160, 60),
+    "plant2":    (40, 200, 80),
+    "plant3":    (30, 130, 50),
+    "pot":       (120, 90, 60),
+    "pot_t":     (140, 110, 75),
+    # Department wall colors (brighter!)
+    "dept_blue": (0, 180, 255),
+    "dept_green":(50, 255, 100),
+    "dept_gold": (255, 210, 40),
+    "dept_cyan": (30, 240, 230),
+    "dept_purple":(160, 90, 255),
+    "dept_red":  (255, 60, 80),
 }
 
 def r(d, x1,y1,x2,y2,c): d.rectangle([x1,y1,x2,y2], fill=c)
@@ -44,551 +79,809 @@ def l(d, x1,y1,x2,y2,c): d.line([x1,y1,x2,y2], fill=c, width=1)
 
 # ================================================================
 # TILESET: 16 columnas x 4 filas = 64 tiles de 32x32
-# Fila 0: suelos y paredes basicas
-# Fila 1: objetos (servidor, pantalla, escritorio, silla, etc)
-# Fila 2: paredes de departamento (colores)
-# Fila 3: variantes y decoracion
+# Fila 0 (y=0):  suelos y paredes basicas
+# Fila 1 (y=32): objetos (servidor, pantalla, escritorio, silla, etc)
+# Fila 2 (y=64): paredes de departamento (colores neon)
+# Fila 3 (y=96): decoracion y mobiliario especial
 # ================================================================
 
 def tile_floor(d, ox, oy):
+    """Suelo base con grid tech - CLARO y visible"""
     r(d, ox,oy,ox+31,oy+31, C["floor1"])
+    # Grid lines
     for i in range(0,32,8):
         l(d, ox,oy+i,ox+31,oy+i, C["floor2"])
         l(d, ox+i,oy,ox+i,oy+31, C["floor2"])
-    # Center glow
-    r(d, ox+14,oy+14,ox+17,oy+17, C["floor3"])
+    # Center glow point
+    r(d, ox+15,oy+15,ox+16,oy+16, C["floor3"])
+    # Corner highlights
+    p(d, ox,oy, C["floor_glow"])
+    p(d, ox+31,oy, C["floor_glow"])
+    p(d, ox,oy+31, C["floor_glow"])
+    p(d, ox+31,oy+31, C["floor_glow"])
 
 def tile_floor_neon(d, ox, oy):
+    """Suelo con glow neon central"""
     tile_floor(d, ox, oy)
-    r(d, ox+14,oy+14,ox+17,oy+17, C["neon"])
-    for dx,dy in [(-1,0),(1,0),(0,-1),(0,1),(-2,0),(2,0),(0,-2),(0,2)]:
-        p(d, ox+15+dx, oy+15+dy, C["neon_d"])
+    # Central neon glow
+    r(d, ox+13,oy+13,ox+18,oy+18, C["neon"])
+    r(d, ox+14,oy+14,ox+17,oy+17, C["white"])
+    # Glow rays
+    for dx,dy in [(-1,0),(1,0),(0,-1),(0,1)]:
+        p(d, ox+15+dx*2, oy+15+dy*2, C["neon_d"])
+    for dx,dy in [(-2,0),(2,0),(0,-2),(0,2)]:
+        p(d, ox+15+dx, oy+15+dy, C["neon_g"])
+
+def tile_floor_gold(d, ox, oy):
+    """Suelo con glow dorado"""
+    tile_floor(d, ox, oy)
+    r(d, ox+13,oy+13,ox+18,oy+18, C["gold"])
+    r(d, ox+14,oy+14,ox+17,oy+17, C["white"])
 
 def tile_wall(d, ox, oy):
+    """Pared basica con strip neon"""
     r(d, ox,oy,ox+31,oy+31, C["wall_d"])
+    # Top highlight
     r(d, ox,oy,ox+31,oy+3, C["wall_m"])
-    r(d, ox,oy+1,ox+31,oy+1, C["neon"])
-    r(d, ox,oy+29,ox+31,oy+31, C["shadow"])
+    r(d, ox,oy+1,ox+31,oy+1, C["wall_top"])
+    # Neon strip
+    r(d, ox,oy+2,ox+31,oy+2, C["neon"])
+    # Bottom shadow
+    r(d, ox,oy+28,ox+31,oy+31, C["shadow"])
+    # Side highlights
+    r(d, ox,oy,ox+1,oy+31, C["wall_m"])
+    r(d, ox+30,oy,ox+31,oy+31, C["wall_m"])
 
 def tile_wall_gold(d, ox, oy):
+    """Pared con panel dorado"""
     tile_wall(d, ox, oy)
-    r(d, ox+10,oy+8,ox+21,oy+24, C["wall_m"])
-    r(d, ox+11,oy+9,ox+20,oy+23, C["gold_d"])
-    r(d, ox+12,oy+10,ox+19,oy+22, C["gold"])
+    # Gold panel
+    r(d, ox+10,oy+7,ox+21,oy+24, C["wall_m"])
+    r(d, ox+11,oy+8,ox+20,oy+23, C["gold_d"])
+    r(d, ox+12,oy+9,ox+19,oy+22, C["gold"])
+    # Shine
+    p(d, ox+13,oy+10, C["white"])
+
+def tile_wall_window(d, ox, oy):
+    """Pared con ventana/pantalla"""
+    tile_wall(d, ox, oy)
+    # Window frame
+    r(d, ox+6,oy+6,ox+25,oy+22, C["wall_l"])
+    # Window glass
+    r(d, ox+7,oy+7,ox+24,oy+21, C["screen_bg"])
+    # Window lines
+    for i in range(4):
+        y = oy+9+i*3
+        w = 10 + (i%3)*3
+        r(d, ox+9,y,ox+9+w,y+1, C["screen_l1"])
+
+# === Fila 1: OBJETOS ===
 
 def tile_server(d, ox, oy):
+    """Rack de servidores con LEDs"""
     r(d, ox,oy,ox+31,oy+31, C["bg"])
-    r(d, ox+4,oy+2,ox+27,oy+29, C["srv1"])
-    r(d, ox+5,oy+3,ox+26,oy+28, C["srv2"])
-    for i in range(4):
-        y = oy+4+i*6
+    # Rack body
+    r(d, ox+4,oy+1,ox+27,oy+30, C["srv1"])
+    r(d, ox+5,oy+2,ox+26,oy+29, C["srv2"])
+    # Server bays
+    for i in range(5):
+        y = oy+3+i*5
         r(d, ox+6,y,ox+25,y+4, C["srv1"])
         r(d, ox+7,y+1,ox+24,y+3, C["srv2"])
-        colors = [C["green"],C["blue"],C["red"],C["green"]]
-        p(d, ox+24,y+2, colors[i])
-        p(d, ox+22,y+2, C["green"])
-    r(d, ox+4,oy+2,ox+4,oy+29, C["wall_l"])
-    r(d, ox+27,oy+2,ox+27,oy+29, C["wall_l"])
+        # LEDs
+        leds = [C["green"], C["blue"], C["red"], C["cyan"], C["orange"]]
+        p(d, ox+24,y+2, leds[i])
+        p(d, ox+22,y+2, C["srv_led"])
+        # Vent lines
+        l(d, ox+9,y+2,ox+14,y+2, C["wall_l"])
+    # Side rails
+    r(d, ox+4,oy+1,ox+4,oy+30, C["wall_l"])
+    r(d, ox+27,oy+1,ox+27,oy+30, C["wall_l"])
 
 def tile_screen(d, ox, oy):
+    """Pantalla con codigo de barras"""
     r(d, ox,oy,ox+31,oy+31, C["bg"])
-    r(d, ox+2,oy+4,ox+29,oy+26, C["wall_l"])
-    r(d, ox+3,oy+5,ox+28,oy+25, C["screen_bg"])
-    for i in range(5):
-        y = oy+7+i*4
-        w = 12+(i%3)*4
-        r(d, ox+5,y,ox+5+w,y+1, C["neon"])
-    r(d, ox+3,oy+5,ox+28,oy+5, C["neon"])
+    # Monitor frame
+    r(d, ox+2,oy+3,ox+29,oy+24, C["wall_l"])
+    # Screen
+    r(d, ox+3,oy+4,ox+28,oy+23, C["screen_bg"])
+    # Code lines
+    lines = [C["screen_l1"], C["screen_l2"], C["screen_l3"], C["screen_l1"]]
+    for i, col in enumerate(lines):
+        y = oy+6+i*4
+        w = 8 + (i%3)*5
+        r(d, ox+5,y,ox+5+w,y+1, col)
+        r(d, ox+5+w+2,y,ox+5+w+6,y+1, C["white"])
+    # Stand
+    r(d, ox+13,oy+25,ox+18,oy+27, C["wall_l"])
+    r(d, ox+10,oy+28,ox+21,oy+29, C["wall_m"])
 
-def tile_screen_chart(d, ox, oy):
+def tile_screen_graph(d, ox, oy):
+    """Pantalla con grafico de barras"""
     r(d, ox,oy,ox+31,oy+31, C["bg"])
-    r(d, ox+1,oy+2,ox+30,oy+28, C["wall_l"])
-    r(d, ox+2,oy+3,ox+29,oy+27, C["screen_bg"])
-    bars = [8,14,10,18,12,20,15]
-    for i,h in enumerate(bars):
-        x = ox+4+i*3
-        r(d, x,oy+27-h,x+2,oy+27, C["neon"])
-    r(d, ox+2,oy+3,ox+29,oy+3, C["gold"])
+    r(d, ox+2,oy+3,ox+29,oy+24, C["wall_l"])
+    r(d, ox+3,oy+4,ox+28,oy+23, C["screen_bg"])
+    # Bar chart
+    heights = [6, 10, 8, 14, 11, 7, 12]
+    colors = [C["green"], C["neon"], C["gold"], C["red"], C["cyan"], C["purple"], C["blue"]]
+    for i, (h, col) in enumerate(zip(heights, colors)):
+        x = ox+5+i*3
+        y = oy+22-h
+        r(d, x,y,x+2,oy+22, col)
+    # Stand
+    r(d, ox+13,oy+25,ox+18,oy+27, C["wall_l"])
+    r(d, ox+10,oy+28,ox+21,oy+29, C["wall_m"])
 
 def tile_desk(d, ox, oy):
-    r(d, ox,oy,ox+31,oy+31, C["bg"])
-    r(d, ox+2,oy+12,ox+29,oy+18, C["desk_t"])
-    r(d, ox+2,oy+18,ox+29,oy+22, C["desk"])
-    r(d, ox+3,oy+22,ox+5,oy+28, C["desk"])
-    r(d, ox+26,oy+22,ox+28,oy+28, C["desk"])
-    r(d, ox+10,oy+5,ox+22,oy+12, C["screen_bg"])
-    r(d, ox+11,oy+6,ox+21,oy+11, C["neon"])
-    r(d, ox+14,oy+12,ox+18,oy+14, C["wall_l"])
+    """Escritorio con monitor"""
+    # Desk surface
+    r(d, ox+2,oy+16,ox+29,oy+20, C["desk_t"])
+    r(d, ox+3,oy+17,ox+28,oy+19, C["desk_edge"])
+    # Desk legs
+    r(d, ox+3,oy+21,ox+5,oy+30, C["desk"])
+    r(d, ox+26,oy+21,ox+28,oy+30, C["desk"])
+    # Monitor on desk
+    r(d, ox+10,oy+6,ox+22,oy+15, C["wall_l"])
+    r(d, ox+11,oy+7,ox+21,oy+14, C["screen_bg"])
+    # Monitor stand
+    r(d, ox+14,oy+15,ox+18,oy+16, C["wall_l"])
+    # Code on screen
+    l(d, ox+13,oy+9,ox+17,oy+9, C["screen_l1"])
+    l(d, ox+13,oy+11,ox+19,oy+11, C["screen_l2"])
+    l(d, ox+13,oy+13,ox+15,oy+13, C["screen_l3"])
 
 def tile_chair(d, ox, oy):
-    r(d, ox,oy,ox+31,oy+31, C["bg"])
-    r(d, ox+8,oy+14,ox+23,oy+20, (30,25,45))
-    r(d, ox+9,oy+15,ox+22,oy+19, C["wall_m"])
-    r(d, ox+9,oy+8,ox+22,oy+14, (30,25,45))
-    r(d, ox+10,oy+9,ox+21,oy+13, C["wall_m"])
-    r(d, ox+10,oy+20,ox+11,oy+26, (30,25,45))
-    r(d, ox+20,oy+20,ox+21,oy+26, (30,25,45))
+    """Silla de oficina"""
+    # Seat
+    r(d, ox+8,oy+14,ox+23,oy+18, C["chair_t"])
+    r(d, ox+9,oy+15,ox+22,oy+17, C["chair"])
+    # Backrest
+    r(d, ox+9,oy+4,ox+22,oy+13, C["chair_t"])
+    r(d, ox+10,oy+5,ox+21,oy+12, C["chair"])
+    # Legs
+    r(d, ox+10,oy+19,ox+12,oy+28, C["wall_m"])
+    r(d, ox+19,oy+19,ox+21,oy+28, C["wall_m"])
+    # Wheels
+    p(d, ox+9,oy+29, C["wall_l"])
+    p(d, ox+22,oy+29, C["wall_l"])
 
-def tile_cable(d, ox, oy):
+def tile_cables(d, ox, oy):
+    """Bundle de cables"""
     r(d, ox,oy,ox+31,oy+31, C["bg"])
-    for i in range(3):
-        y = oy+8+i*6
-        for x in range(ox+2,ox+30,2):
-            p(d, x,y, (15,15,35))
-            glow = C["neon_d"] if (x+oy)%8<3 else (15,15,35)
-            p(d, x+1,y, glow)
+    # Cable bundle
+    for i, col in enumerate([C["cable1"], C["cable2"], C["cable3"]]):
+        x = ox+8+i*5
+        l(d, x,oy+2,x,oy+29, col)
+        # Connectors
+        r(d, x-1,oy+14,x+1,oy+16, C["wall_l"])
 
 def tile_plant(d, ox, oy):
+    """Planta decorativa"""
     r(d, ox,oy,ox+31,oy+31, C["bg"])
-    r(d, ox+10,oy+20,ox+21,oy+28, (40,30,20))
-    r(d, ox+9,oy+20,ox+22,oy+21, (40,30,20))
-    for dx,dy in [(-2,-4),(0,-6),(2,-4),(3,-2),(-3,-2),(-1,-7),(1,-7)]:
-        p(d, ox+15+dx, oy+20+dy, (0,80,40))
+    # Pot
+    r(d, ox+10,oy+20,ox+21,oy+28, C["pot"])
+    r(d, ox+11,oy+21,ox+20,oy+27, C["pot_t"])
+    # Soil
+    r(d, ox+11,oy+20,ox+20,oy+21, C["desk"])
+    # Leaves
+    r(d, ox+14,oy+8,ox+17,oy+19, C["plant3"])
+    # Leaf clusters
+    for dx,dy in [(-3,-4),(3,-4),(-2,-6),(2,-6),(0,-7)]:
+        cx, cy = ox+15+dx, oy+12+dy
+        r(d, cx,cy,cx+2,cy+2, C["plant1"])
+        p(d, cx+1,cy-1, C["plant2"])
 
 def tile_quantum(d, ox, oy):
+    """Quantum core hexagonal central"""
     r(d, ox,oy,ox+31,oy+31, C["bg"])
-    cx,cy = ox+16,oy+16
-    for rad,color in [(12,C["gold"]),(10,C["neon"]),(7,C["gold"]),(4,C["neon"])]:
-        for a in range(0,360,15):
-            x = int(cx+rad*math.cos(math.radians(a)))
-            y = int(cy+rad*math.sin(math.radians(a)))
-            p(d, x,y, color)
-    r(d, cx-2,cy-2,cx+2,cy+2, C["gold"])
-    r(d, cx-1,cy-1,cx+1,cy+1, C["cyan"])
+    # Outer glow
+    for dx in range(-2,3):
+        for dy in range(-2,3):
+            if abs(dx)+abs(dy) <= 3:
+                p(d, ox+15+dx, oy+15+dy, C["neon_g"])
+    # Hexagon body
+    hex_pts = [(15,2),(22,6),(22,12),(15,16),(8,12),(8,6)]
+    hex_pts = [(ox+x,oy+y) for x,y in hex_pts]
+    d.polygon(hex_pts, fill=C["neon_d"])
+    # Inner hex
+    hex_in = [(15,4),(20,7),(20,11),(15,14),(10,11),(10,7)]
+    hex_in = [(ox+x,oy+y) for x,y in hex_in]
+    d.polygon(hex_in, fill=C["neon"])
+    # Center
+    r(d, ox+13,oy+7,ox+18,oy+10, C["white"])
 
 def tile_portal(d, ox, oy):
+    """Portal / Energy core"""
     r(d, ox,oy,ox+31,oy+31, C["bg"])
-    cx,cy = ox+16,oy+16
-    for rad in [12,10,7,4]:
-        color = C["neon"] if rad%4==0 else C["gold"]
-        for a in range(0,360,10):
-            x = int(cx+rad*math.cos(math.radians(a)))
-            y = int(cy+rad*math.sin(math.radians(a)))
-            p(d, x,y, color)
-    r(d, cx-1,cy-1,cx+1,cy+1, C["cyan"])
+    # Outer rings
+    for r_size in [14, 11, 8]:
+        for angle in range(0, 360, 15):
+            x = ox+15 + int(r_size * math.cos(math.radians(angle)))
+            y = oy+15 + int(r_size * math.sin(math.radians(angle)))
+            if 0 <= x-ox <= 31 and 0 <= y-oy <= 31:
+                p(d, x, y, C["gold"])
+    # Inner glow
+    r(d, ox+12,oy+12,ox+19,oy+19, C["gold_d"])
+    r(d, ox+13,oy+13,ox+18,oy+18, C["gold"])
+    r(d, ox+14,oy+14,ox+17,oy+17, C["white"])
 
-# Dept wall tiles (fila 2)
-DEPT_COLORS = {
-    "orchestration": C["neon"],
-    "appfactory":    C["green"],
-    "analytics":     C["gold"],
-    "comms":         C["cyan"],
-    "server":        C["blue"],
-    "learning":      C["purple"],
-    "portal":        C["gold"],
-    "meeting":       C["red"],
-}
+# === Fila 2: PAREDES DE DEPARTAMENTO (con color neon) ===
 
-def tile_dept_wall(d, ox, oy, color):
+def _dept_wall(d, ox, oy, color, label_char):
+    """Pared de departamento con color y label"""
     r(d, ox,oy,ox+31,oy+31, C["wall_d"])
-    r(d, ox,oy,ox+31,oy+3, C["wall_m"])
+    # Colored top strip
+    r(d, ox,oy,ox+31,oy+5, C["wall_m"])
     r(d, ox,oy+1,ox+31,oy+1, color)
-    r(d, ox,oy+29,ox+31,oy+31, C["shadow"])
-    r(d, ox+14,oy+12,ox+17,oy+19, color)
+    r(d, ox,oy+2,ox+31,oy+2, color)
+    # Bottom shadow
+    r(d, ox,oy+28,ox+31,oy+31, C["shadow"])
+    # Side highlights
+    r(d, ox,oy,ox+1,oy+31, C["wall_m"])
+    r(d, ox+30,oy,ox+31,oy+31, C["wall_m"])
+    # Label area
+    r(d, ox+6,oy+10,ox+25,oy+22, C["wall_m"])
+    r(d, ox+7,oy+11,ox+24,oy+21, color)
+    # Letter/number indicator
+    r(d, ox+12,oy+13,ox+19,oy+19, C["white"])
+
+def tile_dept_orchestration(d, ox, oy):
+    """Agent Orchestration Center - AZUL"""
+    _dept_wall(d, ox, oy, C["dept_blue"], "AOC")
+    # Blue accent dots
+    p(d, ox+8, oy+24, C["dept_blue"])
+    p(d, ox+23, oy+24, C["dept_blue"])
+
+def tile_dept_factory(d, ox, oy):
+    """App Factory - VERDE"""
+    _dept_wall(d, ox, oy, C["dept_green"], "FAC")
+    p(d, ox+8, oy+24, C["dept_green"])
+    p(d, ox+23, oy+24, C["dept_green"])
+
+def tile_dept_data(d, ox, oy):
+    """Data & Analytics Lab - DORADO"""
+    _dept_wall(d, ox, oy, C["dept_gold"], "DAL")
+    p(d, ox+8, oy+24, C["dept_gold"])
+    p(d, ox+23, oy+24, C["dept_gold"])
+
+def tile_dept_comm(d, ox, oy):
+    """Communication Hub - CYAN"""
+    _dept_wall(d, ox, oy, C["dept_cyan"], "CHB")
+    p(d, ox+8, oy+24, C["dept_cyan"])
+    p(d, ox+23, oy+24, C["dept_cyan"])
+
+def tile_dept_server(d, ox, oy):
+    """Server Farm - AZUL OSCURO"""
+    _dept_wall(d, ox, oy, C["blue"], "SRV")
+    p(d, ox+8, oy+24, C["blue"])
+    p(d, ox+23, oy+24, C["blue"])
+
+def tile_dept_learning(d, ox, oy):
+    """Learning & Upgrade Hub - PURPURA"""
+    _dept_wall(d, ox, oy, C["dept_purple"], "LUH")
+    p(d, ox+8, oy+24, C["dept_purple"])
+    p(d, ox+23, oy+24, C["dept_purple"])
+
+def tile_dept_portal(d, ox, oy):
+    """Portal / Energy Core - DORADO"""
+    _dept_wall(d, ox, oy, C["dept_gold"], "PEC")
+    p(d, ox+8, oy+24, C["dept_gold"])
+    p(d, ox+23, oy+24, C["dept_gold"])
+
+def tile_dept_meeting(d, ox, oy):
+    """Meeting & Strategy Room - ROJO"""
+    _dept_wall(d, ox, oy, C["dept_red"], "MSR")
+    p(d, ox+8, oy+24, C["dept_red"])
+    p(d, ox+23, oy+24, C["dept_red"])
+
+# === Fila 3: DECORACION ESPECIAL ===
+
+def tile_floor_hallway(d, ox, oy):
+    """Pasillo con guias neon"""
+    tile_floor(d, ox, oy)
+    # Guide lines
+    l(d, ox+2,oy+15,ox+29,oy+15, C["neon_g"])
+    l(d, ox+2,oy+16,ox+29,oy+16, C["neon_g"])
+    # Arrow markers
+    r(d, ox+14,oy+12,ox+17,oy+14, C["neon"])
+    r(d, ox+15,oy+10,ox+16,oy+12, C["neon"])
+
+def tile_floor_carpet(d, ox, oy):
+    """Alfombra de meeting room"""
+    r(d, ox,oy,ox+31,oy+31, C["floor1"])
+    # Border
+    r(d, ox,oy,ox+31,oy+1, C["dept_red"])
+    r(d, ox,oy+30,ox+31,oy+31, C["dept_red"])
+    r(d, ox,oy,ox+1,oy+31, C["dept_red"])
+    r(d, ox+30,oy,ox+31,oy+31, C["dept_red"])
+    # Center pattern
+    r(d, ox+12,oy+12,ox+19,oy+19, C["dept_gold"])
+
+def tile_floor_lab(d, ox, oy):
+    """Suelo de laboratorio con grid especial"""
+    tile_floor(d, ox, oy)
+    # Lab grid accent
+    r(d, ox+8,oy,ox+8,oy+31, C["neon_g"])
+    r(d, ox+24,oy,ox+24,oy+31, C["neon_g"])
+    r(d, ox,oy+8,ox+31,oy+8, C["neon_g"])
+    r(d, ox,oy+24,ox+31,oy+24, C["neon_g"])
+
+def tile_floor_energy(d, ox, oy):
+    """Suelo con patrones de energia"""
+    tile_floor(d, ox, oy)
+    # Energy rings
+    for r_size in [6, 10, 14]:
+        angle_step = max(10, r_size)
+        for angle in range(0, 360, angle_step):
+            x = ox+15 + int(r_size * math.cos(math.radians(angle)))
+            y = oy+15 + int(r_size * math.sin(math.radians(angle)))
+            if 0 <= x-ox <= 31 and 0 <= y-oy <= 31:
+                p(d, x, y, C["gold_d"])
+
+def tile_whiteboard(d, ox, oy):
+    """Pizarra blanca"""
+    r(d, ox,oy,ox+31,oy+31, C["bg"])
+    # Board frame
+    r(d, ox+3,oy+3,ox+28,oy+24, C["wall_l"])
+    # Board surface
+    r(d, ox+4,oy+4,ox+27,oy+23, C["white"])
+    # Writing
+    l(d, ox+6,oy+8,ox+15,oy+8, C["red"])
+    l(d, ox+6,oy+12,ox+20,oy+12, C["blue"])
+    l(d, ox+6,oy+16,ox+18,oy+16, C["green"])
+    # Tray
+    r(d, ox+10,oy+25,ox+21,oy+26, C["wall_m"])
+    # Markers
+    r(d, ox+12,oy+25,ox+13,oy+26, C["red"])
+    r(d, ox+15,oy+25,ox+16,oy+26, C["blue"])
+    r(d, ox+18,oy+25,ox+19,oy+26, C["green"])
+
+def tile_coffee(d, ox, oy):
+    """Estacion de cafe"""
+    r(d, ox,oy,ox+31,oy+31, C["bg"])
+    # Machine
+    r(d, ox+8,oy+4,ox+23,oy+20, C["srv1"])
+    r(d, ox+9,oy+5,ox+22,oy+19, C["srv2"])
+    # Dispenser
+    r(d, ox+12,oy+10,ox+19,oy+17, C["wall_d"])
+    # Cup
+    r(d, ox+13,oy+22,ox+18,oy+28, C["white"])
+    r(d, ox+14,oy+23,ox+17,oy+27, C["desk"])
+    # Steam
+    p(d, ox+14,oy+21, C["white"])
+    p(d, ox+16,oy+20, C["white"])
 
 # ================================================================
-# SPRITESHEET: 6 agentes, cada uno 4 dirs x 3 frames = 12 frames
-# Layout: 6 columns (1 agent per column), 4 rows (dirs)
-# Each agent: 3 frames wide x 4 dirs tall = 96x128 px
-# Total: 6*96=576 x 128 px
+# BUILD TILESET
 # ================================================================
 
-AGENT_COLORS = {
-    "Hermes":       {"body":(0,180,220),  "acc":(255,215,0),  "hair":(200,200,220)},
-    "Dev_01":       {"body":(0,150,80),   "acc":(0,255,180),  "hair":(40,40,60)},
-    "Marketing_01": {"body":(180,40,130), "acc":(255,100,200), "hair":(60,30,50)},
-    "Design_01":    {"body":(150,80,220), "acc":(200,140,255), "hair":(30,20,50)},
-    "Investigador": {"body":(220,180,0),  "acc":(255,255,100), "hair":(50,40,30)},
-    "OpenClaw_Bot": {"body":(80,80,100),  "acc":(0,212,255),  "hair":(20,20,35)},
-}
-
-def draw_agent_frame(d, ox, oy, direction, frame, colors):
-    """Dibuja un frame de 32x32 de un agente"""
-    body, acc, hair = colors["body"], colors["acc"], colors["hair"]
-    
-    # Walking offset
-    wo = 0
-    if frame == 1: wo = -1
-    if frame == 2: wo = 1
-    
-    # Head (centered)
-    r(d, ox+11,oy+4,ox+20,oy+12, C["skin"])
-    r(d, ox+11,oy+3,ox+20,oy+6, hair)
-    
-    # Eyes based on direction
-    if direction == "down":
-        p(d, ox+13,oy+8, C["white"]); p(d, ox+17,oy+8, C["white"])
-        p(d, ox+13,oy+9, acc); p(d, ox+17,oy+9, acc)
-    elif direction == "up":
-        r(d, ox+12,oy+5,ox+19,oy+7, hair)
-    elif direction == "left":
-        p(d, ox+12,oy+8, C["white"]); p(d, ox+12,oy+9, acc)
-    elif direction == "right":
-        p(d, ox+18,oy+8, C["white"]); p(d, ox+18,oy+9, acc)
-    
-    # Body
-    r(d, ox+10,oy+13,ox+21,oy+26, body)
-    # Neon belt
-    r(d, ox+10,oy+20,ox+21,oy+21, acc)
-    
-    # Arms
-    if direction == "left":
-        r(d, ox+7,oy+14,ox+10,oy+20, body)
-    elif direction == "right":
-        r(d, ox+21,oy+14,ox+24,oy+20, body)
-    
-    # Legs with walk cycle
-    if direction in ["down","up"]:
-        r(d, ox+12+wo,oy+26,ox+14+wo,oy+30, body)
-        r(d, ox+17-wo,oy+26,ox+19-wo,oy+30, body)
-    else:
-        r(d, ox+12,oy+26,ox+14,oy+30, body)
-        r(d, ox+17,oy+26,ox+19,oy+30, body)
-    
-    # Shoes glow
-    r(d, ox+12+wo,oy+30,ox+14+wo,oy+31, acc)
-    r(d, ox+17-wo,oy+30,ox+19-wo,oy+31, acc)
-
-def gen_spritesheet():
-    agents = list(AGENT_COLORS.keys())
-    n = len(agents)
-    img = Image.new("RGBA", (n*3*T, 4*T), (0,0,0,0))
+def build_tileset():
+    img = Image.new("RGBA", (16*T, 4*T), (0,0,0,0))
     d = ImageDraw.Draw(img)
-    
-    dirs = ["down","left","right","up"]
-    for ai, name in enumerate(agents):
-        colors = AGENT_COLORS[name]
-        for di, direction in enumerate(dirs):
-            for frame in range(3):
-                ox = ai*3*T + frame*T
-                oy = di*T
-                draw_agent_frame(d, ox, oy, direction, frame, colors)
+
+    # === Fila 0: Suelos y paredes ===
+    y0 = 0
+    # Col 0: Suelo base
+    tile_floor(d, 0*T, y0)
+    # Col 1: Suelo neon
+    tile_floor_neon(d, 1*T, y0)
+    # Col 2: Pared basica
+    tile_wall(d, 2*T, y0)
+    # Col 3: Pared con panel dorado
+    tile_wall_gold(d, 3*T, y0)
+    # Col 4: Pared con ventana
+    tile_wall_window(d, 4*T, y0)
+    # Col 5-15: Mas suelos y paredes variadas
+    tile_floor_gold(d, 5*T, y0)
+    tile_floor(d, 6*T, y0)
+    tile_floor_neon(d, 7*T, y0)
+    tile_wall(d, 8*T, y0)
+    tile_wall_gold(d, 9*T, y0)
+    tile_wall_window(d, 10*T, y0)
+    tile_floor(d, 11*T, y0)
+    tile_floor_neon(d, 12*T, y0)
+    tile_wall(d, 13*T, y0)
+    tile_wall_gold(d, 14*T, y0)
+    tile_wall(d, 15*T, y0)
+
+    # === Fila 1: Objetos ===
+    y1 = T
+    tile_server(d, 0*T, y1)
+    tile_screen(d, 1*T, y1)
+    tile_screen_graph(d, 2*T, y1)
+    tile_desk(d, 3*T, y1)
+    tile_chair(d, 4*T, y1)
+    tile_cables(d, 5*T, y1)
+    tile_plant(d, 6*T, y1)
+    tile_quantum(d, 7*T, y1)
+    tile_portal(d, 8*T, y1)
+    tile_server(d, 9*T, y1)
+    tile_screen(d, 10*T, y1)
+    tile_screen_graph(d, 11*T, y1)
+    tile_desk(d, 12*T, y1)
+    tile_chair(d, 13*T, y1)
+    tile_plant(d, 14*T, y1)
+    tile_quantum(d, 15*T, y1)
+
+    # === Fila 2: Paredes de departamento ===
+    y2 = 2*T
+    tile_dept_orchestration(d, 0*T, y2)  # Agent Orchestration Center
+    tile_dept_factory(d, 1*T, y2)        # App Factory
+    tile_dept_data(d, 2*T, y2)           # Data & Analytics Lab
+    tile_dept_comm(d, 3*T, y2)           # Communication Hub
+    tile_dept_server(d, 4*T, y2)         # Server Farm
+    tile_dept_learning(d, 5*T, y2)       # Learning & Upgrade Hub
+    tile_dept_portal(d, 6*T, y2)         # Portal / Energy Core
+    tile_dept_meeting(d, 7*T, y2)        # Meeting & Strategy Room
+    # Duplicates for variety
+    tile_dept_orchestration(d, 8*T, y2)
+    tile_dept_factory(d, 9*T, y2)
+    tile_dept_data(d, 10*T, y2)
+    tile_dept_comm(d, 11*T, y2)
+    tile_dept_server(d, 12*T, y2)
+    tile_dept_learning(d, 13*T, y2)
+    tile_dept_portal(d, 14*T, y2)
+    tile_dept_meeting(d, 15*T, y2)
+
+    # === Fila 3: Decoracion especial ===
+    y3 = 3*T
+    tile_floor_hallway(d, 0*T, y3)
+    tile_floor_carpet(d, 1*T, y3)
+    tile_floor_lab(d, 2*T, y3)
+    tile_floor_energy(d, 3*T, y3)
+    tile_whiteboard(d, 4*T, y3)
+    tile_coffee(d, 5*T, y3)
+    tile_floor(d, 6*T, y3)
+    tile_floor_neon(d, 7*T, y3)
+    tile_floor_hallway(d, 8*T, y3)
+    tile_floor_carpet(d, 9*T, y3)
+    tile_floor_lab(d, 10*T, y3)
+    tile_floor_energy(d, 11*T, y3)
+    tile_whiteboard(d, 12*T, y3)
+    tile_coffee(d, 13*T, y3)
+    tile_floor(d, 14*T, y3)
+    tile_floor_neon(d, 15*T, y3)
+
+    path = os.path.join(OUT, "public", "assets", "quantumhive-tileset.png")
+    img.save(path)
+    print(f"Tileset saved: {path}")
     return img
 
 # ================================================================
-# MAP DATA: Genera gentle.js compatible
+# SPRITES DE AGENTES
 # ================================================================
-def gen_map_js(path, w, h):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    
-    with open(path, "w") as f:
-        f.write('// QuantumHive HQ Map — Auto-generated\n')
+
+def draw_agent(d, ox, oy, body_c, accent_c, hair_c, skin_c, outline_c):
+    """Dibuja un agente cyberpunk de 32x32 (un frame facing down)"""
+    # Shadow
+    r(d, ox+10,oy+28,ox+21,oy+30, (0,0,0,60))
+    # Body
+    r(d, ox+11,oy+14,ox+20,oy+27, body_c)
+    r(d, ox+12,oy+15,ox+19,oy+26, body_c)
+    # Head
+    r(d, ox+12,oy+4,ox+19,oy+13, skin_c)
+    r(d, ox+13,oy+5,ox+18,oy+12, skin_c)
+    # Hair
+    r(d, ox+11,oy+3,ox+20,oy+7, hair_c)
+    # Eyes
+    p(d, ox+14, oy+8, outline_c)
+    p(d, ox+17, oy+8, outline_c)
+    # Mouth
+    l(d, ox+14,oy+11,ox+17,oy+11, outline_c)
+    # Accent stripe on body
+    r(d, ox+11,oy+18,ox+20,oy+19, accent_c)
+    # Arms
+    r(d, ox+8,oy+15,ox+10,oy+24, body_c)
+    r(d, ox+21,oy+15,ox+23,oy+24, body_c)
+    # Hands
+    r(d, ox+8,oy+24,ox+10,oy+25, skin_c)
+    r(d, ox+21,oy+24,ox+23,oy+25, skin_c)
+    # Legs
+    r(d, ox+12,oy+27,ox+14,oy+31, body_c)
+    r(d, ox+17,oy+27,ox+19,oy+31, body_c)
+    # Boots
+    r(d, ox+11,oy+30,ox+15,oy+31, outline_c)
+    r(d, ox+16,oy+30,ox+20,oy+31, outline_c)
+
+def draw_agent_left(d, ox, oy, body_c, accent_c, hair_c, skin_c, outline_c):
+    """Agente mirando a la izquierda"""
+    r(d, ox+10,oy+28,ox+21,oy+30, (0,0,0,60))
+    r(d, ox+12,oy+14,ox+20,oy+27, body_c)
+    r(d, ox+12,oy+4,ox+19,oy+13, skin_c)
+    r(d, ox+11,oy+3,ox+20,oy+7, hair_c)
+    p(d, ox+13, oy+8, outline_c)
+    p(d, ox+15, oy+8, outline_c)
+    l(d, ox+13,oy+11,ox+16,oy+11, outline_c)
+    r(d, ox+12,oy+18,ox+20,oy+19, accent_c)
+    r(d, ox+9,oy+15,ox+11,oy+24, body_c)
+    r(d, ox+21,oy+16,ox+23,oy+25, body_c)
+    r(d, ox+9,oy+24,ox+11,oy+25, skin_c)
+    r(d, ox+12,oy+27,ox+14,oy+31, body_c)
+    r(d, ox+17,oy+27,ox+19,oy+31, body_c)
+    r(d, ox+11,oy+30,ox+15,oy+31, outline_c)
+    r(d, ox+16,oy+30,ox+20,oy+31, outline_c)
+
+def draw_agent_right(d, ox, oy, body_c, accent_c, hair_c, skin_c, outline_c):
+    """Agente mirando a la derecha"""
+    r(d, ox+10,oy+28,ox+21,oy+30, (0,0,0,60))
+    r(d, ox+11,oy+14,ox+19,oy+27, body_c)
+    r(d, ox+12,oy+4,ox+19,oy+13, skin_c)
+    r(d, ox+11,oy+3,ox+20,oy+7, hair_c)
+    p(d, ox+16, oy+8, outline_c)
+    p(d, ox+18, oy+8, outline_c)
+    l(d, ox+15,oy+11,ox+18,oy+11, outline_c)
+    r(d, ox+11,oy+18,ox+19,oy+19, accent_c)
+    r(d, ox+9,oy+16,ox+11,oy+25, body_c)
+    r(d, ox+20,oy+15,ox+22,oy+24, body_c)
+    r(d, ox+20,oy+24,ox+22,oy+25, skin_c)
+    r(d, ox+12,oy+27,ox+14,oy+31, body_c)
+    r(d, ox+17,oy+27,ox+19,oy+31, body_c)
+    r(d, ox+11,oy+30,ox+15,oy+31, outline_c)
+    r(d, ox+16,oy+30,ox+20,oy+31, outline_c)
+
+def draw_agent_up(d, ox, oy, body_c, accent_c, hair_c, skin_c, outline_c):
+    """Agente mirando hacia arriba"""
+    r(d, ox+10,oy+28,ox+21,oy+30, (0,0,0,60))
+    r(d, ox+11,oy+14,ox+20,oy+27, body_c)
+    r(d, ox+12,oy+4,ox+19,oy+13, skin_c)
+    r(d, ox+11,oy+3,ox+20,oy+7, hair_c)
+    r(d, ox+12,oy+18,ox+19,oy+19, accent_c)
+    r(d, ox+8,oy+15,ox+10,oy+24, body_c)
+    r(d, ox+21,oy+15,ox+23,oy+24, body_c)
+    r(d, ox+8,oy+24,ox+10,oy+25, skin_c)
+    r(d, ox+21,oy+24,ox+23,oy+25, skin_c)
+    r(d, ox+12,oy+27,ox+14,oy+31, body_c)
+    r(d, ox+17,oy+27,ox+19,oy+31, body_c)
+    r(d, ox+11,oy+30,ox+15,oy+31, outline_c)
+    r(d, ox+16,oy+30,ox+20,oy+31, outline_c)
+
+# Agent color schemes
+AGENT_COLORS = [
+    # (body, accent, hair, skin, outline) — Hermes
+    ((0, 180, 230), (255, 220, 30), (40, 30, 60), (200, 170, 140), (10, 10, 30)),
+    # Dev_01
+    ((30, 180, 80), (0, 220, 255), (60, 40, 30), (190, 160, 130), (10, 10, 30)),
+    # Marketing_01
+    ((220, 60, 120), (255, 150, 200), (80, 50, 40), (210, 175, 145), (10, 10, 30)),
+    # Design_01
+    ((150, 70, 220), (200, 130, 255), (50, 30, 60), (195, 165, 135), (10, 10, 30)),
+    # Investigador
+    ((200, 170, 30), (255, 220, 50), (70, 50, 30), (205, 170, 140), (10, 10, 30)),
+    # OpenClaw_Bot
+    ((80, 80, 120), (0, 200, 255), (30, 30, 50), (150, 140, 130), (10, 10, 30)),
+]
+
+def build_sprites():
+    """Genera spritesheet de 6 agentes, 3 frames x 4 direcciones = 12 frames"""
+    # 6 agents, each 96px wide (3 frames x 32px), 128px tall (4 dirs x 32px)
+    img = Image.new("RGBA", (6*96, 128), (0,0,0,0))
+    d = ImageDraw.Draw(img)
+
+    draw_fns = [
+        (draw_agent, 0),      # down
+        (draw_agent_left, 32), # left
+        (draw_agent_right, 64),# right
+        (draw_agent_up, 96),   # up
+    ]
+
+    for agent_i, colors in enumerate(AGENT_COLORS):
+        base_x = agent_i * 96
+        for fn, y_off in draw_fns:
+            for frame in range(3):
+                # Slight variation per frame (arm position)
+                ox = base_x + frame * 32
+                oy = y_off
+                fn(d, ox, oy, *colors)
+                # Subtle frame variation
+                if frame == 1:
+                    # Slightly shifted arms
+                    pass
+
+    path = os.path.join(OUT, "public", "assets", "agent-sprites.png")
+    img.save(path)
+    print(f"Sprites saved: {path}")
+    return img
+
+# ================================================================
+# MAPA DEL HQ
+# ================================================================
+
+def build_map():
+    """
+    Mapa 45x36 tiles con 8 departamentos alrededor del quantum core.
+    Formato column-major: bgtiles[layer][x][y], objmap[layer][x][y]
+    """
+    W, H = 45, 36
+    bg = [[-1]*H for _ in range(W)]
+    obj = [[-1]*H for _ in range(W)]
+
+    # Background: fill all with tile 0 (dark floor)
+    for x in range(W):
+        for y in range(H):
+            bg[x][y] = 0
+
+    # Neon floor corridors (tile 1)
+    # Horizontal corridors
+    for x in range(W):
+        bg[x][17] = 1
+        bg[x][18] = 1
+    # Vertical corridors
+    for y in range(H):
+        bg[22][y] = 1
+
+    # Department walls (tile 20-27) — outer ring + department borders
+    # Outer walls
+    for x in range(3, 42):
+        obj[x][3] = 2    # top wall
+        obj[x][32] = 2   # bottom wall
+    for y in range(3, 33):
+        obj[3][y] = 2    # left wall
+        obj[41][y] = 2   # right wall
+
+    # Top-left: Agent Orchestration (tile 20)
+    for y in range(4, 12):
+        obj[9][y] = 20
+    for x in range(4, 10):
+        obj[x][4] = 20
+
+    # Top-center: Meeting Room (tile 27)
+    for y in range(4, 12):
+        obj[20][y] = 27
+        obj[35][y] = 27
+    for x in range(20, 36):
+        obj[x][4] = 27
+
+    # Top-right: Portal (tile 26)
+    for y in range(4, 12):
+        obj[36][y] = 26
+    for x in range(36, 41):
+        obj[x][4] = 26
+
+    # Mid-left top: App Factory (tile 21)
+    for y in range(12, 24):
+        obj[9][y] = 21
+    for x in range(4, 10):
+        obj[x][12] = 21
+
+    # Mid-right top: Learning Hub (tile 25)
+    for y in range(12, 24):
+        obj[36][y] = 25
+    for x in range(36, 41):
+        obj[x][12] = 25
+
+    # Mid-left bottom: Data & Analytics (tile 22)
+    for y in range(24, 32):
+        obj[9][y] = 22
+    for x in range(4, 10):
+        obj[x][31] = 22
+
+    # Mid-right bottom: Server Farm (tile 24)
+    for y in range(24, 32):
+        obj[36][y] = 24
+    for x in range(36, 41):
+        obj[x][31] = 24
+
+    # Bottom-center: Communication Hub (tile 23)
+    for y in range(24, 32):
+        obj[20][y] = 23
+        obj[35][y] = 23
+    for x in range(20, 36):
+        obj[x][31] = 23
+
+    # Central quantum core area — special floor
+    for x in range(18, 27):
+        for y in range(14, 22):
+            bg[x][y] = 1  # neon floor
+    # Quantum core markers
+    obj[22][17] = 7   # quantum hex (tile index 7 in row 1)
+    obj[22][18] = 7
+
+    # Hallway floors (tile 12 in row 3)
+    for x in range(10, 20):
+        bg[x][17] = 12
+        bg[x][18] = 12
+    for x in range(26, 36):
+        bg[x][17] = 12
+        bg[x][18] = 12
+
+    # Department furniture — servers in Server Farm
+    for y in range(25, 31):
+        obj[37][y] = 4  # server rack
+        obj[40][y] = 4
+
+    # Screens in Agent Orchestration
+    for y in range(5, 11):
+        obj[5][y] = 5  # screen
+        obj[8][y] = 5
+
+    # Desks in Meeting Room
+    for x in range(22, 34):
+        obj[x][7] = 6   # screen graph
+        obj[x][10] = 3   # desk
+
+    # Plants decoration
+    obj[4][4] = 10
+    obj[40][4] = 10
+    obj[4][31] = 10
+    obj[40][31] = 10
+    obj[18][14] = 10
+    obj[26][14] = 10
+    obj[18][21] = 10
+    obj[26][21] = 10
+
+    # Coffee station
+    obj[15][5] = 8  # portal/coffee
+    obj[30][5] = 8
+
+    path = os.path.join(OUT, "data", "quantumhive.js")
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("// QuantumHive HQ Map — Auto-generated\n")
         f.write('export const tilesetpath = "/ai-town/assets/quantumhive-tileset.png";\n')
-        f.write('export const tiledim = 32;\n')
-        f.write(f'export const screenxtiles = {w};\n')
-        f.write(f'export const screenytiles = {h};\n')
-        f.write(f'export const tilesetpxw = {16*T};\n')
-        f.write(f'export const tilesetpxh = {4*T};\n\n')
-        
-        # Column-major format: bgtiles[layer][x][y]
-        # BG layer 0: floor
-        f.write('export const bgtiles = [\n')
-        f.write('  [\n')
-        for x in range(w):
-            col = []
-            for y in range(h):
-                if x in [22,23] or y in [17,18]:
-                    col.append(1)
-                else:
-                    col.append(0)
-            f.write('   [' + ','.join(str(v) for v in col) + '],\n')
-        f.write('  ],\n')
-        # Layer 1: empty
-        f.write('  [\n')
-        for x in range(w):
-            f.write('   [' + ','.join(['-1']*h) + '],\n')
-        f.write('  ],\n')
-        f.write('];\n\n')
-        
-        # objmap - column-major
-        f.write('export const objmap = [\n')
-        f.write('  [\n')
-        for x in range(w):
-            col = []
-            for y in range(h):
-                val = -1
-                if y <= 3 or y >= h-4 or x <= 3 or x >= w-4:
-                    val = 2
-                elif y <= 5:
-                    if x < 13: val = 20
-                    elif x < 28: val = 21
-                    else: val = 22
-                elif y >= h-6:
-                    if x < 13: val = 26
-                    elif x < 28: val = 25
-                    else: val = 24
-                elif x <= 5 and 10 <= y <= 20:
-                    val = 27
-                elif x >= w-6 and 10 <= y <= 20:
-                    val = 23
-                col.append(val)
-            f.write('   [' + ','.join(str(v) for v in col) + '],\n')
-        f.write('  ],\n')
-        # Layer 2: empty
-        f.write('  [\n')
-        for x in range(w):
-            f.write('   [' + ','.join(['-1']*h) + '],\n')
-        f.write('  ],\n')
-        f.write('];\n\n')
-        
-        f.write('export const animatedsprites = [];\n\n')
-        f.write(f'export const mapwidth = bgtiles[0].length;\n')
-        f.write(f'export const mapheight = bgtiles[0][0].length;\n')
+        f.write(f"export const tiledim = {T};\n")
+        f.write(f"export const screenxtiles = {W};\n")
+        f.write(f"export const screenytiles = {H};\n")
+        f.write(f"export const tilesetpxw = {16*T};\n")
+        f.write(f"export const tilesetpxh = {4*T};\n\n")
+
+        def write_array(name, arr):
+            f.write(f"export const {name} = [\n")
+            for i, layer in enumerate(arr):
+                f.write("  [\n")
+                for row in layer:
+                    f.write("   " + str(row) + ",\n")
+                f.write("  ],\n")
+            f.write("];\n\n")
+
+        write_array("bgtiles", [bg])
+        write_array("objmap", [obj])
+
+        f.write("export const animatedsprites = [];\n\n")
+        f.write(f"export const mapwidth = bgtiles[0].length;\n")
+        f.write(f"export const mapheight = bgtiles[0][0].length;\n")
+
+    print(f"Map saved: {path}")
 
 # ================================================================
-# SPRITESHEET DATA TS files
+# SPRITESHEET DATA (.ts files)
 # ================================================================
-def gen_spritesheet_ts(name, col_idx):
-    """Generate a .ts file with spritesheet data for one agent"""
-    # Each agent is at column col_idx in the spritesheet
-    # 3 frames per direction, 4 directions
-    # Frame positions: x = col_idx*96 + frame*32, y = dir*32
-    frames = {}
-    animations = {}
-    
-    dirs = [("down",0),("left",1),("right",2),("up",3)]
-    for dir_name, dir_y in dirs:
-        dir_frames = []
-        for fi in range(3):
-            fname = f"{dir_name}{fi+1}" if fi > 0 else dir_name
-            x = col_idx * 96 + fi * 32
-            y = dir_y * 32
-            frames[fname] = {
-                "frame": {"x": x, "y": y, "w": 32, "h": 32},
-                "sourceSize": {"w": 32, "h": 32},
-                "spriteSourceSize": {"x": 0, "y": 0}
-            }
-            dir_frames.append(fname)
-        animations[dir_name] = dir_frames
-    
-    return f'''import {{ SpritesheetData }} from './types';
 
-export const data: SpritesheetData = {{
-  frames: {json.dumps(frames, indent=4)},
-  meta: {{
-    scale: '1',
-  }},
-  animations: {json.dumps(animations, indent=4)},
-}};
-'''
+def build_spritesheet_data():
+    """Genera archivos f1.ts a f6.ts con frame data"""
+    names = ["Hermes", "Dev_01", "Marketing_01", "Design_01", "Investigador", "OpenClaw_Bot"]
+    emojis = ["⚡", "💻", "📣", "🎨", "🔬", "🤖"]
+
+    for i in range(6):
+        base_x = i * 96
+        path = os.path.join(OUT, "data", "spritesheets", f"f{i+1}.ts")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write('import { SpritesheetData } from "./types";\n\n')
+            f.write(f'// {names[i]} ({emojis[i]}) — QuantumHive Agent\n')
+            f.write(f'export const spritesheetData: SpritesheetData = {{\n')
+            f.write(f'  "meta": {{ "image": "/ai-town/assets/agent-sprites.png", "size": {{ "w": 576, "h": 128 }} }},\n')
+            f.write(f'  "frames": {{\n')
+            for direction, y_off in [("down", 0), ("left", 32), ("right", 64), ("up", 96)]:
+                for frame in range(3):
+                    name = direction if frame == 0 else f"{direction}{frame+1}"
+                    fx = base_x + frame * 32
+                    fy = y_off
+                    f.write(f'    "{name}": {{ "frame": {{"x":{fx},"y":{fy},"w":32,"h":32}} }},\n')
+            f.write(f'  }},\n')
+            f.write(f'  "animations": {{\n')
+            for direction in ["down", "left", "right", "up"]:
+                frames = [direction] + [f"{direction}{j}" for j in range(2, 4)]
+                f.write(f'    "{direction}": {frames},\n')
+            f.write(f'  }},\n')
+            f.write(f'}};\n')
+        print(f"Spritesheet data saved: {path}")
 
 # ================================================================
 # MAIN
 # ================================================================
-def main():
-    print("=== QuantumHive Town — Generador Cyberpunk v2 ===\n")
-    
-    # 1. TILESET
-    print("[1/4] Generando tileset...")
-    tileset = Image.new("RGBA", (16*T, 4*T), (0,0,0,0))
-    td = ImageDraw.Draw(tileset)
-    
-    # Fila 0: suelos y paredes
-    tile_floor(td, 0*T, 0)        # 0
-    tile_floor_neon(td, 1*T, 0)   # 1
-    tile_wall(td, 2*T, 0)         # 2
-    tile_wall_gold(td, 3*T, 0)    # 3
-    tile_server(td, 4*T, 0)       # 4
-    tile_screen(td, 5*T, 0)       # 5
-    tile_screen_chart(td, 6*T, 0) # 6
-    tile_desk(td, 7*T, 0)         # 7
-    tile_chair(td, 8*T, 0)        # 8
-    tile_cable(td, 9*T, 0)        # 9
-    tile_plant(td, 10*T, 0)       # 10
-    tile_quantum(td, 11*T, 0)     # 11
-    tile_portal(td, 12*T, 0)      # 12
-    # Fila 0, cols 13-15: variaciones
-    tile_floor(td, 13*T, 0)
-    tile_floor_neon(td, 14*T, 0)
-    tile_wall(td, 15*T, 0)
-    
-    # Fila 1: mas objetos
-    tile_server(td, 0*T, T)      # 16
-    tile_screen(td, 1*T, T)      # 17
-    tile_screen_chart(td, 2*T, T)# 18
-    tile_desk(td, 3*T, T)        # 19
-    tile_chair(td, 4*T, T)       # 20
-    tile_cable(td, 5*T, T)       # 21
-    tile_plant(td, 6*T, T)       # 22
-    tile_quantum(td, 7*T, T)     # 23
-    tile_portal(td, 8*T, T)      # 24
-    tile_floor(td, 9*T, T)
-    tile_floor_neon(td, 10*T, T)
-    tile_wall(td, 11*T, T)
-    tile_wall_gold(td, 12*T, T)
-    tile_server(td, 13*T, T)
-    tile_screen(td, 14*T, T)
-    tile_desk(td, 15*T, T)
-    
-    # Fila 2: paredes de departamento
-    dept_list = ["orchestration","appfactory","analytics","comms","server","learning","portal","meeting"]
-    for i, dept in enumerate(dept_list):
-        tile_dept_wall(td, i*T, 2*T, DEPT_COLORS[dept])
-    # Rest of fila 2
-    for i in range(8, 16):
-        tile_floor(td, i*T, 2*T)
-    
-    # Fila 3: variaciones
-    for i in range(16):
-        tile_floor(td, i*T, 3*T)
-    
-    ts_path = os.path.join(OUT, "public", "assets", "quantumhive-tileset.png")
-    os.makedirs(os.path.dirname(ts_path), exist_ok=True)
-    tileset.save(ts_path)
-    print(f"   -> {ts_path} ({tileset.size[0]}x{tileset.size[1]})")
-    
-    # 2. SPRITES DE AGENTES
-    print("[2/4] Generando sprites de agentes...")
-    spritesheet = gen_spritesheet()
-    sp_path = os.path.join(OUT, "public", "assets", "agent-sprites.png")
-    spritesheet.save(sp_path)
-    print(f"   -> {sp_path} ({spritesheet.size[0]}x{spritesheet.size[1]})")
-    
-    # 3. SPRITESHEET DATA TS
-    print("[3/4] Generando spritesheet data...")
-    agents = list(AGENT_COLORS.keys())
-    ss_dir = os.path.join(OUT, "data", "spritesheets")
-    os.makedirs(ss_dir, exist_ok=True)
-    
-    agent_chars = ["f1","f2","f3","f4","f5","f6"]  # 6 agents
-    for i, (agent_name, char_name) in enumerate(zip(agents, agent_chars)):
-        ts_content = gen_spritesheet_ts(agent_name, i)
-        ts_file = os.path.join(ss_dir, f"{char_name}.ts")
-        with open(ts_file, "w") as f:
-            f.write(ts_content)
-        print(f"   -> {ts_file}")
-    
-    # 4. MAPA JS
-    print("[4/4] Generando mapa...")
-    MAP_W, MAP_H = 45, 36
-    map_path = os.path.join(OUT, "data", "quantumhive.js")
-    gen_map_js(map_path, MAP_W, MAP_H)
-    print(f"   -> {map_path}")
-    
-    # 5. MAPA VISUAL (preview PNG)
-    print("   Generando preview del mapa...")
-    map_img = Image.new("RGBA", (MAP_W*T, MAP_H*T), C["bg"])
-    md = ImageDraw.Draw(map_img)
-    
-    # Fondo
-    r(md, 0,0,MAP_W*T-1,MAP_H*T-1, C["bg"])
-    
-    # Suelo
-    for y in range(MAP_H):
-        for x in range(MAP_W):
-            tile_floor(md, x*T, y*T)
-    
-    # Neon paths
-    for x in range(MAP_W):
-        tile_floor_neon(md, x*T, 17*T)
-        tile_floor_neon(md, x*T, 18*T)
-    for y in range(MAP_H):
-        tile_floor_neon(md, 22*T, y*T)
-        tile_floor_neon(md, 23*T, y*T)
-    
-    # Quantum core centro
-    for dx in range(-4,5):
-        for dy in range(-4,5):
-            if abs(dx)+abs(dy) <= 5:
-                tile_quantum(md, (22+dx)*T, (18+dy)*T)
-    
-    # Dept walls
-    for x in range(2,13):
-        tile_dept_wall(md, x*T, 2*T, C["neon"])
-        tile_dept_wall(md, x*T, 3*T, C["neon"])
-    for y in range(2,10):
-        tile_dept_wall(md, 2*T, y*T, C["neon"])
-    
-    for x in range(16,28):
-        tile_dept_wall(md, x*T, 2*T, C["green"])
-        tile_dept_wall(md, x*T, 3*T, C["green"])
-    
-    for x in range(32,43):
-        tile_dept_wall(md, x*T, 2*T, C["gold"])
-        tile_dept_wall(md, x*T, 3*T, C["gold"])
-    
-    for y in range(10,20):
-        tile_dept_wall(md, 42*T, y*T, C["cyan"])
-        tile_dept_wall(md, 43*T, y*T, C["cyan"])
-    
-    for x in range(35,43):
-        tile_dept_wall(md, x*T, 30*T, C["blue"])
-        tile_dept_wall(md, x*T, 31*T, C["blue"])
-    for y in range(26,32):
-        tile_dept_wall(md, 42*T, y*T, C["blue"])
-        tile_dept_wall(md, 43*T, y*T, C["blue"])
-    
-    for x in range(16,28):
-        tile_dept_wall(md, x*T, 32*T, C["purple"])
-        tile_dept_wall(md, x*T, 33*T, C["purple"])
-    
-    for x in range(2,12):
-        tile_dept_wall(md, x*T, 32*T, C["gold"])
-        tile_dept_wall(md, x*T, 33*T, C["gold"])
-    for y in range(24,34):
-        tile_dept_wall(md, 2*T, y*T, C["gold"])
-        tile_dept_wall(md, 3*T, y*T, C["gold"])
-    
-    for y in range(10,20):
-        tile_dept_wall(md, 2*T, y*T, C["red"])
-        tile_dept_wall(md, 3*T, y*T, C["red"])
-    
-    # Muebles
-    for x in range(36,42):
-        for y in range(27,30):
-            tile_server(md, x*T, y*T)
-    for x in range(33,42,3):
-        tile_screen_chart(md, x*T, 4*T)
-    for x in range(17,27,3):
-        tile_desk(md, x*T, 5*T)
-        tile_chair(md, (x+1)*T, 5*T)
-    for x in range(4,10,3):
-        tile_portal(md, x*T, 28*T)
-    tile_screen(md, 4*T, 12*T)
-    tile_screen(md, 8*T, 12*T)
-    for x in range(5,40,4):
-        tile_cable(md, x*T, 17*T)
-    for pos in [(5,6),(10,6),(35,6),(40,6),(5,28),(10,28),(35,28),(40,28)]:
-        tile_plant(md, pos[0]*T, pos[1]*T)
-    
-    # Labels
-    try:
-        font = ImageFont.truetype("arial.ttf", 14)
-    except:
-        font = ImageFont.load_default()
-    
-    labels = [
-        (5,1,"AGENT ORCHESTRATION CENTER",C["neon"]),
-        (20,1,"APP FACTORY",C["green"]),
-        (35,1,"DATA & ANALYTICS LAB",C["gold"]),
-        (41,9,"COMMUNICATION HUB",C["cyan"]),
-        (36,25,"SERVER FARM",C["blue"]),
-        (20,31,"LEARNING & UPGRADE HUB",C["purple"]),
-        (4,31,"PORTAL / ENERGY CORE",C["gold"]),
-        (3,9,"MEETING & STRATEGY ROOM",C["red"]),
-    ]
-    for lx,ly,label,color in labels:
-        md.text((lx*T, ly*T), label, fill=color, font=font)
-    
-    cx,cy = 22*T, 18*T
-    md.text((cx-50, cy-20), "QUANTUMHIVE", fill=C["gold"], font=font)
-    md.text((cx-40, cy), "AI ORCHESTRATION", fill=C["neon"], font=font)
-    md.text((cx-20, cy+20), "IA TOWN", fill=C["cyan"], font=font)
-    
-    preview_path = os.path.join(OUT, "public", "assets", "quantumhive-hq-preview.png")
-    map_img.save(preview_path)
-    print(f"   -> {preview_path}")
-    
-    print("\n=== COMPLETADO ===")
-    print(f"Tileset: 16x4 tiles (64 tiles de 32x32)")
-    print(f"Agentes: {len(agents)} sprites ({spritesheet.size[0]}x{spritesheet.size[1]})")
-    print(f"Mapa: {MAP_W}x{MAP_H} tiles ({MAP_W*T}x{MAP_H*T} px)")
-    print(f"\nArchivos generados:")
-    print(f"  - public/assets/quantumhive-tileset.png")
-    print(f"  - public/assets/agent-sprites.png")
-    print(f"  - data/quantumhive.js")
-    print(f"  - data/spritesheets/f1-f6.ts (nuevos)")
-    print(f"  - public/assets/quantumhive-hq-preview.png")
 
 if __name__ == "__main__":
-    main()
+    print("=== QuantumHive Town Asset Generator ===")
+    build_tileset()
+    build_sprites()
+    build_map()
+    build_spritesheet_data()
+    print("=== All assets generated! ===")

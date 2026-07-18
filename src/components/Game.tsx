@@ -68,7 +68,7 @@ export default function Game({
         >
           <div className="absolute inset-0">
             <div className="container">
-              <Stage width={width} height={height} options={{ backgroundColor: 0x1a1a2e }}>
+              <Stage width={width} height={height} options={{ backgroundColor: 0x0a0a1a }}>
                 <ConvexProvider client={convex}>
                   <PixiGame
                     game={game}

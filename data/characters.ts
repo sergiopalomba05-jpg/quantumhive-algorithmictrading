@@ -1,9 +1,9 @@
-import { data as f1SpritesheetData } from './spritesheets/f1';
-import { data as f2SpritesheetData } from './spritesheets/f2';
-import { data as f3SpritesheetData } from './spritesheets/f3';
-import { data as f4SpritesheetData } from './spritesheets/f4';
-import { data as f5SpritesheetData } from './spritesheets/f5';
-import { data as f6SpritesheetData } from './spritesheets/f6';
+import { spritesheetData as f1SpritesheetData } from './spritesheets/f1';
+import { spritesheetData as f2SpritesheetData } from './spritesheets/f2';
+import { spritesheetData as f3SpritesheetData } from './spritesheets/f3';
+import { spritesheetData as f4SpritesheetData } from './spritesheets/f4';
+import { spritesheetData as f5SpritesheetData } from './spritesheets/f5';
+import { spritesheetData as f6SpritesheetData } from './spritesheets/f6';
 
 export const Descriptions = [
   {
