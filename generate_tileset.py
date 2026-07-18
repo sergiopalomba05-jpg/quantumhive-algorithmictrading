@@ -12,13 +12,13 @@ T = 32  # tile size
 # === PALETTA CYBERPUNK ===
 C = {
     "bg":        (10, 10, 26),
-    "floor1":    (18, 18, 38),
-    "floor2":    (22, 22, 45),
-    "floor3":    (26, 26, 52),
-    "floor_line":(30, 30, 58),
-    "wall_d":    (12, 12, 30),
-    "wall_m":    (20, 20, 42),
-    "wall_l":    (30, 30, 55),
+    "floor1":    (30, 30, 60),
+    "floor2":    (40, 40, 75),
+    "floor3":    (50, 50, 90),
+    "floor_line":(60, 60, 100),
+    "wall_d":    (20, 20, 50),
+    "wall_m":    (35, 35, 70),
+    "wall_l":    (50, 50, 85),
     "neon":      (0, 212, 255),
     "neon_d":    (0, 150, 200),
     "gold":      (255, 215, 0),
@@ -28,14 +28,14 @@ C = {
     "blue":      (0, 150, 255),
     "purple":    (180, 100, 255),
     "cyan":      (0, 255, 230),
-    "srv1":      (25, 25, 50),
-    "srv2":      (30, 30, 60),
-    "screen_bg": (5, 15, 35),
-    "desk":      (35, 30, 50),
-    "desk_t":    (45, 40, 60),
+    "srv1":      (40, 40, 80),
+    "srv2":      (50, 50, 95),
+    "screen_bg": (10, 25, 55),
+    "desk":      (55, 45, 75),
+    "desk_t":    (70, 60, 90),
     "white":     (220, 220, 230),
     "skin":      (200, 170, 140),
-    "shadow":    (5, 5, 15),
+    "shadow":    (10, 10, 25),
 }
 
 def r(d, x1,y1,x2,y2,c): d.rectangle([x1,y1,x2,y2], fill=c)
@@ -55,11 +55,13 @@ def tile_floor(d, ox, oy):
     for i in range(0,32,8):
         l(d, ox,oy+i,ox+31,oy+i, C["floor2"])
         l(d, ox+i,oy,ox+i,oy+31, C["floor2"])
+    # Center glow
+    r(d, ox+14,oy+14,ox+17,oy+17, C["floor3"])
 
 def tile_floor_neon(d, ox, oy):
     tile_floor(d, ox, oy)
     r(d, ox+14,oy+14,ox+17,oy+17, C["neon"])
-    for dx,dy in [(-1,0),(1,0),(0,-1),(0,1)]:
+    for dx,dy in [(-1,0),(1,0),(0,-1),(0,1),(-2,0),(2,0),(0,-2),(0,2)]:
         p(d, ox+15+dx, oy+15+dy, C["neon_d"])
 
 def tile_wall(d, ox, oy):
